@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+// CSD to MGR
+// CSD向MGR注册，并获取身份信息
+message MgrCsdRegisterReq
+{
+    string csd_name = 1;
+    uint64 size = 2;    //可视大小，这里指SSD的容量（B）
+    uint64 io_addr = 3; //数据平面 IO地址
+	uint64 admin_addr = 4;  //控制平面地址
+}
+
+message MgrCsdRegisterRes
+{
+    uint32 retcode = 1;
+    uint64 csd_id = 2;
+}
+
+// CSD主动注销
+message MgrCsdUnregisterReq
+{
+    uint64 csd_id = 1;
+}
+
+message MgrCsdUnregisterRes
+{
+    uint32 retcode = 1;
+}
+
+// CSD上线
+message MgrCsdSignUpReq
+{
+    uint64 csd_id = 1;
+    uint32 stat = 2;    //节点状态：DOWN/PAUSE/ACTIVE
+    uint64 io_addr = 3; //数据平面 IO地址
+	uint64 admin_addr = 4;  //控制平面地址
+}
+
+message MgrCsdSignUpRes
+{
+    uint32 retcode = 1;
+}
+
+// CSD下线（可能重新上线）
+message MgrCsdSignDownReq
+{
+    uint64 csd_id = 1;
+}
+
+message MgrCsdSignDownRes
+{
+    uint32 retcode = 1;
+}
+
+// 心跳
+message MgrCsdHeartBeatReq
+{
+    uint64 csd_id = 1;
+}
+
+message MgrCsdHeartBeatRes
+{
+    uint32 retcode = 1;
+}
+
+// CSD状态汇报（报告是否处于恢复状态等）
+message MgrCsdStatusReq
+{
+    uint64 csd_id = 1;
+    uint32 stat = 2;    //节点状态：DOWN/PAUSE/ACTIVE
+}
+
+message MgrCsdStatusRes
+{
+    uint32 retcode = 1;
+}
+
+// 健康信息报告（CSD为单位/Chunk为单位）
+message ChunkHealthItem
+{
+    uint64 chk_id = 1;  //Chunk ID
+	uint64 cg_id = 2;   //Chunk Group ID
+	uint32 stat = 3;    //CSD状态
+    uint64 dst_used = 4;    //目标CSD已分配空间
+    uint64 valid_used = 5;  //有效已使用的空间，针对迁移场景（B）
+    uint64 last_time = 6;   //上一次监控记录时间
+    uint64 last_write = 7;  //上一个监控周期写次数
+    uint64 last_read = 8;   //上一个监控周期读次数
+    uint64 last_latency = 9;    //上一个监控周期平均延迟（ns）
+    uint64 last_alloc = 10; //上一个监控周期新分配的空间（B）
+}
+message MgrCsdHealthReq
+{
+    uint64 csd_id = 1;
+    uint64 alloced = 2; //需要分配的空间（B）
+    uint64 used = 3;    //实际已使用的空间（B）
+    uint64 last_time = 4;   //最后一次监控记录时间
+    uint64 last_write = 5;  //上一个监控周期写次数
+    uint64 last_read = 6;   //上一个监控周期读次数
+    uint64 last_latency = 7;    //上一个监控周期平均延迟（ns）
+    uint64 last_allocated = 8;  //上一个监控周期新分配的空间（B）
+    repeated ChunkHealthItem chunk_health = 9;
+}
+
+message MgrCsdHealthRes
+{
+    uint32 retcode = 1;
+}
+
+// 拉取相关chunk信息
+message MgrCsdPullReq
+{
+	    repeated uint64 cgid_list = 1;  //Chunk Group ID
+}
+
+message ChunkCgItem
+{
+    uint64 cg_id = 1;
+    uint64 chk_id = 2;  //Chunk ID
+    uint64 csd_id = 3;  //当前所在CSD ID
+    uint64 dst_id = 4;  //目标CSD ID（迁移）
+}
+
+message MgrCsdPullRes
+{
+    repeated ChunkCgItem cgitem_list = 1;
+}
+
+//推送相关chunk信息
+message CsdPushItem
+{
+    uint64 chk_id = 1;  //Chunk ID
+	uint64 cg_id = 2;   //Chunk Group ID
+	uint64 parent = 3;  //为快照和CoW准备
+	uint64 size = 4;    //可视大小（B）
+	uint32 stat = 5;    //CSD状态
+	uint64 csd_id = 6;  //当前所在CSD ID
+	uint64 csd_mtime = 7;   //当前所在CSD的映射时间
+	uint64 dst_id = 8;  //目标CSD ID（迁移）
+    uint64 dst_ctime = 9;   //目标CSD 映射时间（迁移的开始时间）
+    uint64 dst_used = 10;   //目标CSD已分配空间
+    uint64 used = 11;   //实际已使用的空间（B）
+    uint64 valid_used = 12; //有效已使用的空间，针对迁移场景（B）
+}
+
+message MgrCsdPushReq
+{
+    uint32 flag = 1;    //0 全部；1 迁移完成
+    repeated CsdPushItem chunk_list = 2;
+}
+
+message MgrCsdPushRes
+{
+    uint32 retcode = 1;
+}
+
+
+service MgrCsdService
+{
+    // CSD
+    rpc MgrCsdRegister(MgrCsdRegisterReq) returns (MgrCsdRegisterRes) {}
+    rpc MgrCsdUnregister(MgrCsdUnregisterReq) returns (MgrCsdUnregisterRes) {}
+    rpc MgrCsdSignUp(MgrCsdSignUpReq) returns (MgrCsdSignUpRes) {}
+    rpc MgrCsdSignDown(MgrCsdSignDownReq) returns (MgrCsdSignDownRes) {}
+    rpc MgrCsdHeartBeat(MgrCsdHeartBeatReq) returns (MgrCsdHeartBeatRes) {}
+    rpc MgrCsdStatus(MgrCsdStatusReq) returns (MgrCsdStatusRes) {}
+    rpc MgrCsdHealth(MgrCsdHealthReq) returns (MgrCsdHealthRes) {}
+    rpc MgrCsdPull(MgrCsdPullReq) returns (MgrCsdPullRes) {}
+    rpc MgrCsdPush(MgrCsdPushReq) returns (MgrCsdPushRes) {}
+}
