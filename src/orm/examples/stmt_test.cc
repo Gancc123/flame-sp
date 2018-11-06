@@ -1,6 +1,6 @@
-#include "stmt.h"
-#include "cols.h"
-#include "opts.h"
+#include "../stmt.h"
+#include "../cols.h"
+#include "../opts.h"
 
 #include <iostream>
 

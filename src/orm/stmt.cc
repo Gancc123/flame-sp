@@ -99,9 +99,9 @@ std::string SelectStmt::to_str() const {
         stmt += " * ";
     } else {
         stmt += cols_;
-        stmt += " FROM ";
-        stmt += tables_;
     }
+    stmt += " FROM ";
+    stmt += tables_;
     if (!joins_.empty()) {
         stmt += " ";
         stmt += joins_;
