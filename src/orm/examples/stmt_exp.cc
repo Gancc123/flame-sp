@@ -1,12 +1,23 @@
-#include "../stmt.h"
-#include "../cols.h"
-#include "../opts.h"
+#include "orm/stmt.h"
+#include "orm/cols.h"
+#include "orm/opts.h"
 
 #include <iostream>
 
 using namespace std;
 namespace fm = flame::orm;
 
+/**
+ * 定义一个表（Table），用于生成相应的SQL语句
+ * 通过继承 flame::orm::Table（orm/stmt.h）来构建一个表， 
+ * 并调用flame::orm::Table构造函数，且需要提供表名。
+ * 
+ * 表项的类型定义在(orm/cols.h),可以采用C++99在构造函数初始化列表去初始化表项，
+ * 但是采用C++11的方式会更简洁明了。
+ * 
+ * 在表的类中定义方法并不是硬性要求，只有构造函数与表项是需要按要求定义的，
+ * 其他一切特性都可以按C++的语义去定义。
+ */
 class CSDTable final : public fm::Table {
 public:
     CSDTable() : fm::Table("flm_csd") {}
