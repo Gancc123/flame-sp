@@ -7,29 +7,97 @@
 namespace flame {
 namespace orm {
 
+class IntColumn : public Column {
+public:
+    virtual ~IntColumn() {}
+
+protected:
+    IntColumn(Table* parent, 
+        const std::string& col_name,
+        const std::string& type_name,
+        uint32_t flags,
+        const std::string& def,
+        const std::string& extra = "")
+        : Column(parent, col_name, type_name, flags, def, extra) 
+    {
+        // nothing
+    }
+}; // class IntColumn
+
+class UIntColumn : public Column {
+public:
+    virtual ~UIntColumn() {}
+
+protected:
+    UIntColumn(Table* parent, 
+        const std::string& col_name,
+        const std::string& type_name,
+        uint32_t flags,
+        const std::string& def,
+        const std::string& extra = "")
+        : Column(parent, col_name, type_name, flags, def, extra) 
+    {
+        // nothing
+    }
+}; // class UIntColumn
+
+class DecimalColumn : public Column {
+public:
+    virtual ~DecimalColumn() {}
+
+protected:
+    DecimalColumn(Table* parent, 
+        const std::string& col_name,
+        const std::string& type_name,
+        uint32_t flags,
+        const std::string& def,
+        const std::string& extra = "")
+        : Column(parent, col_name, type_name, flags, def, extra) 
+    {
+        // nothing
+    }
+}; // class DecimalColumn
+
+class StringColumn : public Column {
+public:
+    virtual ~StringColumn() {}
+
+protected:
+    StringColumn(Table* parent, 
+        const std::string& col_name,
+        const std::string& type_name,
+        uint32_t flags,
+        const std::string& def,
+        const std::string& extra = "")
+        : Column(parent, col_name, type_name, flags, def, extra) 
+    {
+        // nothing
+    }
+}; // class StringColumn
+
 /**
  * TINYINT
  */
-class TinyIntCol : public Column {
+class TinyIntCol : public IntColumn {
 public:
     TinyIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags,
         int8_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "TINYINT", flags, convert2string(def), extra) 
+        : IntColumn(parent, col_name, "TINYINT", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     TinyIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "TINYINT", flags, "", "") 
+        : IntColumn(parent, col_name, "TINYINT", flags, "", "") 
     {
         // nothing
     }
 
     TinyIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "TINYINT", ColFlag::NONE, "", "") 
+        : IntColumn(parent, col_name, "TINYINT", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -40,26 +108,26 @@ public:
 /**
  * TINYINT UNSIGNED
  */
-class UTinyIntCol : public Column {
+class UTinyIntCol : public UIntColumn {
 public:
     UTinyIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags,
         uint8_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "TINYINT UNSIGNED", flags, convert2string(def), extra) 
+        : UIntColumn(parent, col_name, "TINYINT UNSIGNED", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     UTinyIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "TINYINT UNSIGNED", flags, "", "") 
+        : UIntColumn(parent, col_name, "TINYINT UNSIGNED", flags, "", "") 
     {
         // nothing
     }
 
     UTinyIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "TINYINT UNSIGNED", ColFlag::NONE, "", "") 
+        : UIntColumn(parent, col_name, "TINYINT UNSIGNED", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -70,26 +138,26 @@ public:
 /**
  * SMALLINT
  */
-class SmallIntCol : public Column {
+class SmallIntCol : public IntColumn {
 public:
     SmallIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags,
         int16_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "SMALLINT", flags, convert2string(def), extra) 
+        : IntColumn(parent, col_name, "SMALLINT", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     SmallIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "SMALLINT", flags, "", "") 
+        : IntColumn(parent, col_name, "SMALLINT", flags, "", "") 
     {
         // nothing
     }
 
     SmallIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "SMALLINT", ColFlag::NONE, "", "") 
+        : IntColumn(parent, col_name, "SMALLINT", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -100,26 +168,26 @@ public:
 /**
  * SAMLLINT UNSIGNED
  */
-class USmallIntCol : public Column {
+class USmallIntCol : public UIntColumn {
 public:
     USmallIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags, 
         uint16_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "SMALLINT UNSIGNED", flags, convert2string(def), extra) 
+        : UIntColumn(parent, col_name, "SMALLINT UNSIGNED", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     USmallIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "SMALLINT UNSIGNED", flags, "", "") 
+        : UIntColumn(parent, col_name, "SMALLINT UNSIGNED", flags, "", "") 
     {
         // nothing
     }
 
     USmallIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "SMALLINT UNSIGNED", ColFlag::NONE, "", "") 
+        : UIntColumn(parent, col_name, "SMALLINT UNSIGNED", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -130,26 +198,26 @@ public:
 /**
  * INT
  */
-class IntCol : public Column {
+class IntCol : public IntColumn {
 public:
     IntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags, 
         int32_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "TINYINT", flags, convert2string(def), extra) 
+        : IntColumn(parent, col_name, "TINYINT", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     IntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "TINYINT", flags, "", "") 
+        : IntColumn(parent, col_name, "TINYINT", flags, "", "") 
     {
         // nothing
     }
 
     IntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "TINYINT", ColFlag::NONE, "", "") 
+        : IntColumn(parent, col_name, "TINYINT", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -160,26 +228,26 @@ public:
 /**
  * INT UNSIGNED
  */
-class UIntCol : public Column {
+class UIntCol : public UIntColumn {
 public:
     UIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags, 
         uint32_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "INT", flags, convert2string(def), extra) 
+        : UIntColumn(parent, col_name, "INT", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     UIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "INT", flags, "", "") 
+        : UIntColumn(parent, col_name, "INT", flags, "", "") 
     {
         // nothing
     }
 
     UIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "INT", ColFlag::NONE, "", "") 
+        : UIntColumn(parent, col_name, "INT", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -190,26 +258,26 @@ public:
 /**
  * BIGINT
  */
-class BigIntCol : public Column {
+class BigIntCol : public IntColumn {
 public:
     BigIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags,
         int64_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "BIGINT", flags, convert2string(def), extra) 
+        : IntColumn(parent, col_name, "BIGINT", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     BigIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "BIGINT", flags, "", "") 
+        : IntColumn(parent, col_name, "BIGINT", flags, "", "") 
     {
         // nothing
     }
 
     BigIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "BIGINT", ColFlag::NONE, "", "") 
+        : IntColumn(parent, col_name, "BIGINT", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -220,26 +288,26 @@ public:
 /**
  * BIGINT UNSIGNED
  */
-class UBigIntCol : public Column {
+class UBigIntCol : public UIntColumn {
 public:
     UBigIntCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags, 
         uint64_t def,
         const std::string& extra = "")
-        : Column(parent, col_name, "BIGINT UNSIGNED", flags, convert2string(def), extra) 
+        : UIntColumn(parent, col_name, "BIGINT UNSIGNED", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     UBigIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "BIGINT UNSIGNED", flags, "", "") 
+        : UIntColumn(parent, col_name, "BIGINT UNSIGNED", flags, "", "") 
     {
         // nothing
     }
 
     UBigIntCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "BIGINT UNSIGNED", ColFlag::NONE, "", "") 
+        : UIntColumn(parent, col_name, "BIGINT UNSIGNED", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -250,26 +318,26 @@ public:
 /**
  * DOUBLE
  */
-class DoubleCol : public Column {
+class DoubleCol : public DecimalColumn {
 public:
     DoubleCol(Table* parent, 
         const std::string& col_name,
         uint32_t flags,
         double def,
         const std::string& extra = "")
-        : Column(parent, col_name, "DOUBLE", flags, convert2string(def), extra) 
+        : DecimalColumn(parent, col_name, "DOUBLE", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     DoubleCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : Column(parent, col_name, "DOUBLE", flags, "", "") 
+        : DecimalColumn(parent, col_name, "DOUBLE", flags, "", "") 
     {
         // nothing
     }
 
     DoubleCol(Table* parent, const std::string& col_name)
-        : Column(parent, col_name, "DOUBLE", ColFlag::NONE, "", "") 
+        : DecimalColumn(parent, col_name, "DOUBLE", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -280,7 +348,7 @@ public:
 /**
  * STRING
  */
-class StringCol : public Column {
+class StringCol : public StringColumn {
 public:
     StringCol(Table* parent, 
         const std::string& col_name,
@@ -288,7 +356,7 @@ public:
         uint32_t flags,
         const StringVal& def,
         const std::string& extra = "")
-        : Column(parent, col_name, 
+        : StringColumn(parent, col_name, 
             string_concat({"VARCHAR(", convert2string(len), ")"}), 
             flags, def.empty() ? "" : def.to_str(), extra) 
     {

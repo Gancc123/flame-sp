@@ -6,6 +6,7 @@
 #include <initializer_list>
 
 #include "util/str_util.h"
+#include "util/clog.h"
 
 namespace flame {
 namespace orm {
@@ -32,6 +33,11 @@ public:
 
     void append_extra(const std::string& str) { extra_.push_back(str); }
     void append_footer(const std::string& str) { string_append(footer_, ' ', str); }
+
+    Table(const Table&) = default;
+    Table(Table&&) = default;
+    Table& operator=(const Table&) = default;
+    Table& operator=(Table&&) = default;
 
     friend class Column;
 
@@ -65,8 +71,8 @@ public:
         uint32_t flags, 
         const std::string& def = "",
         const std::string& extra = "") 
-        : parent_(parent), col_name_(col_name), type_name_(type_name),
-        flags_(flags), defalut_(def), extra_(extra)
+    : parent_(parent), col_name_(col_name), type_name_(type_name),
+    flags_(flags), defalut_(def), extra_(extra)
     {
         parent_->register_col_(this);
     }
@@ -74,9 +80,19 @@ public:
 
     std::string col_name() const { return col_name_; }
     std::string type_name() const { return type_name_; }
-    std::string full_name() const { return parent_->__table_name__ + "." + col_name_; }
+    std::string full_name() const { 
+        return parent_ == nullptr ? 
+            col_name_ : parent_->__table_name__ + "." + col_name_; 
+    }
     std::string flags() const;
     std::string to_str() const;
+    
+    virtual Column as(const std::string& name) { return Column(name); }
+
+    Column(const Column&) = default;
+    Column(Column&&) = default;
+    Column& operator=(const Column&) = default;
+    Column& operator=(Column&&) = default;
 
 protected:
     Table* parent_;
@@ -85,6 +101,9 @@ protected:
     uint32_t flags_;
     std::string defalut_;
     std::string extra_;
+
+private:
+    Column(const std::string& col_name) : parent_(nullptr), col_name_(col_name) {}
 }; // class Col
 
 class Value {
@@ -541,11 +560,6 @@ public:
         return *this;
     }
 
-    enum Order {
-        ASC = 0,
-        DESC = 1
-    };
-
     UpdateStmt& order_by(const ColumnStmt& col, int order = Order::ASC);
 
     UpdateStmt& limit(size_t n) { 
@@ -592,11 +606,6 @@ public:
             where(*it);
         return *this;
     }
-
-    enum Order {
-        ASC = 0,
-        DESC = 1
-    };
 
     DeleteStmt& order_by(const ColumnStmt& col, int order = Order::ASC);
 
