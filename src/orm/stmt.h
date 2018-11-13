@@ -353,7 +353,7 @@ public:
         return *this;
     }
 
-    SelectStmt& column(const std::initializer_list<const ColumnStmt>& cols) {
+    SelectStmt& column(const std::initializer_list<ColumnStmt>& cols) {
         for (auto it = cols.begin(); it != cols.end(); it++)
             column(*it);
         return *this;
@@ -364,7 +364,7 @@ public:
         return *this;
     }
 
-    SelectStmt& table(const std::initializer_list<const TableStmt>& tbls) {
+    SelectStmt& table(const std::initializer_list<TableStmt>& tbls) {
         for (auto it = tbls.begin(); it != tbls.end(); it++)
             table(*it);
         return *this;
@@ -397,7 +397,7 @@ public:
 
     SelectStmt& where(const CondStmt& cond);
 
-    SelectStmt& where(const std::initializer_list<const CondStmt>& conds) {
+    SelectStmt& where(const std::initializer_list<CondStmt>& conds) {
         for (auto it = conds.begin(); it != conds.end(); it++)
             where(*it);
         return *this;
@@ -408,7 +408,7 @@ public:
         return *this;
     }
 
-    SelectStmt& group_by(const std::initializer_list<const ColumnStmt>& cols) {
+    SelectStmt& group_by(const std::initializer_list<ColumnStmt>& cols) {
         for (auto it = cols.begin(); it != cols.end(); it++)
             group_by(*it);
         return *this;
@@ -419,7 +419,7 @@ public:
         return *this;
     }
 
-    SelectStmt& having(const std::initializer_list<const CondStmt>& conds) {
+    SelectStmt& having(const std::initializer_list<CondStmt>& conds) {
         for (auto it = conds.begin(); it != conds.end(); it++) 
             having(*it);
         return *this;
@@ -481,7 +481,7 @@ public:
         return *this;
     }
 
-    InsertStmt& column(const std::initializer_list<const ColumnStmt>& cols) {
+    InsertStmt& column(const std::initializer_list<ColumnStmt>& cols) {
         for (auto it = cols.begin(); it != cols.end(); it++)
             column(*it);
         return *this;
@@ -492,7 +492,7 @@ public:
         return *this;
     }
 
-    InsertStmt& value(const std::initializer_list<const ValueStmt>& vals) {
+    InsertStmt& value(const std::initializer_list<ValueStmt>& vals) {
         for (auto it = vals.begin(); it != vals.end(); it++)
             value(*it);
         return *this;
@@ -535,7 +535,7 @@ public:
         return *this;
     }
 
-    UpdateStmt& table(const std::initializer_list<const TableStmt>& tbls) {
+    UpdateStmt& table(const std::initializer_list<TableStmt>& tbls) {
         for (auto it = tbls.begin(); it != tbls.end(); it++)
             table(*it);
         return *this;
@@ -546,7 +546,7 @@ public:
         return *this;
     }
 
-    UpdateStmt& assign(const std::initializer_list<const AssignStmt>& stmts) {
+    UpdateStmt& assign(const std::initializer_list<AssignStmt>& stmts) {
         for (auto it = stmts.begin(); it != stmts.end(); it++)
             assign(*it);
         return *this;
@@ -554,7 +554,7 @@ public:
 
     UpdateStmt& where(const CondStmt& cond);
 
-    UpdateStmt& where(const std::initializer_list<const CondStmt>& conds) {
+    UpdateStmt& where(const std::initializer_list<CondStmt>& conds) {
         for (auto it = conds.begin(); it != conds.end(); it++) 
             where(*it);
         return *this;
@@ -601,7 +601,7 @@ public:
 
     DeleteStmt& where(const CondStmt& cond);
 
-    DeleteStmt& where(const std::initializer_list<const CondStmt>& conds) {
+    DeleteStmt& where(const std::initializer_list<CondStmt>& conds) {
         for (auto it = conds.begin(); it != conds.end(); it++)
             where(*it);
         return *this;

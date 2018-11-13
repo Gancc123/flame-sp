@@ -20,9 +20,8 @@ public:
         if (res && res->OK()) {
             shared_ptr<form::DataSet> ds = res->data_set();
             for (auto it = ds->cbegin(); it != ds->cend(); it++) {
-                for (int i = 0; i < ds->cols(); i++) {
-                    li.push_back(it->get_int(i));
-                }
+                li.push_back(it->get(a));
+                li.push_back(it->get(b));
             }
         }
         return li;

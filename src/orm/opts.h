@@ -4,6 +4,8 @@
 #include "stmt.h"
 #include "value.h"
 
+#include <initializer_list>
+#include <list>
 namespace flame {
 namespace orm {
 
@@ -127,6 +129,16 @@ inline CondStmt is_null_(const ColumnStmt& col) {
 
 inline CondStmt not_null_(const ColumnStmt& col) {
     return CondStmt(string_concat({col.to_str(), " IS NOT NULL"}));
+}
+
+inline CondStmt in_(const ColumnStmt& col, const std::list<ValueStmt>& vals) {
+    std::string stmt = string_concat({col.to_str(), " IN ("});
+    for (auto it = vals.begin(); it != vals.end(); it++) {
+        if (it == vals.begin()) stmt += it->to_str();
+        else string_append(stmt, ", ", it->to_str());
+    }
+    stmt += ")";
+    return CondStmt(stmt);
 }
 
 /**

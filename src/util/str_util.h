@@ -39,7 +39,7 @@ inline void string_append(std::string& str, const std::string& separator, const 
     str.append(tail);
 }
 
-inline std::string string_concat(const std::initializer_list<const std::string>& strs) {
+inline std::string string_concat(const std::initializer_list<std::string>& strs) {
     std::string res;
     for (auto it = strs.begin(); it != strs.end(); it++)
         res.append(*it);
