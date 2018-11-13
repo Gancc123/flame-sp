@@ -3,6 +3,7 @@
 #include "orm/opts.h"
 
 #include <iostream>
+#include <list>
 
 using namespace std;
 using namespace flame::orm;
@@ -105,6 +106,13 @@ int main() {
     cout << not_like_(vg_tbl.name, "*sm*").to_str() << endl;
     cout << glob_(vg_tbl.name, "**Big*").to_str() << endl;
     cout << not_glob_(vg_tbl.name, "**SM*").to_str() << endl;
+    cout << in_(vg_tbl.name, {1, 2, 12.5, "123"}).to_str() << endl;
+    list<ValueStmt> li;
+    li.push_back(3);
+    li.push_back(4);
+    li.push_back(34.6);
+    li.push_back("456");
+    cout << in_(vg_tbl.name, li).to_str() << endl;
     cout << (vg_tbl.name == 100).to_str() << endl;
     cout << (vg_tbl.name != 100).to_str() << endl;
     cout << (vg_tbl.name > 100).to_str() << endl;

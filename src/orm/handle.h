@@ -39,13 +39,13 @@ public:
     std::shared_ptr<Result> exec() override { return engine_->execute(stmt); }
 
     SelectHandle& column(const ColumnStmt& col) { stmt.column(col); return *this; }
-    SelectHandle& column(const std::initializer_list<const ColumnStmt>& cols) {
+    SelectHandle& column(const std::initializer_list<ColumnStmt>& cols) {
         stmt.column(cols);
         return *this;
     }
 
     SelectHandle& table(const TableStmt& tbl) { stmt.table(tbl); return *this; }
-    SelectHandle& table(const std::initializer_list<const TableStmt>& tbls) {
+    SelectHandle& table(const std::initializer_list<TableStmt>& tbls) {
         stmt.table(tbls);
         return *this;
     }
@@ -81,19 +81,19 @@ public:
     }
 
     SelectHandle& where(const CondStmt& cond) { stmt.where(cond); return *this; }
-    SelectHandle& where(const std::initializer_list<const CondStmt>& conds) {
+    SelectHandle& where(const std::initializer_list<CondStmt>& conds) {
         stmt.where(conds);
         return *this;
     }
 
     SelectHandle& group_by(const ColumnStmt& col) { stmt.group_by(col); return *this; }
-    SelectHandle& group_by(const std::initializer_list<const ColumnStmt>& cols) {
+    SelectHandle& group_by(const std::initializer_list<ColumnStmt>& cols) {
         stmt.group_by(cols);
         return *this;
     }
 
     SelectHandle& having(const CondStmt& cond) { stmt.having(cond); return *this; }
-    SelectHandle& having(const std::initializer_list<const CondStmt>& conds) {
+    SelectHandle& having(const std::initializer_list<CondStmt>& conds) {
         stmt.having(conds);
         return *this;
     }
@@ -120,13 +120,13 @@ public:
     InsertHandle& table(const TableStmt& tbl) { stmt.table(tbl); return *this; }
 
     InsertHandle& column(const ColumnStmt& col) { stmt.column(col); return *this; }
-    InsertHandle& column(const std::initializer_list<const ColumnStmt>& cols) {
+    InsertHandle& column(const std::initializer_list<ColumnStmt>& cols) {
         stmt.column(cols);
         return *this;
     }
 
     InsertHandle& value(const ValueStmt& val) { stmt.value(val); return *this; }
-    InsertHandle& value(const std::initializer_list<const ValueStmt>& vals) {
+    InsertHandle& value(const std::initializer_list<ValueStmt>& vals) {
         stmt.value(vals);
         return *this;
     }
@@ -146,19 +146,19 @@ public:
     std::shared_ptr<Result> exec() override { return engine_->execute(stmt); }
 
     UpdateHandle& table(const TableStmt& tbl) { stmt.table(tbl); return *this; }
-    UpdateHandle& table(const std::initializer_list<const TableStmt>& tbls) {
+    UpdateHandle& table(const std::initializer_list<TableStmt>& tbls) {
         stmt.table(tbls);
         return *this;
     }
 
     UpdateHandle& assign(const AssignStmt& ass) { stmt.assign(ass); return *this; }
-    UpdateHandle& assign(const std::initializer_list<const AssignStmt>& stmts) {
+    UpdateHandle& assign(const std::initializer_list<AssignStmt>& stmts) {
         stmt.assign(stmts);
         return *this;
     }
 
     UpdateHandle& where(const CondStmt& cond) { stmt.where(cond); return *this; }
-    UpdateHandle& where(const std::initializer_list<const CondStmt>& conds) {
+    UpdateHandle& where(const std::initializer_list<CondStmt>& conds) {
         stmt.where(conds);
         return *this;
     }
@@ -185,7 +185,7 @@ public:
     DeleteHandle& table(const TableStmt& tbl) { stmt.table(tbl); return *this; }
 
     DeleteHandle& where(const CondStmt& cond) { stmt.where(cond); return *this; }
-    DeleteHandle& where(const std::initializer_list<const CondStmt>& conds) {
+    DeleteHandle& where(const std::initializer_list<CondStmt>& conds) {
         stmt.where(conds);
         return *this;
     }
