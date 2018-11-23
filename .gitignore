@@ -1,0 +1,3 @@
+.vscode/
+*.pb.h
+*.pb.cc

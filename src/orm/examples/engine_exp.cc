@@ -29,7 +29,8 @@ public:
 }; // class TestTbl
 
 int main() {
-    shared_ptr<form::DBEngine> engine = form::DBEngine::create_engine("mysql://flame:123456@127.0.0.1:3306/flame_mgr_db");
+    shared_ptr<form::DBEngine> engine 
+        = form::DBEngine::create_engine("mysql://flame:123456@127.0.0.1:3306/flame_mgr_db");
     if (!engine) {
         cout << "connect faild" << endl;
         return 0;

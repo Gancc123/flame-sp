@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-// GW to MGR
-// GW与集群建立连接；在MGR登记GW信息，并返回集群配置信息
+//GW to MGR
+//GW与集群建立连接；在MGR登记GW信息，并返回集群配置信息
 message MgrGwConnectReq
 {
-    uint64 gw_id = 1;   //GateWay ID
-	uint64 admin_addr = 2;  //控制平面地址，用于接收主动推送的信息
+    uint64 gw_id = 1;//GateWay ID
+	uint64 admin_addr = 2;//控制平面地址，用于接收主动推送的信息
 }
 
 message MgrGwConnectRes
@@ -13,10 +13,10 @@ message MgrGwConnectRes
     uint32 retcode = 1;
 }
 
-// 安全关闭一个GW连接
+//安全关闭一个GW连接
 message MgrGwDisconnectReq
 {
-    uint64 gw_id = 1;   //GateWay ID
+    uint64 gw_id = 1;//GateWay ID
 }
 
 message MgrGwDisconnectRes
@@ -24,10 +24,10 @@ message MgrGwDisconnectRes
     uint32 retcode = 1;
 }
 
-// 获取集群信息
+//获取集群信息
 message MgrGwClusterInfoReq
 {
-    uint64 gw_id = 1;   //GateWay ID
+    uint64 gw_id = 1;//GateWay ID
 }
 
 message MgrGwClusterInfoRes
@@ -35,10 +35,10 @@ message MgrGwClusterInfoRes
     uint32 retcode = 1;
 }
 
-// 安全关闭集群，逐步关闭GW连接、CSD服务和MGR服务
+//安全关闭集群，逐步关闭GW连接、CSD服务和MGR服务
 message MgrGwClusterShutdownReq
 {
-    uint64 gw_id = 1;   //GateWay ID
+    uint64 gw_id = 1;//GateWay ID
 }
 
 message MgrGwClusterShutdownRes
@@ -46,10 +46,10 @@ message MgrGwClusterShutdownRes
     uint32 retcode = 1;
 }
 
-// 清理集群数据
+//清理集群数据
 message MgrGwClusterCleanReq
 {
-    uint64 gw_id = 1;   //GateWay ID
+    uint64 gw_id = 1;//GateWay ID
 }
 
 message MgrGwClusterCleanRes
@@ -57,7 +57,7 @@ message MgrGwClusterCleanRes
     uint32 retcode = 1;
 }
 
-// 获取节点地址信息
+//获取节点地址信息
 message MgrGwNodeRouteReq
 {
     repeated uint64 csdid_list = 1;
@@ -66,8 +66,8 @@ message MgrGwNodeRouteReq
 message CSDRouteItem
 {
     uint64 csd_id = 1;
-    uint64 io_addr = 2; //数据平面 IO地址
-    uint32 stat = 3;    //节点状态：DOWN/PAUSE/ACTIVE
+    uint64 io_addr = 2;//数据平面 IO地址
+    uint32 stat = 3;//节点状态：DOWN/PAUSE/ACTIVE
 }
 
 message MgrGwNodeRouteRes
@@ -75,8 +75,8 @@ message MgrGwNodeRouteRes
     repeated CSDRouteItem csd_list = 1;
 }
 
-// Group
-// 列出所有的组
+//Group
+//列出所有的组
 message MgrGroupListReq
 {
     uint32 limit = 1;
@@ -84,13 +84,13 @@ message MgrGroupListReq
 
 message GroupListItem
 {
-    uint64 vg_id = 1;   //volume group id
+    uint64 vg_id = 1;//volume group id
 	string vg_name = 2;
-	uint64 ctime = 3;   //创建时间
-	uint32 volumes = 4; //volume个数
-	uint64 size = 5;    //总大小
-    uint64 alloced = 6; //已分配空间
-    uint64 used = 7;    //实际已占用空间（B）
+	uint64 ctime = 3;//创建时间
+	uint32 volumes = 4;//volume个数
+	uint64 size = 5;//总大小
+    uint64 alloced = 6;//已分配空间
+    uint64 used = 7;//实际已占用空间（B）
 }
 
 message MgrGroupListRes
@@ -98,7 +98,7 @@ message MgrGroupListRes
    repeated GroupListItem group_list = 1;
 }
 
-// 创建一个组
+//创建一个组
 message MgrGroupCreateReq
 {
 	string vg_name = 1;
@@ -109,7 +109,7 @@ message MgrGroupCreateRes
     uint32 retcode = 1;
 }
 
-// 删除一个组
+//删除一个组
 message MgrGroupDeleteReq
 {
     string vg_name = 1;
@@ -120,7 +120,7 @@ message MgrGroupDeleteRes
     uint32 retcode = 1;
 }
 
-// 重命名一个组
+//重命名一个组
 message MgrGroupRenameReq
 {
     string prevg_name = 1;
@@ -132,8 +132,19 @@ message MgrGroupRenameRes
     uint32 retcode = 1;
 }
 
-// Volume
-// 列出所有的Volume，可指定组
+// //查找一个组
+// message MgrGroupFindReq
+// {
+//     string rex = 1;
+// }
+
+// message MgrGroupFindRes
+// {
+//     repeated GroupListItem group_list = 1;
+// }
+
+//Volume
+//列出所有的Volume，可指定组
 message MgrVolumeListReq
 {
     string vg_name = 1;//volume group name
@@ -141,17 +152,17 @@ message MgrVolumeListReq
 
 message VolumeItem
 {
-    uint64 vol_id = 1;  //Volume的唯一标识
-	uint64 vg_id = 2;   //Group标识
+    uint64 vol_id = 1;//Volume的唯一标识
+	uint64 vg_id = 2;//Group标识
 	string vol_name = 3;//Volume名称
-	uint64 ctime = 4;   //创建时间
-	uint64 size = 5;    //可视大小（B）
-	uint64 alloced = 6; //所需分配的空间（B）
-	uint64 used = 7;    //实际已使用空间（B）
-	uint32 flags = 8;   //标签
-	uint32 spolicy = 9; //存储策略
-	uint32 cgs = 10;    //Chunk Group 数量
-	uint64 lock_owner = 11; //GW ID,独占锁获得者
+	uint64 ctime = 4;//创建时间
+	uint64 size = 5;//可视大小（B）
+	uint64 alloced = 6;//所需分配的空间（B）
+	uint64 used = 7;//实际已使用空间（B）
+	uint32 flags = 8;//标签
+	uint32 spolicy = 9;//存储策略
+	uint32 cgs = 10;//Chunk Group 数量
+	uint64 lock_owner = 11;//GW ID,独占锁获得者
 }
 
 message MgrVolumeListRes
@@ -159,13 +170,14 @@ message MgrVolumeListRes
     repeated VolumeItem volume_list = 1;
 }
 
-// 创建一个Volume
+//创建一个Volume
 message MgrVolumeCreateReq
 {
-    string vol_name = 1;    //Volume名称
-    uint64 size = 2;    //可视大小（B）
-    uint32 flags = 3;   //标签
-	uint32 spolicy = 4; //存储策略
+    string vol_name = 1;//Volume名称
+    uint64 size = 2;//可视大小（B）
+    uint32 flags = 3;//标签
+    uint32 spolicy = 4;//存储策略
+    string vg_name = 5;//volume group name
 }
 
 message MgrVolumeCreateRes
@@ -173,10 +185,11 @@ message MgrVolumeCreateRes
     uint32 retcode = 1;
 }
 
-// 删除一个Volume
+//删除一个Volume
 message MgrVolumeDeleteReq
 {
-    string vol_name = 1;    //Volume名称
+    string vol_name = 1;//Volume名称
+    string vg_name = 2;//volume group name
 }
 
 message MgrVolumeDeleteRes
@@ -184,11 +197,12 @@ message MgrVolumeDeleteRes
     uint32 retcode = 1;
 }
 
-// 更改一个Volume的名称
+//更改一个Volume的名称
 message MgrVolumeRenameReq
 {
     string prevol_name = 1;
     string newvol_name = 2;
+    string vg_name = 3;//volume group name
 }
 
 message MgrVolumeRenameRes
@@ -196,34 +210,35 @@ message MgrVolumeRenameRes
     uint32 retcode = 1;
 }
 
-// 查看一个指定Volume的信息
+//查看一个指定Volume的信息
 message MgrVolumeInfoReq
 {
-    string group_name = 1;
+    string group_name = 1;//volume group name
     string volume_name = 2;
 }
 
 message MgrVolumeInfoRes
 {
     uint32 retcode = 1;
-    uint64 vol_id = 2;  //Volume的唯一标识
-	uint64 vg_id = 3;   //Group标识
+    uint64 vol_id = 2;//Volume的唯一标识
+	uint64 vg_id = 3;//Group标识
 	string vol_name = 4;//Volume名称
-	uint64 ctime = 5;   //创建时间
-	uint64 size = 6;    //可视大小（B）
-	uint64 alloced = 7; //所需分配的空间（B）
-	uint64 used = 8;    //实际已使用空间（B）
-	uint32 flags = 9;   //标签
+	uint64 ctime = 5;//创建时间
+	uint64 size = 6;//可视大小（B）
+	uint64 alloced = 7;//所需分配的空间（B）
+	uint64 used = 8;//实际已使用空间（B）
+	uint32 flags = 9;//标签
 	uint32 spolicy = 10;//存储策略
-	uint32 cgs = 11;    //Chunk Group 数量
-    uint64 lock_owner = 12; //GW ID,独占锁获得者
+	uint32 cgs = 11;//Chunk Group 数量
+    uint64 lock_owner = 12;//GW ID,独占锁获得者
 }
 
-// 修改一个Volume的尺寸
+//修改一个Volume的尺寸
 message MgrVolumeResizeReq
 {
     string vol_name = 1;
     uint64 new_size = 2;
+    string group_name = 3;//volume group name
 }
 
 message MgrVolumeResizeRes
@@ -231,7 +246,7 @@ message MgrVolumeResizeRes
     uint32 retcode = 1;
 }
 
-// 打开一个Volume，在MGR上注册打开信息
+//打开一个Volume，在MGR上注册打开信息
 message MgrVolumeOpenReq
 {
     string group_name = 1;
@@ -243,7 +258,7 @@ message MgrVolumeOpenRes
     uint32 retcode = 1;
 }
 
-// 关闭一个Volume
+//关闭一个Volume
 message MgrVolumeCloseReq
 {
     string group_name = 1;
@@ -255,7 +270,7 @@ message MgrVolumeCloseRes
     uint32 retcode = 1;
 }
 
-// 锁定一个Volume，防止其他GW打开
+//锁定一个Volume，防止其他GW打开
 message MgrVolumeLockReq
 {
     string group_name = 1;
@@ -267,7 +282,7 @@ message MgrVolumeLockRes
     uint32 retcode = 1;
 }
 
-// 解锁一个Volume
+//解锁一个Volume
 message MgrVolumeUnlockReq
 {
     string group_name = 1;
@@ -279,23 +294,22 @@ message MgrVolumeUnlockRes
     uint32 retcode = 1;
 }
 
-// 获取Volume的Chunk信息
+//获取Volume的Chunk信息
 message MgrVolumeMapsReq
 {
-    string group_name = 1;
-    string volume_name = 2;
+    uint64 vol_id = 1;//Volume的唯一标识
 }
 
 message ChunkItem
 {
-    uint64 chk_id = 1;  //Chunk ID
-	uint64 cg_id = 2;   //Chunk Group ID
-	uint64 size = 3;    //可视大小（B）
-	uint32 stat = 4;    //CSD状态
-	uint64 csd_id = 5;  //当前所在CSD ID
-    uint64 csd_mtime = 6;   //当前所在CSD的映射时间
-    uint64 dst_id = 7;  //目标CSD ID（迁移）
-    uint32 flag = 8;    //是否为主副本
+    uint64 chk_id = 1;//Chunk ID
+	uint64 cg_id = 2;//Chunk Group ID
+	uint64 size = 3;//可视大小（B）
+	uint32 stat = 4;//CSD状态
+	uint64 csd_id = 5;//当前所在CSD ID
+    uint64 csd_mtime = 6;//当前所在CSD的映射时间
+    uint64 dst_id = 7;//目标CSD ID（迁移）
+    uint32 flag = 8;//是否为主副本
 }
 
 message MgrVolumeMapsRes
@@ -303,11 +317,22 @@ message MgrVolumeMapsRes
     repeated ChunkItem volume_maps = 1;
 }
 
-// Chunk
-// 获取chunk的位置信息
+// //按指定规则查询Volume
+// message MgrVolumeFindReq
+// {
+//     uint64 vg_id = 1;//Group标识
+// }
+
+// message MgrVolumeFindRes
+// {
+//     repeated VolumeItem volume_find = 1;
+// }
+
+//chunk
+//获取chunk的位置信息
 message MgrChunkMapsReq
 {
-    uint64 vol_id = 1;  //Volume的唯一标识
+    repeated uint64 chkid_list = 1;
 }
 
 message MgrChunkMapsRes
@@ -317,7 +342,7 @@ message MgrChunkMapsRes
 
 service MgrGwService
 {
-    // GW
+    //GW
     rpc MgrGwConnect (MgrGwConnectReq) returns (MgrGwConnectRes) {}
     rpc MgrGwDisconnect(MgrGwDisconnectReq) returns (MgrGwDisconnectRes) {}
     rpc MgrGwClusterInfo(MgrGwClusterInfoReq) returns (MgrGwClusterInfoRes) {}
@@ -325,14 +350,14 @@ service MgrGwService
     rpc MgrGwClusterClean(MgrGwClusterCleanReq) returns (MgrGwClusterCleanRes) {}
     rpc MgrGwNodeRoute(MgrGwNodeRouteReq) returns (MgrGwNodeRouteRes) {}
 
-    // Group
-    // list返回的是多组数据
-    rpc MgrGroupList(MgrGroupListReq) returns (MgrGroupListRes);
+    //Group
+    rpc MgrGroupList(MgrGroupListReq) returns (MgrGroupListRes);//list返回的是多组数据
     rpc MgrGroupCreate(MgrGroupCreateReq) returns (MgrGroupCreateRes) {}
     rpc MgrGroupDelete(MgrGroupDeleteReq) returns (MgrGroupDeleteRes) {}
     rpc MgrGroupRename(MgrGroupRenameReq) returns (MgrGroupRenameRes) {}
+    //rpc MgrGroupFind(MgrGroupFindReq) returns (MgrGroupFindRes) {}
 
-    // Volume
+    //Volume
     rpc MgrVolumeList(MgrVolumeListReq) returns (MgrVolumeListRes) {}
     rpc MgrVolumeCreate(MgrVolumeCreateReq) returns (MgrVolumeCreateRes) {}
     rpc MgrVolumeDelete(MgrVolumeDeleteReq) returns (MgrVolumeDeleteRes) {}
@@ -344,7 +369,9 @@ service MgrGwService
     rpc MgrVolumeLock(MgrVolumeLockReq) returns (MgrVolumeLockRes) {}
     rpc MgrVolumeUnlock(MgrVolumeUnlockReq) returns (MgrVolumeUnlockRes) {}
     rpc MgrVolumeMaps(MgrVolumeMapsReq) returns (MgrVolumeMapsRes) {}
+    //rpc MgrVolumeFind(MgrVolumeFindReq) returns (MgrVolumeFindRes) {}
 
-    // Chunk
+    //chunk
     rpc MgrChunkMaps(MgrChunkMapsReq) returns (MgrChunkMapsRes) {}
+    //rpc MgrChunkInfo(MgrChunkMapsReq) returns (MgrChunkInfoRes) {}
 }

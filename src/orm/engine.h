@@ -2,6 +2,7 @@
 #define FLAME_ORM_ENGINE_H
 
 #include "driver.h"
+#include "common/context.h"
 #include "common/thread/mutex.h"
 #include "common/thread/cond.h"
 
@@ -63,7 +64,7 @@ public:
      * eg:
      *      mysql://flame:123456@localhost/flame_mgr_db
      */
-    static std::shared_ptr<DBEngine> create_engine(const std::string& url, size_t conn_num = DBE_DEF_CONNNUM);
+    static std::shared_ptr<DBEngine> create_engine(FlameContext* fct, const std::string& url, size_t conn_num = DBE_DEF_CONNNUM);
 
     ~DBEngine() {}
 
@@ -115,13 +116,14 @@ private:
         std::shared_ptr<Stub> stub_;
     };
 
-    DBEngine(Driver* driver) : driver_(driver) {}
+    DBEngine(FlameContext* fct, Driver* driver) : fct_(fct), driver_(driver) {}
 
     size_t stub_count() const { return stub_pool_.count(); }
     
     // Return real number of stub that created successfully.
     size_t create_stub(size_t count = 1);
 
+    FlameContext* fct_;
     Driver* driver_;
     StubPool stub_pool_;
 }; // class DBEngine
