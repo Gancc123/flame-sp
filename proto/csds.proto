@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+// 用于只返回RetCode请求的响应
+message CsdsReply {
+    uint32 code = 1;    // RetCode
+    string msg  = 2;    // 消息，可为空
+}
+
+// 匹配Chunk信息，用于CSD之间比较Chunk版本
+message ChunkFetchRequest {
+    repeated uint64 chk_id_list = 1; // Chunk ID
+}
+
+message ChunkVersionItem {
+    uint64 chk_id   = 1;
+    uint64 epoch    = 2;
+    uint64 version  = 3;
+    uint64 used     = 4;
+}
+
+message ChunkFetchReply {
+    repeated ChunkVersionItem chk_ver_list = 1;
+}
+
+message ChunkSignalItem {
+    uint64 chk_id = 1;  // Chunk ID
+    uint32 signal = 2;
+}
+
+// 信息告知，用于同步CSD之间的Chunk行为
+// @Reply: CsdsReply
+message ChunkSignalRequest {
+    repeated ChunkSignalItem signal_list = 1;
+}
+
+// 关闭CSD
+// @Reply: CsdsReply
+message ShutdownRequest {
+    uint64 csd_id = 1;
+}
+
+// 清理CSD
+// @Reply: CsdsReply
+message CleanRequest {
+    uint64 csd_id = 1;
+}
+
+// 创建chunk
+// @Reply: CsdsReply
+message ChunkCreateRequest {
+    uint64 chk_id   = 1;
+    uint64 vol_id   = 2;
+    uint64 index    = 3;
+    uint32 stat     = 4;
+    uint32 spolicy  = 5;
+	uint64 size     = 6;
+}
+
+// 选主副本（通知）
+// @Reply: CsdsReply
+message ChunkChooseRequest {
+    repeated uint64 chk_id_list = 1;
+}
+
+// 删除chunk
+// @Reply: CsdsReply
+message ChunkRemoveRequest {
+    repeated uint64 chk_id_list = 1;    // Chunk ID
+}
+
+// 迁移Chunk
+// @Reply: CsdReply
+message ChunkMoveRequest {
+    uint64 chk_id = 1;
+    uint64 src_id = 2;
+    uint64 dst_id = 3;
+    uint32 signal = 4;  // 1表示通知迁移，2表示强制迁移
+}
+
+/**
+ * CsdsService
+ */
+service CsdsService {
+    /**
+     * among CSDs
+     */
+    // 拉取Chunk版本信息
+    rpc fetchChunk(ChunkFetchRequest) returns (ChunkFetchReply) {}
+
+    // 推送Chunk信号：告知Chunk的行为或者状态
+    rpc pushChunkSignal(ChunkSignalRequest) returns (CsdsReply) {}
+
+    /**
+     * MGR Ctrl
+     */
+    // 关闭CSD
+    rpc shutdown(ShutdownRequest) returns (CsdsReply) {}
+
+    // 清理CSD
+    rpc clean(CleanRequest) returns (CsdsReply) {}
+
+    // 创建Chunk
+    rpc createChunk(ChunkCreateRequest) returns (CsdsReply) {}
+
+    // 删除Chunk
+    rpc removeChunk(ChunkRemoveRequest) returns (CsdsReply) {}
+
+    // 告知选主信息
+    rpc chooseChunk(ChunkChooseRequest) returns (CsdsReply) {}
+
+    // 迁移Chunk
+    rpc moveChunk(ChunkMoveRequest) returns (CsdsReply) {}
+}
