@@ -922,6 +922,7 @@ int SqlGatewayMS::remove(uint64_t gw_id) {
         return MSRetCode::SUCCESS;
     }
     return MSRetCode::FAILD;
+    
 }
 
 int SqlGatewayMS::update(const gateway_meta_t& gw) {
