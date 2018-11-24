@@ -707,7 +707,7 @@ int SqlCsdMS::create(const csd_meta_t& new_csd) {
     }
     return MSRetCode::FAILD;
 }
-//
+
 int SqlCsdMS::create_and_get(csd_meta_t& new_csd) {
     shared_ptr<Result> ret = m_csd.insert().column({m_csd.name, m_csd.size, m_csd.ctime, m_csd.io_addr,
                              m_csd.admin_addr, m_csd.stat, m_csd.latime})
@@ -716,8 +716,19 @@ int SqlCsdMS::create_and_get(csd_meta_t& new_csd) {
                              .exec();
     if(ret && ret->OK())
     {
-        
-        return MSRetCode::SUCCESS;
+        shared_ptr<Result> res = m_csd.query().column(m_csd.csd_id)
+                                 .where(m_csd.name == new_csd.name)
+                                 .exec();
+        if(res && res->OK())
+        {
+            shared_ptr<DataSet> ds = res->data_set();
+            for(auto it = ds.begin(); it != ds.end(); ++it)
+            {
+                new_csd.csd_id = it->get(m_csd.csd_id);
+            }
+            return MSRetCode::SUCCESS;
+        }
+        return MSRetCode::FAILD;
     }
     return MSRetCode::FAILD;
 }
