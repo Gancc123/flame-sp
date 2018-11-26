@@ -1,16 +1,78 @@
 #include "config.h"
 #include "context.h"
 
+#include <cstring>
 #include <cassert>
 #include <fstream>
+#include <exception>
 
 namespace flame {
 
-static void __load(FlameConfig* fct, std::fstream& fp) {
-    assert(fct != nullptr);
+static inline char* __trim(char *start, char *end) {
+    while (start <= end && std::strchr(" \t\n\r", *start))
+        start++;
+    return start;
 }
 
-std::shared_ptr<FlameConfig> FlameConfig::create_config(FlameContext* fct, const std::string &path) {
+static inline char* __trim_r(char *start, char *end) {
+    while (start <= end && std::strchr(" \t\n\r", *end))
+        end--;
+    return end;
+}
+
+static std::string __gen_string(char *start, char *end) {
+    std::string res;
+    ssize_t len;
+    char *ps, *pe;
+    ps = __trim(start, end);
+    pe = __trim_r(ps, end);
+    len = pe - ps + 1;
+    if (len > 0) 
+        res.append(ps, len);
+    return res;        
+}
+
+static bool __load(FlameContext* fct, FlameConfig* cfg, std::fstream& fp) {
+    assert(fct != nullptr);
+    char buff[256], *ps, *pe, *pm;
+    size_t len, len_key, len_value;
+    int line = 0;
+    while (!fp.eof() && fp.getline(buff, 255)) {
+        line++;
+        len = strlen(buff);
+        if (len == 0)
+            continue;
+        ps = __trim(buff, buff + len - 1);
+        if (ps >= buff + len || *ps == '\0' || *ps == '#')
+            continue;
+
+        pm = std::strchr(ps, '=');
+        if (pm == NULL) {
+            fct->log()->error("config", "invalid config item in line %d, it must be key=value", line);
+            return false;
+        }
+        
+        std::string key = __gen_string(ps, pm - 1);
+        if (key.empty()) {
+            fct->log()->error("config", "invalid config item in line %d, key can't be empty", line);
+            return false;
+        }
+        
+        std::string value = __gen_string(pm + 1, buff + len - 1);
+        if (value.empty()) {
+            fct->log()->error("config", "invalid config item in line %d, value can't be empty", line);
+            return false;
+        }
+
+        if (cfg->has_key(key)) {
+            fct->log()->warn("config", "duplicate definition with key('%s'), in line %d", key.c_str(), line);
+        }
+        cfg->set(key, value);
+    }
+    return true;
+}
+
+FlameConfig* FlameConfig::create_config(FlameContext* fct, const std::string &path) {
     std::fstream fp;
     fp.open(path, std::fstream::in);
     if (!fp.is_open()) {
@@ -20,10 +82,16 @@ std::shared_ptr<FlameConfig> FlameConfig::create_config(FlameContext* fct, const
     
     FlameConfig* config = new FlameConfig();
     
-    __load(config, fp);
+    bool r = __load(fct, config, fp);
 
     fp.close();
-    return std::shared_ptr<FlameConfig>(config);
+
+    if (r)
+        return config;
+    else {
+        delete config;
+        return nullptr;
+    }
 }
 
 std::string FlameConfig::get(const std::string& key, const std::string& def_val) {

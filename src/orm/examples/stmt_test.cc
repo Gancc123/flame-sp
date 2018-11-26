@@ -94,6 +94,15 @@ int main() {
     cout << "Delete:" << endl;
     cout << del.to_str() << endl << endl;
 
+    MultiInsertStmt minsert;
+    minsert.table(vol_tbl)
+        .column({vol_tbl.vol_id, vol_tbl.vg_id, vol_tbl.name})
+        .value({1, 1, "1"})
+        .value({2, 2, "2"})
+        .value({3, 3, "3"});
+    cout << "MultiInsert:" << endl;
+    cout << minsert.to_str() << endl;
+
     cout << "Test:" << endl;
     cout << not_(vg_tbl.name > 100).to_str() << endl;
     cout << exists_(select).to_str() << endl;

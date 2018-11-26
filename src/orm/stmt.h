@@ -627,6 +627,41 @@ private:
     uint64_t limit_;
 }; // class DeleteStmt
 
+class MultiInsertStmt : public Stmt {
+public:
+    MultiInsertStmt() {}
+    virtual ~MultiInsertStmt() {}
+
+    MultiInsertStmt(const MultiInsertStmt&) = default;
+    MultiInsertStmt(MultiInsertStmt&&) = default;
+    MultiInsertStmt& operator=(const MultiInsertStmt&) = default;
+    MultiInsertStmt& operator=(MultiInsertStmt&&) = default;
+
+    MultiInsertStmt& table(const TableStmt& tbl) {
+        table_ = tbl.to_str();
+        return *this;
+    }
+
+    MultiInsertStmt& column(const std::initializer_list<ColumnStmt>& cols) {
+        for (auto it = cols.begin(); it != cols.end(); it++)
+            string_append(partitions_, ", ", it->to_str());
+        return *this;
+    }
+
+    MultiInsertStmt& value(const std::initializer_list<ValueStmt>& vals);
+
+    virtual std::string to_str() const override;
+
+    virtual bool empty() const override;
+
+    virtual void clear() override;
+
+private:
+    std::string table_;
+    std::string partitions_;
+    std::list<std::string> value_list_;
+}; // class InsertStmt
+
 } // namespace orm
 } // namespace flame
 

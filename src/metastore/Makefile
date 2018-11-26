@@ -4,7 +4,7 @@ include $(ROOT)/mk/env.mk
 
 all: sqlms ms.o
 
-sqlms: ./sqlms/*
+sqlms: ./sqlms/*.cc ./sqlms/*.h
 	make -C ./sqlms
 
 %.o: %.cc

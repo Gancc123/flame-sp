@@ -14,5 +14,6 @@ DUTIL = $(ROOT)/util
 CC = gcc
 CXX = g++
 
+THREADLIBS	= -lpthread
 CXXFLAGS = -std=c++11
 DBGFLAGS = -g -std=c++11

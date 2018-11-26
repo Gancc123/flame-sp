@@ -6,6 +6,7 @@
 #define CFG_MGR_METASTORE "mgr_metastore"
 #define CFG_LOG_DIR "log_dir"
 
+#include <exception>
 #include <string>
 #include <memory>
 #include <map>
@@ -16,10 +17,10 @@ class FlameContext;
 
 class FlameConfig final {
 public:
-    static std::shared_ptr<FlameConfig> create_config(FlameContext* fct, const std::string &path);
+    static FlameConfig* create_config(FlameContext* fct, const std::string &path);
     
-    FlameConfig();
-    ~FlameConfig();
+    FlameConfig() {}
+    ~FlameConfig() {}
 
     bool has_key(const std::string& key) { return kvargs_.find(key) != kvargs_.end(); }
     // Return Value iff it existed, otherwise Return def_val
