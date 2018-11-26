@@ -91,6 +91,11 @@ std::shared_ptr<Result> DBEngine::execute(const DeleteStmt& stmt) {
     return owner.get_stub()->execute(stmt);
 }
 
+std::shared_ptr<Result> DBEngine::execute(const MultiInsertStmt& stmt) {
+    StubOwner owner(stub_pool_);
+    return owner.get_stub()->execute(stmt);
+}
+
 void DBEngine::StubPool::push(const std::shared_ptr<Stub>& stub) {
     MutexLocker locker(stub_que_mutex_);
     stub_que_.push(stub);

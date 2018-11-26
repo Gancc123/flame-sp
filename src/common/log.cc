@@ -22,8 +22,14 @@ const char* LogDict[] = {
     "PRINT"       // print
 };
 
-static int read_log_index(const std::string& dir) {
-    std::string path = string_concat({dir, "/", LOG_META_FILENAME});
+bool Logger::reopen(const std::string& dir, const std::string& prefix) {
+    dir_ = dir;
+    prefix_ = prefix;
+    return switch_log_file();
+}
+
+int Logger::read_log_index__() {
+    std::string path = string_concat({dir_, "/", LOG_META_FILENAME});
     FILE* fp = fopen(path.c_str(), "r");
     if (fp == nullptr)
         return 0;
@@ -33,26 +39,30 @@ static int read_log_index(const std::string& dir) {
     return idx + 1;
 }
 
-static bool write_log_index(const std::string& dir, int idx) {
-    std::string path = string_concat({dir, "/", LOG_META_FILENAME});
+bool Logger::write_log_index__(int idx) {
+    std::string path = string_concat({dir_, "/", LOG_META_FILENAME});
     FILE* fp = fopen(path.c_str(), "w");
-    if (fp == nullptr)
+    if (fp == nullptr) {
+        error("logger", "open log file(%s) faild", path.c_str());
         return false;
+    }
     fprintf(fp, "%d", idx);
     fclose(fp);
     return true;
 }
 
 bool Logger::switch_log_file(useconds_t us) {
-    int idx = read_log_index(dir_);
+    int idx = read_log_index__();
 
-    std::string path = string_concat({prefix_, ".", convert2string(idx), ".log"});
+    std::string path = string_concat({dir_, "/", prefix_, ".", convert2string(idx), ".log"});
     FILE* fp = fopen(path.c_str(), "w");
-    if (fp == nullptr)
+    if (fp == nullptr) {
+        error("logger",  "open log file(%s) faild", path.c_str());
         return false;
-    switch_file_(fp, us);
+    }
+    switch_file__(fp, us);
 
-    return write_log_index(dir_, idx);
+    return write_log_index__(idx);
 }
 
 bool Logger::check_and_switch(useconds_t us) {
@@ -63,7 +73,7 @@ bool Logger::check_and_switch(useconds_t us) {
     return false;
 }
 
-void Logger::switch_file_(FILE* fp, useconds_t us) {
+void Logger::switch_file__(FILE* fp, useconds_t us) {
     FILE* old = printer_.get_file();
     printer_.set_file(fp);
     if (old != stdout || old != stderr) {

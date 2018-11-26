@@ -75,6 +75,7 @@ public:
     std::shared_ptr<Result> execute(const InsertStmt& stmt);
     std::shared_ptr<Result> execute(const UpdateStmt& stmt);
     std::shared_ptr<Result> execute(const DeleteStmt& stmt);
+    std::shared_ptr<Result> execute(const MultiInsertStmt& stmt);
 
     DBEngine(const DBEngine&) = delete;
     DBEngine(DBEngine&&) = delete;

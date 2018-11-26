@@ -1,8 +1,8 @@
-ROOT = ../../../src
+ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
-all: str_util.o
+all: str_util.o fs_util.o
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)

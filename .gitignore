@@ -1,3 +1,5 @@
 .vscode/
 *.pb.h
 *.pb.cc
+*.o
+*.exe

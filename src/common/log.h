@@ -103,13 +103,14 @@ public:
     explicit Logger(int level = LogLevel::INFO) : printer_(level), threshold_(LOG_DEF_THRESHOLD) {}
     explicit Logger(const std::string& dir, const std::string& prefix, int level = LogLevel::INFO)
     : dir_(dir), prefix_(prefix), printer_(level), threshold_(LOG_DEF_THRESHOLD) {
-        switch_log_file();
+        // switch_log_file();
     }
     ~Logger() {}
 
     void set_level(int level) { printer_.set_level(level); }
     void set_threshold(long int t) { threshold_ = t; }
     long int get_threshold() const { return threshold_; }
+    bool reopen(const std::string& dir, const std::string& prefix);
 
     template<typename ...Args>
     inline void plog(int level, const char* module, const char* file, int line, const char* func, const char* fmt, const Args &... args) {
@@ -124,12 +125,14 @@ public:
     }
 
     bool switch_log_file(useconds_t us = 0);
-    bool switch_stdout(useconds_t us = 0) { switch_file_(stdout, us); }
-    bool switch_stderr(useconds_t us = 0) { switch_file_(stderr, us); }
+    bool switch_stdout(useconds_t us = 0) { switch_file__(stdout, us); }
+    bool switch_stderr(useconds_t us = 0) { switch_file__(stderr, us); }
     bool check_and_switch(useconds_t us = 0);
     
 private:
-    void switch_file_(FILE* fp, useconds_t us);
+    int read_log_index__();
+    bool write_log_index__(int idx);
+    void switch_file__(FILE* fp, useconds_t us);
 
     LogPrinter printer_;
     std::string dir_;

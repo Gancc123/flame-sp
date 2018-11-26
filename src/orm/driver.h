@@ -202,6 +202,7 @@ public:
     std::shared_ptr<Result> execute(const InsertStmt& stmt) { return execute_update(stmt.to_str()); }
     std::shared_ptr<Result> execute(const UpdateStmt& stmt) { return execute_update(stmt.to_str()); }
     std::shared_ptr<Result> execute(const DeleteStmt& stmt) { return execute_update(stmt.to_str()); }
+    std::shared_ptr<Result> execute(const MultiInsertStmt& stmt) { return execute_update(stmt.to_str()); }
 
 protected:
     Stub() {}

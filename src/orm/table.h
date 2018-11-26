@@ -18,6 +18,7 @@ public:
 
     SelectHandle query()  { return SelectHandle(engine_).table(*this); }
     InsertHandle insert() { return InsertHandle(engine_).table(*this); }
+    MultiInsertHandle multi_insert() { return MultiInsertHandle(engine_).table(*this); }
     UpdateHandle update() { return UpdateHandle(engine_).table(*this); }
     DeleteHandle remove() { return DeleteHandle(engine_).table(*this); }
 

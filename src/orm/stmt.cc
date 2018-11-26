@@ -318,5 +318,53 @@ void DeleteStmt::clear() {
     limit_ = 0;
 }
 
+MultiInsertStmt& MultiInsertStmt::value(const std::initializer_list<ValueStmt>& vals) {
+    std::string value;
+    for (auto it = vals.begin(); it != vals.end(); it++)
+        string_append(value, ", ", it->to_str());
+    value_list_.push_back(value);
+    return *this;
+}
+
+std::string MultiInsertStmt::to_str() const {
+    std::string stmt;
+    stmt += "INSERT INTO ";
+    stmt += table_;
+    if (!partitions_.empty()) {
+        stmt += "(";
+        stmt += partitions_;
+        stmt += ")";
+    }
+    if (!value_list_.empty()) {
+        stmt += " VALUES ";
+        int count = value_list_.size();
+        int idx = 0;
+        for (auto it = value_list_.begin(); it != value_list_.end(); it++) {
+            idx++;
+            stmt += "(";
+            stmt += *it;
+            if (idx == count) {
+                stmt += ")";
+            } else {
+                stmt += "), ";
+            }
+        }
+    }
+    return stmt;
+}
+
+bool MultiInsertStmt::empty() const {
+    return table_.empty()
+        && partitions_.empty()
+        && value_list_.empty();
+}
+
+void MultiInsertStmt::clear() {
+    Stmt::clear();
+    table_.clear();
+    partitions_.clear();
+    value_list_.clear();
+}
+
 } // namespace orm
 } // namespace flame

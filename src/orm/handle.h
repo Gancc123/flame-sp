@@ -201,6 +201,27 @@ private:
     DeleteStmt stmt;
 }; // class DeleteHandle
 
+class MultiInsertHandle : public Handle {
+public:
+    MultiInsertHandle(const std::shared_ptr<DBEngine>& engine) : Handle(engine) {}
+    ~MultiInsertHandle() {}
+
+    std::shared_ptr<Result> exec() override { return engine_->execute(stmt); }
+
+    MultiInsertHandle& table(const TableStmt& tbl) { stmt.table(tbl); return *this; }
+    MultiInsertHandle& column(const std::initializer_list<ColumnStmt>& cols) {
+        stmt.column(cols);
+        return *this;
+    }
+    MultiInsertHandle& value(const std::initializer_list<ValueStmt>& vals) {
+        stmt.value(vals);
+        return *this;
+    }
+
+private:
+    MultiInsertStmt stmt;
+}; // class MultiInsertHandle
+
 } // namespace orm
 } // namespace flame
 

@@ -6,11 +6,15 @@
 #include "proto/flame.pb.h"
 #include "proto/flame.grpc.pb.h"
 
+#include "mgr/mgr_server.h"
+
 namespace flame {
 namespace service {
 
-class FlameServiceImpl final : public FlameService::Service {
+class FlameServiceImpl final : public FlameService::Service, public MgrService {
 public:
+    FlameServiceImpl(MgrContext* mct) : FlameService::Service(), MgrService(mct) {}
+
     /**
      * Interface for Service 
      */
