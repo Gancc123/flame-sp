@@ -43,7 +43,8 @@ public:
     friend class SqlGatewayMS;
 
 private:
-    SqlMetaStore(const std::shared_ptr<orm::DBEngine>& db) : db_(db) {}
+    SqlMetaStore(FlameContext* fct, const std::shared_ptr<orm::DBEngine>& db) 
+    : MetaStore(fct), db_(db) {}
 
     std::shared_ptr<orm::DBEngine> db_;
 
@@ -79,9 +80,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlClusterMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlClusterMS(FlameContext* fct, SqlMetaStore* ms) 
+    : ClusterMS(fct), ms_(ms), m_cluster(ms->m_cluster) {}
 
     SqlMetaStore* ms_;
+    ClusterModel& m_cluster;
 }; // class SqlClusterMS
 
 class SqlVolumeGroupMS final : public VolumeGroupMS {
@@ -124,9 +127,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlVolumeGroupMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlVolumeGroupMS(FlameContext* fct, SqlMetaStore* ms) 
+    : VolumeGroupMS(fct), ms_(ms), m_vg(ms->m_vg) {}
 
     SqlMetaStore* ms_;
+    VolumeGroupModel& m_vg;
 }; // class SqlVolumeGroupMS
 
 class SqlVolumeMS final : public VolumeMS {
@@ -171,9 +176,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlVolumeMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlVolumeMS(FlameContext* fct, SqlMetaStore* ms) 
+    : VolumeMS(fct), ms_(ms), m_volume(ms->m_volume) {}
 
     SqlMetaStore* ms_;
+    VolumeModel& m_volume;
 }; // class SqlVolumeMS
 
 
@@ -199,7 +206,7 @@ public:
      * @Note: create_and_get would update chk_id iff create successfully.
      */
     virtual int create(const chunk_meta_t& new_chk) override;
-    virtual int create_and_get(volume_meta_t& new_chk) override;
+    virtual int create_and_get(chunk_meta_t& new_chk) override;
     // create chunks with same parameter except index.
     virtual int create_bulk(const chunk_meta_t& new_chk, uint32_t idx_start, uint32_t idx_len) override;
 
@@ -216,9 +223,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlChunkMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlChunkMS(FlameContext* fct, SqlMetaStore* ms) 
+    : ChunkMS(fct), ms_(ms), m_chunk(ms->m_chunk) {}
 
     SqlMetaStore* ms_;
+    ChunkModel& m_chunk;
 }; // class SqlChunkMS
 
 class SqlChunkHealthMS final : public ChunkHealthMS {
@@ -248,9 +257,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlChunkHealthMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlChunkHealthMS(FlameContext* fct, SqlMetaStore* ms) 
+    : ChunkHealthMS(fct), ms_(ms), m_chk_health(ms->m_chk_health) {}
 
     SqlMetaStore* ms_;
+    ChunkHealthModel& m_chk_health;
 }; // class SqlChunkHealth
 
 class SqlCsdMS final : public CsdMS {
@@ -285,9 +296,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlCsdMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlCsdMS(FlameContext* fct, SqlMetaStore* ms) 
+    : CsdMS(fct), ms_(ms), m_csd(ms->m_csd) {}
 
     SqlMetaStore* ms_;
+    CsdModel& m_csd;
 }; // class SqlCsdMS
 
 class SqlCsdHealthMS final : public CsdHealthMS {
@@ -322,9 +335,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlCsdHealthMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlCsdHealthMS(FlameContext* fct, SqlMetaStore* ms) 
+    : CsdHealthMS(fct), ms_(ms), m_csd_health(ms->m_csd_health) {}
 
     SqlMetaStore* ms_;
+    CsdHealthModel& m_csd_health;
 }; // class SqlCsdHealthMS
 
 class SqlGatewayMS final : public GatewayMS {
@@ -351,9 +366,11 @@ public:
 
     friend class SqlMetaStore;
 private:
-    SqlGatewayMS(SqlMetaStore* ms) : ms_(ms) {}
+    SqlGatewayMS(FlameContext* fct, SqlMetaStore* ms) 
+    : GatewayMS(fct), ms_(ms), m_gw(ms->m_gw) {}
 
     SqlMetaStore* ms_;
+    GatewayModel& m_gw;
 }; // class SqlGatewayMS
 
 } // namespace flame

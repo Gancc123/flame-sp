@@ -3,7 +3,8 @@
 
 #include <string>
 
-#include "../driver.h"
+#include "common/context.h"
+#include "orm/driver.h"
 #include "public.h"
 
 namespace flame {
@@ -117,7 +118,8 @@ public:
     virtual std::shared_ptr<Result> execute_update(const std::string& stmt) override;
 
 private:
-    MysqlStub(sql::Connection* conn) : conn_(conn) {}
+    MysqlStub(FlameContext* fct, sql::Connection* conn) 
+    : Stub(fct), conn_(conn) {}
 
     friend class MysqlDriver;
 
@@ -126,8 +128,8 @@ private:
 
 class MysqlDriver final : public Driver {
 public:
-    MysqlDriver(const std::string& addr, const std::string& schema, const std::string& user, const std::string& passwd)
-        : Driver("MySQL", addr), schema_(schema), user_(user), passwd_(passwd)
+    MysqlDriver(FlameContext* fct, const std::string& addr, const std::string& schema, const std::string& user, const std::string& passwd)
+        : Driver(fct, "MySQL", addr), schema_(schema), user_(user), passwd_(passwd)
     {
         driver_ = sql::mysql::get_driver_instance();
     }

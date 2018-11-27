@@ -1,5 +1,11 @@
 #include "fs_util.h"
 
+#include <unistd.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+
 std::string path_join(const std::string &base, const std::string &path) {
     size_t len = base.size() - 1, pos = 0, plen = path.size() - 1;
 
@@ -40,7 +46,7 @@ bool file_executable(const std::string &path) {
 }
 
 int dir_create(const std::string &dir) {
-    res = mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    int res = mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (res && errno != EEXIST)
         return 1;
     return 0;

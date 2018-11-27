@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <sstream>
 
 namespace flame {
 namespace cli {
@@ -145,25 +146,31 @@ public:
 
     Argument(Cmdline* cmd, const std::string& ln, const std::string& des, 
     trans_func_t func = def_trans_func<T>)
-    : ArgumentBase(cmd, true, '\0', ln, des), val_(), func_(func) {
+    : ArgumentBase(cmd, true, '\0', ln, des), val_(), def_(), func_(func) {
+        register_self();
+    }
+
+    Argument(Cmdline* cmd, const std::string& ln, const std::string& des, T dv,
+    trans_func_t func = def_trans_func<T>)
+    : ArgumentBase(cmd, false, '\0', ln, des), val_(dv), def_(dv), func_(func) {
         register_self();
     }
 
     Argument(Cmdline* cmd, char sn, const std::string& ln, const std::string& des, 
     trans_func_t func = def_trans_func<T>)
-    : ArgumentBase(cmd, true, sn, ln, des), val_(), func_(func) {
+    : ArgumentBase(cmd, true, sn, ln, des), val_(), def_(), func_(func) {
         register_self();
     }
 
-    Argument(Cmdline* cmd, char sn, const std::string& ln, const std::string& des, T dv,  
+    Argument(Cmdline* cmd, char sn, const std::string& ln, const std::string& des, T dv,
     trans_func_t func = def_trans_func<T>)
-    : ArgumentBase(cmd, false, sn, ln, des), val_(), func_(func) {
+    : ArgumentBase(cmd, false, sn, ln, des), val_(dv), def_(dv), func_(func) {
         register_self();
     }
 
-    virtual std::string get_def() const override { return convert2string(val_); }
+    virtual std::string get_def() const override { return convert2string(def_); }
 
-    T default_value() const { return val_; }
+    T def_val() const { return def_; }
     T get() const { return val_; }
     void set(T val) { val_ = val; }
     virtual bool set_with_str(const std::string& str) override {
@@ -176,6 +183,7 @@ public:
     
 private:
     T val_;
+    T def_;
     trans_func_t func_;
 }; // class Argument
 
@@ -202,19 +210,19 @@ public:
 
     Serial(Cmdline* cmd, int index, const std::string& ln, const std::string& des,
     trans_func_t func = def_trans_func<T>)
-    : SerialBase(cmd, true, index, ln, des), val_(), func_(func) {
+    : SerialBase(cmd, true, index, ln, des), val_(), def_(), func_(func) {
         register_self();
     }
 
     Serial(Cmdline* cmd, int index, const std::string& ln, const std::string& des,  T dv,
     trans_func_t func = def_trans_func<T>)
-    : SerialBase(cmd, false, index, ln, des), val_(dv), func_(func) {
+    : SerialBase(cmd, false, index, ln, des), val_(dv), def_(dv), func_(func) {
         register_self();
     }
 
-    virtual std::string get_def() const override { return convert2string(val_); }
+    virtual std::string get_def() const override { return convert2string(def_); }
 
-    T default_value() const { return val_; }
+    T def_val() const { return def_; }
     T get() const { return val_; }
     void set(T val) { val_ = val; }
     bool set_with_str(const std::string& str) {
@@ -227,6 +235,7 @@ public:
 
 private:
     T val_;
+    T def_;
     trans_func_t func_;
 }; // class Serial
 
@@ -275,7 +284,8 @@ public:
     int tail_size() const { return tail_vec_.size(); }
     std::string tail_list(int idx) const { return tail_vec_[idx]; }
     void print_help();
-    void print_err();
+    void print_error();
+    void print_internal_error();
 
     int parser(int argc, char** argv);
     int run(int argc, char** argv); 
@@ -302,6 +312,8 @@ protected:
     Cmdline* active_;
     Cmdline* parent_;
     bool tail_;
+
+    std::ostringstream err_msg_;
 
 private:
     bool check_def__();

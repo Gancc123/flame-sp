@@ -2,13 +2,14 @@
 
 namespace flame {
 
-bool MgrServer::register_service(MgrService* service) {
-    service_list_.push_back(service)
-}
+// bool MgrServer::register_service(MgrService* service) {
+//     service_list_.push_back(service)
+// }
 
-void MgrServer::run() {
+int MgrServer::run() {
     server_ = builder_.BuildAndStart();
     server_->Wait();
+    return 0;
 }
 
 void MgrServer::__init() {

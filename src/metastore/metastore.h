@@ -53,7 +53,9 @@ public:
     virtual int update(const cluster_meta_t& cluster) = 0;
 
 protected:
-    ClusterMS() {}
+    ClusterMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class ClusterMS
 
 /**
@@ -110,7 +112,9 @@ public:
     virtual int rename(const std::string& old_name, const std::string& new_name) = 0;
 
 protected:
-    VolumeGroupMS() {}
+    VolumeGroupMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class GroupMS
 
 /**
@@ -173,7 +177,9 @@ public:
     virtual int rename(uint64_t vg_id, const std::string& old_name, const std::string& new_name) = 0;
 
 protected:
-    VolumeMS() {}
+    VolumeMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class VolumeMS
 
 /**
@@ -190,7 +196,7 @@ struct chunk_meta_t {
     uint64_t    csd_id  {0};
     uint64_t    csd_mtime {0};  // csd map time  
     uint64_t    dst_id  {0};
-    uint64_t    dst_stime {0};  // dst start time
+    uint64_t    dst_ctime {0};  // dst start time
 
     uint64_t key_id() const { return chk_id >> 4; }
     void key_id(uint64_t v) { chk_id = (chk_id & 0xFULL) | (v << 4); }
@@ -222,7 +228,7 @@ public:
      * @Note: create_and_get would update chk_id iff create successfully.
      */
     virtual int create(const chunk_meta_t& new_chk) = 0;
-    virtual int create_and_get(volume_meta_t& new_chk) = 0;
+    virtual int create_and_get(chunk_meta_t& new_chk) = 0;
     // create chunks with same parameter except index.
     virtual int create_bulk(const chunk_meta_t& new_chk, uint32_t idx_start, uint32_t idx_len) = 0;
 
@@ -238,7 +244,9 @@ public:
     virtual int update(const chunk_meta_t& chk) = 0;
 
 protected:
-    ChunkMS() {}
+    ChunkMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class ChunkMS
 
 /**
@@ -290,7 +298,9 @@ public:
     virtual int update(const chunk_health_meta_t& chk_hlt) = 0;
 
 protected:
-    ChunkHealthMS() {}
+    ChunkHealthMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class ChunkHealdMs
 
 /**
@@ -340,7 +350,9 @@ public:
     virtual int update_at(uint64_t csd_id, uint64_t latime) = 0;
 
 protected:
-    CsdMS() {}
+    CsdMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class CsdMS
 
 /**
@@ -396,7 +408,9 @@ public:
     virtual int update(const csd_health_meta_t& csd_hlt) = 0;
 
 protected:
-    CsdHealthMS() {}
+    CsdHealthMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class CsdHealthMS
 
 /**
@@ -434,7 +448,9 @@ public:
     virtual int update(const gateway_meta_t& gw) = 0;
 
 protected:
-    GatewayMS() {}
+    GatewayMS(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class GatewayMS
 
 class MetaStore {
@@ -451,7 +467,9 @@ public:
     virtual GatewayMS* get_gw_ms() = 0;
 
 protected:
-    MetaStore() {}
+    MetaStore(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class MetaStore
 
 } // namespace flame

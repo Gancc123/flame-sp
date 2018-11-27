@@ -3,7 +3,6 @@
 
 #define CFG_CLUSTER_NAME "cluster_name"
 #define CFG_CLUSTER_MGRS "cluster_mgrs"
-#define CFG_MGR_METASTORE "mgr_metastore"
 #define CFG_LOG_DIR "log_dir"
 
 #include <exception>
@@ -24,7 +23,7 @@ public:
 
     bool has_key(const std::string& key) { return kvargs_.find(key) != kvargs_.end(); }
     // Return Value iff it existed, otherwise Return def_val
-    std::string get(const std::string& key, const std::string& def_val);
+    std::string get(const std::string& key, const std::string& def_val = "");
     void set(const std::string& key, const std::string& value);
 
     FlameConfig(const FlameConfig&) = default;

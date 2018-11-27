@@ -6,7 +6,7 @@
 #include "proto/flame.pb.h"
 #include "proto/flame.grpc.pb.h"
 
-#include "mgr/mgr_server.h"
+#include "mgr/mgr_service.h"
 
 namespace flame {
 namespace service {

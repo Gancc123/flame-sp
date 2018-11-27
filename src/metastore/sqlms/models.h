@@ -41,7 +41,7 @@ public:
     VolumeModel(std::shared_ptr<orm::DBEngine>& engine) 
     : orm::DBTable(engine, "volume") { auto_create(); }
     
-    orm::BigIntCol  vol_id  {this, "vol_id", orm::ColFlag::PRIMARY_KEY};    // Volume的唯一标识
+    orm::BigIntCol  vol_id  {this, "vol_id", orm::ColFlag::PRIMARY_KEY | orm::ColFlag::AUTO_INCREMENT};    // Volume的唯一标识
     orm::BigIntCol  vg_id   {this, "vg_id"};    // Group标识
     orm::StringCol  name    {this, "name", 64}; // Volume名称
     orm::BigIntCol  ctime   {this, "ctime"};    // 创建时间
