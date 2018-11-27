@@ -6,6 +6,7 @@
 #include <iterator>
 #include <memory>
 
+#include "common/context.h"
 #include "cols.h"
 #include "stmt.h"
 
@@ -205,7 +206,9 @@ public:
     std::shared_ptr<Result> execute(const MultiInsertStmt& stmt) { return execute_update(stmt.to_str()); }
 
 protected:
-    Stub() {}
+    Stub(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
 }; // class Stub
 
 /**
@@ -222,8 +225,10 @@ public:
     virtual std::shared_ptr<Stub> create_stub() const = 0;
 
 protected:
-    Driver(const std::string& name, const std::string& path) : name_(name), path_(path) {}
+    Driver(FlameContext* fct, const std::string& name, const std::string& path) 
+    : fct_(fct), name_(name), path_(path) {}
     
+    FlameContext* fct_;
     std::string name_;  // driver name
     std::string path_;  // driver path
 }; // class Driver

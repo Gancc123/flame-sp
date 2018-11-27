@@ -5,6 +5,7 @@
 #include "orm/my_impl/my_impl.h"
 #include "orm/stmt.h"
 #include "orm/cols.h"
+#include "orm/opts.h"
 #include "orm/engine.h"
 #include "orm/handle.h"
 #include "orm/table.h"

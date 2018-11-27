@@ -7,7 +7,7 @@
 #include <string>
 #include <atomic>
 
-#define MAX_LOG_LEN 256
+#define MAX_LOG_LEN 512
 // #define log(level, module, fmt, arg...) plog((level), (module), __FILE__, __LINE__, (fmt), ##arg)
 
 /**
@@ -67,20 +67,24 @@ extern const char* LogDict[];
 
 class LogPrinter final {
 public:
-    explicit LogPrinter(int level) : fp_(stdout), level_(level) {}
-    explicit LogPrinter(FILE* fp) : fp_(fp), level_(LogLevel::INFO) {}
-    explicit LogPrinter(FILE* fp = stdout, int level = LogLevel::INFO) : fp_(fp), level_(level) {}
-    ~LogPrinter() {
-        if (fp_ != nullptr && fp_ != stdout && fp_ != stderr) {
-            fclose(fp_);
-        }
-    }
+    explicit LogPrinter(int level) 
+    : fp_(stdout), level_(level), imm_flush_(true) {}
+    explicit LogPrinter(FILE* fp) 
+    : fp_(fp), level_(LogLevel::INFO), imm_flush_(true) {}
+    explicit LogPrinter(FILE* fp = stdout, int level = LogLevel::INFO) 
+    : fp_(fp), level_(level), imm_flush_(true) {}
+
+    ~LogPrinter();
 
     void set_file(FILE* fp) { fp_ = fp; }
     FILE* get_file() const { return fp_; }
     void set_level(int level) { level_ = level; }
     int get_level() const { return level_; }
     long int size() const { return ftell(fp_); }
+    bool is_imm_flush() const { return imm_flush_; }
+    void set_imm_flush(bool v) { imm_flush_ = v; }
+
+    void flush() const { fflush(fp_); }
 
     template<typename ...Args>
     inline void plog(int level, const char* module, const char* file, int line, const char* func, const char* fmt, const Args &... args) {
@@ -90,12 +94,14 @@ public:
             r += snprintf(buff + r, MAX_LOG_LEN - r, fmt, args...);
             snprintf(buff + r, MAX_LOG_LEN - r, "\n");
             fprintf(fp_, buff);
+            if (imm_flush_) fflush(fp_);
         }
     }
 
 private:
     std::atomic<FILE*> fp_; // primary file pointor
     std::atomic<int> level_;
+    std::atomic<bool> imm_flush_; // immediately flush
 }; // class LogPrinter
 
 class Logger final {
@@ -103,13 +109,18 @@ public:
     explicit Logger(int level = LogLevel::INFO) : printer_(level), threshold_(LOG_DEF_THRESHOLD) {}
     explicit Logger(const std::string& dir, const std::string& prefix, int level = LogLevel::INFO)
     : dir_(dir), prefix_(prefix), printer_(level), threshold_(LOG_DEF_THRESHOLD) {
-        // switch_log_file();
+        switch_log_file();
     }
     ~Logger() {}
 
     void set_level(int level) { printer_.set_level(level); }
+    int get_level() const { return printer_.get_level(); }
     void set_threshold(long int t) { threshold_ = t; }
     long int get_threshold() const { return threshold_; }
+    bool is_imm_flush() const { return printer_.is_imm_flush(); }
+    void set_imm_flush(bool v) { printer_.set_imm_flush(v); }
+
+    void flush() const { printer_.flush(); }
     bool reopen(const std::string& dir, const std::string& prefix);
 
     template<typename ...Args>

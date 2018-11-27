@@ -38,7 +38,7 @@ std::shared_ptr<DBEngine> DBEngine::create_engine(FlameContext* fct, const std::
             addr += ":";
             addr += port;
         }
-        driver = new MysqlDriver(addr, parser.db(), parser.user(), parser.passwd());
+        driver = new MysqlDriver(fct, addr, parser.db(), parser.user(), parser.passwd());
     } else {
         fct->log()->error("orm", "Engine ERR: DB Driver is not found!");
         return nullptr;

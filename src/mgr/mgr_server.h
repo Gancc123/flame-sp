@@ -2,25 +2,15 @@
 #define FLAME_SERVICE_MGR_SERVER_H
 
 #include "mgr_context.h"
-#include "service/flame_service.h"
-#include "service/internal_service.h"
 
 #include <grpcpp/grpcpp.h>
 #include <memory>
 #include <list>
 
+#include "service/flame_service.h"
+#include "service/internal_service.h"
+
 namespace flame {
-
-class MgrService {
-public:
-    virtual ~MgrService() {}
-
-protected:
-    MgrService(MgrContext* mct) : mct_(mct), fct_(mct->fct()) {}
-
-    MgrContext* mct_;
-    FlameContext* fct_;
-}; // class MgrService 
 
 class MgrServer {
 public:
@@ -32,7 +22,9 @@ public:
     ~MgrServer() {}
 
     std::string get_addr() const { return addr_; }
-    void run();
+    void set_addr(const std::string& addr) { addr_ = addr; }
+    
+    int run();
 
 private:
     void __init();
@@ -40,11 +32,11 @@ private:
     MgrContext* mct_;
     std::string addr_;
 
-    FlameServiceImpl flame_service_;
-    InternalServiceImpl internal_service_;
+    service::FlameServiceImpl flame_service_;
+    service::InternalServiceImpl internal_service_;
 
-    grcp::ServerBuilder builder_;
-    std::unique_ptr<grcp::Server> server_;
+    grpc::ServerBuilder builder_;
+    std::unique_ptr<grpc::Server> server_;
 }; // class MgrServer
 
 } // namespace flame

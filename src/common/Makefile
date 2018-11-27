@@ -2,9 +2,11 @@ ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
+.PHONY: all thread clean
+
 all: thread context.o log.o config.o cmdline.o cli_test
 
-thread: ./thread/*.h ./thread/*.cc
+thread:
 	make -C ./thread
 
 cli_test: cli_test.cc cmdline.o

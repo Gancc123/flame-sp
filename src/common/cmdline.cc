@@ -253,7 +253,12 @@ void Cmdline::print_help() {
     print_action__(pcxt);
 }
 
-void Cmdline::print_err() {
+void Cmdline::print_error() {
+    printf("Error: %s\n\n", err_msg_.str().c_str());
+    print_help();
+}
+
+void Cmdline::print_internal_error() {
     printf("Internal Error!\n");
 }
 
@@ -283,7 +288,7 @@ int Cmdline::run(int argc, char** argv) {
         active_module()->print_help();
         return r;
     } else {
-        active_module()->print_err();
+        active_module()->print_internal_error();
         return r;
     }
 }
@@ -335,15 +340,19 @@ int Cmdline::do_parser__(int argc, char** argv) {
         char* str = argv[idx];
         int len = strlen(str);
         if (len == 1 && str[0] == '-') {
+            err_msg_ << "single '-' is invalid";
             return CmdRetCode::FORMAT_ERROR;
         } else if (len > 1 && str[0] == '-') {
-            if (len == 2 && str[1] == '-')
+            if (len == 2 && str[1] == '-') {
+                err_msg_ << "single '--' is invalid";
                 return CmdRetCode::FORMAT_ERROR;
-            else if (len > 2 && str[1] == '-') {
+            } else if (len > 2 && str[1] == '-') {
                 // long name
-                auto it = ln_map_.find(str + 1);
-                if (it == ln_map_.end() || it->second->done())
+                auto it = ln_map_.find(str + 2);
+                if (it == ln_map_.end() || it->second->done()) {
+                    err_msg_ << (str + 2) << " is not existed, or have been setted";
                     return CmdRetCode::FORMAT_ERROR;
+                }
                 int typ = it->second->cmd_type();
                 if (typ == CmdType::SWITCH) {
                     Switch* swt = dynamic_cast<Switch*>(it->second);
@@ -351,28 +360,38 @@ int Cmdline::do_parser__(int argc, char** argv) {
                 } else if (typ == CmdType::ARGUMENT) {
                     ArgumentBase* arg = dynamic_cast<ArgumentBase*>(it->second);
                     idx++;
-                    if (idx >= argc) 
+                    if (idx >= argc) {
+                        err_msg_ << "not match value with " << arg->long_name();
                         return CmdRetCode::FORMAT_ERROR;
+                    }
                     char* val = argv[idx];
-                    if (arg->set_with_str(val))
+                    if (!arg->set_with_str(val)) {
+                        err_msg_ << "set " << arg->long_name() << " with " << val << " faild";
                         return CmdRetCode::FORMAT_ERROR;
+                    }
                     if (arg->is_must())
                         must_done++;
                 } else if (typ == CmdType::ACTION) {
                     if (act_ == nullptr)
                         act_ = dynamic_cast<Action*>(it->second);
-                    else 
+                    else {
+                        err_msg_ << "not support actions mush than one";
                         return CmdRetCode::FORMAT_ERROR;
-                } else 
+                    }
+                } else {
+                    err_msg_ << "please kill the developer";
                     return CmdRetCode::DEF_ERROR;
+                }
                 it->second->set_done();
             } else {
                 // short name
                 if (len == 2) {
                     // single define
                     auto it = sn_map_.find(str[1]);
-                    if (it == sn_map_.end() || it->second->done())
+                    if (it == sn_map_.end() || it->second->done()) {
+                        err_msg_ << "short name (" << str[1] << ") is not existed, or have been setted";
                         return CmdRetCode::FORMAT_ERROR;
+                    }
                     int typ = it->second->cmd_type();
                     if (typ == CmdType::SWITCH) {
                         Switch* swt = dynamic_cast<Switch*>(it->second);
@@ -380,18 +399,24 @@ int Cmdline::do_parser__(int argc, char** argv) {
                     } else if (typ == CmdType::ARGUMENT) {
                         ArgumentBase* arg = dynamic_cast<ArgumentBase*>(it->second);
                         idx++;
-                        if (idx >= argc) 
+                        if (idx >= argc) {
+                            err_msg_ << "not match value with " << arg->long_name() << " (" << str[1] << ")";
                             return CmdRetCode::FORMAT_ERROR;
+                        }
                         char* val = argv[idx];
-                        if (arg->set_with_str(val))
+                        if (!arg->set_with_str(val)) {
+                            err_msg_ << "set " << arg->long_name() << " with " << val << " faild";
                             return CmdRetCode::FORMAT_ERROR;
+                        }
                         if (arg->is_must())
                             must_done++;
                     } else if (typ == CmdType::ACTION) {
                         if (act_ == nullptr)
                             act_ = dynamic_cast<Action*>(it->second);
-                        else 
+                        else  {
+                            err_msg_ << "not support actions mush than one";
                             return CmdRetCode::FORMAT_ERROR;
+                        }
                     } else 
                         return CmdRetCode::DEF_ERROR;
                     it->second->set_done();
@@ -399,8 +424,10 @@ int Cmdline::do_parser__(int argc, char** argv) {
                     // multi define
                     for (int ci = 1; ci < len; ci++) {
                         auto it = sn_map_.find(str[ci]);
-                        if (it == sn_map_.end() || it->second->done())
+                        if (it == sn_map_.end() || it->second->done()) {
+                            err_msg_ << "short name (" << str[1] << ") is not existed, or have been setted";
                             return CmdRetCode::FORMAT_ERROR;
+                        }
                         int typ = it->second->cmd_type();
                         if (typ == CmdType::SWITCH) {
                             Switch* swt = dynamic_cast<Switch*>(it->second);
@@ -408,12 +435,17 @@ int Cmdline::do_parser__(int argc, char** argv) {
                         } else if (typ == CmdType::ACTION) {
                             if (act_ == nullptr)
                                 act_ = dynamic_cast<Action*>(it->second);
-                            else 
+                            else  {
+                                err_msg_ << "not support actions mush than one";
                                 return CmdRetCode::FORMAT_ERROR;
-                        } else if (typ == CmdType::ARGUMENT)
+                            }
+                        } else if (typ == CmdType::ARGUMENT) {
+                            err_msg_ << "can't define multi short name with other value";
                             return CmdRetCode::FORMAT_ERROR;
-                        else 
+                        } else {
+                            err_msg_ << "please kill the developer";
                             return CmdRetCode::DEF_ERROR;
+                        }
                         it->second->set_done();
                     }
                 }
@@ -421,16 +453,22 @@ int Cmdline::do_parser__(int argc, char** argv) {
         } else if (serial_idx >= max_idx_) {
             if (tail_)
                 tail_vec_.push_back(str);
-            else
+            else {
+                err_msg_ << "not matched serial";
                 return CmdRetCode::FORMAT_ERROR;
+            }
         } else {
             // serial
             serial_idx++;
             auto it = idx_map_.find(serial_idx);
-            if (it == idx_map_.end() || it->second->done())
+            if (it == idx_map_.end() || it->second->done()) {
+                err_msg_ << "not matched serial";
                 return CmdRetCode::FORMAT_ERROR;
-            if (it->second->set_with_str(str))
+            }
+            if (!it->second->set_with_str(str)) {
+                err_msg_ << "set " << it->second->long_name() << " with " << str << " faild";
                 return CmdRetCode::FORMAT_ERROR;
+            }
             if (it->second->is_must())
                 must_done++;
             it->second->set_done();
@@ -455,8 +493,10 @@ int Cmdline::do_parser__(int argc, char** argv) {
             must_need++;
     }
 
-    if (must_done != must_need)
+    if (must_done != must_need) {
+        err_msg_ << "all * item must be setted";
         return CmdRetCode::FORMAT_ERROR;
+    }
 
     return CmdRetCode::SUCCESS;
 }

@@ -1,5 +1,6 @@
 #include "log.h"
 
+#include "util/clog.h"
 #include <cstdio>
 #include <unistd.h>
 
@@ -21,6 +22,13 @@ const char* LogDict[] = {
     "TRACE",      // trace
     "PRINT"       // print
 };
+
+LogPrinter::~LogPrinter() {
+    if (fp_ != nullptr && fp_ != stdout && fp_ != stderr) {
+        fflush(fp_);
+        fclose(fp_);
+    }
+}
 
 bool Logger::reopen(const std::string& dir, const std::string& prefix) {
     dir_ = dir;
@@ -76,7 +84,8 @@ bool Logger::check_and_switch(useconds_t us) {
 void Logger::switch_file__(FILE* fp, useconds_t us) {
     FILE* old = printer_.get_file();
     printer_.set_file(fp);
-    if (old != stdout || old != stderr) {
+    info("logger", "old: %x, new: %x", old, fp);
+    if (old != stdout && old != stderr) {
         if (us != 0)
             usleep(us);
         fclose(old);

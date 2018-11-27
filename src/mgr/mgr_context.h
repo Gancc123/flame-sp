@@ -14,7 +14,7 @@ public:
 
     FlameContext* fct() const { return fct_; }
     Logger* log() const { return fct_->log(); }
-    FlameConfig* config() const { return fct_->log(); }
+    FlameConfig* config() const { return fct_->config(); }
     
     std::shared_ptr<MetaStore> ms() const { return ms_; }
     void ms(std::shared_ptr<MetaStore>& msv) { ms_ = msv; }

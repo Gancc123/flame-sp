@@ -2,9 +2,11 @@ ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
+.PHONY: all sqlms clean
+
 all: sqlms ms.o
 
-sqlms: ./sqlms/*.cc ./sqlms/*.h
+sqlms:
 	make -C ./sqlms
 
 %.o: %.cc

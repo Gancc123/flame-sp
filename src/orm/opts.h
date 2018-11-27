@@ -131,7 +131,19 @@ inline CondStmt not_null_(const ColumnStmt& col) {
     return CondStmt(string_concat({col.to_str(), " IS NOT NULL"}));
 }
 
-inline CondStmt in_(const ColumnStmt& col, const std::list<ValueStmt>& vals) {
+template<typename T>
+inline CondStmt in_(const ColumnStmt& col, const std::list<T>& vals) {
+    std::string stmt = string_concat({col.to_str(), " IN ("});
+    for (auto it = vals.begin(); it != vals.end(); it++) {
+        if (it == vals.begin()) stmt += convert2string(*it);
+        else string_append(stmt, ", ", convert2string(*it));
+    }
+    stmt += ")";
+    return CondStmt(stmt);
+}
+
+template<>
+inline CondStmt in_<ValueStmt>(const ColumnStmt& col, const std::list<ValueStmt>& vals) {
     std::string stmt = string_concat({col.to_str(), " IN ("});
     for (auto it = vals.begin(); it != vals.end(); it++) {
         if (it == vals.begin()) stmt += it->to_str();
@@ -144,409 +156,409 @@ inline CondStmt in_(const ColumnStmt& col, const std::list<ValueStmt>& vals) {
 /**
  * Stmt == Stmt
  */
-CondStmt operator == (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator == (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " = ", rhs.to_str()}));
 }
 
-CondStmt operator == (const ValueStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator == (const ValueStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " = ", rhs.to_str()}));
 }
 
-CondStmt operator == (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator == (const ExprStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") = (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator == (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator == (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " = ", rhs.to_str()}));
 }
 
-CondStmt operator == (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator == (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " = ", rhs.to_str()}));
 }
 
-CondStmt operator == (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator == (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " = (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator == (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator == (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") = ", rhs.to_str()}));
 }
 
-CondStmt operator == (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator == (const ValueStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " = (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator == (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator == (const ExprStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") = ", rhs.to_str()}));
 }
 
 /**
  * Stmt == Stmt
  */
-CondStmt operator != (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator != (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <> ", rhs.to_str()}));
 }
 
-CondStmt operator != (const ValueStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator != (const ValueStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <> ", rhs.to_str()}));
 }
 
-CondStmt operator != (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator != (const ExprStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") <> (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator != (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator != (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <> ", rhs.to_str()}));
 }
 
-CondStmt operator != (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator != (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <> ", rhs.to_str()}));
 }
 
-CondStmt operator != (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator != (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <> (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator != (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator != (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") <> ", rhs.to_str()}));
 }
 
-CondStmt operator != (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator != (const ValueStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <> (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator != (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator != (const ExprStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") <> ", rhs.to_str()}));
 }
 
 /**
  * Stmt > Stmt
  */
-CondStmt operator > (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator > (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " > ", rhs.to_str()}));
 }
 
-CondStmt operator > (const ValueStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator > (const ValueStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " > ", rhs.to_str()}));
 }
 
-CondStmt operator > (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator > (const ExprStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") > (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator > (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator > (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " > ", rhs.to_str()}));
 }
 
-CondStmt operator > (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator > (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " > ", rhs.to_str()}));
 }
 
-CondStmt operator > (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator > (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " > (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator > (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator > (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") > ", rhs.to_str()}));
 }
 
-CondStmt operator > (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator > (const ValueStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " > (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator > (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator > (const ExprStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") > ", rhs.to_str()}));
 }
 
 /**
  * Stmt >= Stmt
  */
-CondStmt operator >= (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator >= (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " >= ", rhs.to_str()}));
 }
 
-CondStmt operator >= (const ValueStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator >= (const ValueStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " >= ", rhs.to_str()}));
 }
 
-CondStmt operator >= (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator >= (const ExprStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") >= (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator >= (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator >= (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " >= ", rhs.to_str()}));
 }
 
-CondStmt operator >= (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator >= (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " >= ", rhs.to_str()}));
 }
 
-CondStmt operator >= (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator >= (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " >= (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator >= (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator >= (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") >= ", rhs.to_str()}));
 }
 
-CondStmt operator >= (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator >= (const ValueStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " >= (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator >= (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator >= (const ExprStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") >= ", rhs.to_str()}));
 }
 
 /**
  * Stmt < Stmt
  */
-CondStmt operator < (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator < (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " < ", rhs.to_str()}));
 }
 
-CondStmt operator < (const ValueStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator < (const ValueStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " < ", rhs.to_str()}));
 }
 
-CondStmt operator < (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator < (const ExprStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") < (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator < (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator < (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " < ", rhs.to_str()}));
 }
 
-CondStmt operator < (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator < (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " < ", rhs.to_str()}));
 }
 
-CondStmt operator < (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator < (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " < (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator < (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator < (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") < ", rhs.to_str()}));
 }
 
-CondStmt operator < (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator < (const ValueStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " < (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator < (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator < (const ExprStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") < ", rhs.to_str()}));
 }
 
 /**
  * Stmt <= Stmt
  */
-CondStmt operator <= (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator <= (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <= ", rhs.to_str()}));
 }
 
-CondStmt operator <= (const ValueStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator <= (const ValueStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <= ", rhs.to_str()}));
 }
 
-CondStmt operator <= (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator <= (const ExprStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") <= (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator <= (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator <= (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <= ", rhs.to_str()}));
 }
 
-CondStmt operator <= (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator <= (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <= ", rhs.to_str()}));
 }
 
-CondStmt operator <= (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator <= (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <= (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator <= (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline CondStmt operator <= (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") <= ", rhs.to_str()}));
 }
 
-CondStmt operator <= (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline CondStmt operator <= (const ValueStmt& lhs, const ExprStmt& rhs) {
     return CondStmt(string_concat({lhs.to_str(), " <= (", rhs.to_str(), ")"}));
 }
 
-CondStmt operator <= (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline CondStmt operator <= (const ExprStmt& lhs, const ValueStmt& rhs) {
     return CondStmt(string_concat({"(", lhs.to_str(), ") <= ", rhs.to_str()}));
 }
 
 /**
  * ExprStmt + ExprStmt
  */
-ExprStmt operator + (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator + (const ExprStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") + (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator + (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator + (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") + ", rhs.to_str()}));
 }
 
-ExprStmt operator + (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator + (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " + (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator + (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator + (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " + ", rhs.to_str()}));
 }
 
-ExprStmt operator + (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator + (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " + ", rhs.to_str()}));
 }
 
-ExprStmt operator + (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator + (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " + ", rhs.to_str()}));
 }
 
-ExprStmt operator + (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator + (const ExprStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") + ", rhs.to_str()}));
 }
 
-ExprStmt operator + (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator + (const ValueStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " + (", rhs.to_str(), ")"}));
 }
 
 /**
  * ExprStmt - ExprStmt
  */
-ExprStmt operator - (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator - (const ExprStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") - (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator - (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator - (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") - ", rhs.to_str()}));
 }
 
-ExprStmt operator - (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator - (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " - (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator - (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator - (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " - ", rhs.to_str()}));
 }
 
-ExprStmt operator - (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator - (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " - ", rhs.to_str()}));
 }
 
-ExprStmt operator - (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator - (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " - ", rhs.to_str()}));
 }
 
-ExprStmt operator - (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator - (const ExprStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") - ", rhs.to_str()}));
 }
 
-ExprStmt operator - (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator - (const ValueStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " - (", rhs.to_str(), ")"}));
 }
 
 /**
  * ExprStmt * ExprStmt
  */
-ExprStmt operator * (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator * (const ExprStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") * (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator * (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator * (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") * ", rhs.to_str()}));
 }
 
-ExprStmt operator * (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator * (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator * (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator * (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * ", rhs.to_str()}));
 }
 
-ExprStmt operator * (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator * (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * ", rhs.to_str()}));
 }
 
-ExprStmt operator * (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator * (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * ", rhs.to_str()}));
 }
 
-ExprStmt operator * (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator * (const ExprStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") * ", rhs.to_str()}));
 }
 
-ExprStmt operator * (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator * (const ValueStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * (", rhs.to_str(), ")"}));
 }
 
 /**
  * ExprStmt / ExprStmt
  */
-ExprStmt operator / (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator / (const ExprStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") / (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator / (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator / (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") / ", rhs.to_str()}));
 }
 
-ExprStmt operator / (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator / (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " / (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator / (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator / (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " / ", rhs.to_str()}));
 }
 
-ExprStmt operator / (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator / (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " / ", rhs.to_str()}));
 }
 
-ExprStmt operator / (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator / (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " / ", rhs.to_str()}));
 }
 
-ExprStmt operator / (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator / (const ExprStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") / ", rhs.to_str()}));
 }
 
-ExprStmt operator / (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator / (const ValueStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " / (", rhs.to_str(), ")"}));
 }
 
 /**
  * ExprStmt % ExprStmt
  */
-ExprStmt operator % (const ExprStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator % (const ExprStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") * (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator % (const ExprStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator % (const ExprStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") * ", rhs.to_str()}));
 }
 
-ExprStmt operator % (const ColumnStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator % (const ColumnStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * (", rhs.to_str(), ")"}));
 }
 
-ExprStmt operator % (const ColumnStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator % (const ColumnStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * ", rhs.to_str()}));
 }
 
-ExprStmt operator % (const ColumnStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator % (const ColumnStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * ", rhs.to_str()}));
 }
 
-ExprStmt operator % (const ValueStmt& lhs, const ColumnStmt& rhs) {
+inline ExprStmt operator % (const ValueStmt& lhs, const ColumnStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * ", rhs.to_str()}));
 }
 
-ExprStmt operator % (const ExprStmt& lhs, const ValueStmt& rhs) {
+inline ExprStmt operator % (const ExprStmt& lhs, const ValueStmt& rhs) {
     return ExprStmt(string_concat({"(", lhs.to_str(), ") * ", rhs.to_str()}));
 }
 
-ExprStmt operator % (const ValueStmt& lhs, const ExprStmt& rhs) {
+inline ExprStmt operator % (const ValueStmt& lhs, const ExprStmt& rhs) {
     return ExprStmt(string_concat({lhs.to_str(), " * (", rhs.to_str(), ")"}));
 }
 

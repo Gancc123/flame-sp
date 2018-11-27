@@ -32,7 +32,7 @@ std::string Column::flags() const {
     std::string str;
     if (flags_ & ColFlag::NOT_NULL)
         string_append(str, ' ', "NOT NULL");
-    else
+    else if (!(flags_ & PRIMARY_KEY))
         string_append(str, ' ', "NULL");
     if (flags_ & ColFlag::AUTO_INCREMENT)
         string_append(str, ' ', "AUTO_INCREMENT");
@@ -45,7 +45,7 @@ std::string Column::flags() const {
 
 std::string Column::to_str() const {
     std::string stmt;
-    string_append(stmt, ' ', col_name_);
+    string_append(stmt, ' ', string_concat({"`", col_name_, "`"}));
     string_append(stmt, ' ', type_name_);
     if (flags_ != 0)
         string_append(stmt, ' ', flags());

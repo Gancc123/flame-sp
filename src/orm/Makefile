@@ -2,9 +2,11 @@ ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
+.PHONY: all my_impl clean
+
 all: stmt.o my_impl engine.o
 
-my_impl: ./my_impl/*.h ./my_impl/*.cc
+my_impl:
 	make -C ./my_impl
 
 %.o: %.cc

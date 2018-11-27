@@ -205,19 +205,19 @@ public:
         uint32_t flags, 
         int32_t def,
         const std::string& extra = "")
-        : IntColumn(parent, col_name, "TINYINT", flags, convert2string(def), extra) 
+        : IntColumn(parent, col_name, "INT", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     IntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : IntColumn(parent, col_name, "TINYINT", flags, "", "") 
+        : IntColumn(parent, col_name, "INT", flags, "", "") 
     {
         // nothing
     }
 
     IntCol(Table* parent, const std::string& col_name)
-        : IntColumn(parent, col_name, "TINYINT", ColFlag::NONE, "", "") 
+        : IntColumn(parent, col_name, "INT", ColFlag::NONE, "", "") 
     {
         // nothing
     }
@@ -235,19 +235,19 @@ public:
         uint32_t flags, 
         uint32_t def,
         const std::string& extra = "")
-        : UIntColumn(parent, col_name, "INT", flags, convert2string(def), extra) 
+        : UIntColumn(parent, col_name, "INT UNSIGNED", flags, convert2string(def), extra) 
     {
         // nothing
     }
 
     UIntCol(Table* parent, const std::string& col_name, uint32_t flags)
-        : UIntColumn(parent, col_name, "INT", flags, "", "") 
+        : UIntColumn(parent, col_name, "INT UNSIGNED", flags, "", "") 
     {
         // nothing
     }
 
     UIntCol(Table* parent, const std::string& col_name)
-        : UIntColumn(parent, col_name, "INT", ColFlag::NONE, "", "") 
+        : UIntColumn(parent, col_name, "INT UNSIGNED", ColFlag::NONE, "", "") 
     {
         // nothing
     }
