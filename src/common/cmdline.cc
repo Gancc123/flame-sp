@@ -280,15 +280,16 @@ int Cmdline::parser(int argc, char** argv) {
 int Cmdline::run(int argc, char** argv) {
     assert_msg(argv != nullptr, "Cmdline Internal Error!");
     int r = parser(argc, argv);
+    Cmdline* cur = active_module();
     if (r == CmdRetCode::SUCCESS) {
-        if (act_ != nullptr)
-            return act_->run(active_module());
-        return def_run();
+        if (cur->act_ != nullptr)
+            return cur->act_->run(cur);
+        return cur->def_run();
     } else if (r == CmdRetCode::FORMAT_ERROR) {
-        active_module()->print_help();
+        cur->print_error();
         return r;
     } else {
-        active_module()->print_internal_error();
+        cur->print_internal_error();
         return r;
     }
 }

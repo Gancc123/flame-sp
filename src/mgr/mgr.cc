@@ -35,7 +35,7 @@ public:
     Argument<string>    metastore   {this, "metastore", "MetaStore url", ""};
     Argument<string>    log_dir     {this, "log_dir", "log dir", "/var/log/flame"};
     Argument<string>    log_level   {this, "log_level", 
-        "log level. {PRINT, TRACE, DEBUG, INFO, WARN, ERROR, WRONG, CRITICAL, DEAD} default: INFO", "INFO"};
+        "log level. {PRINT, TRACE, DEBUG, INFO, WARN, ERROR, WRONG, CRITICAL, DEAD}", "INFO"};
 
     HelpAction help {this};
 }; // class MgrCli
@@ -122,6 +122,9 @@ int main(int argc, char** argv) {
     if (r != CmdRetCode::SUCCESS) {
         mgr_cli->print_error();
         return r;
+    } else if (mgr_cli->help.done()) {
+        mgr_cli->print_help();
+        return 0;
     }
 
     // 获取全局上下文
