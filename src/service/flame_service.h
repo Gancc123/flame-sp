@@ -71,6 +71,16 @@ public:
     // 获取指定Chunk信息
     virtual ::grpc::Status getChunkMaps(::grpc::ServerContext* context, const ::ChunkMapsRequest* request, ::ChunkMapsReply* response);
 
+protected:
+    ClusterMS* cluster_ms {mct_->ms()->get_cluster_ms(); }
+    VolumeGroupMS* vg_ms {mct_->ms()->get_vg_ms(); };
+    VolumeMS* vol_ms {mct_->ms()->get_volume_ms(); };
+    ChunkMS* chk_ms {mct_->ms()->get_chunk_ms(); };
+    ChunkHealthMS* chk_hlt_ms {mct_->ms()->get_chunk_health_ms(); }
+    CsdMS* csd_ms {mct_->ms()->get_csd_ms(); };
+    CsdHealthMS* csd_hlt_ms {mct_->ms()->get_csd_health_ms(); };
+    GatewayMS* gw_ms {mct_->ms()->get_gw_ms(); };
+
 }; // class FlameServiceImpl
 
 } // namespace service

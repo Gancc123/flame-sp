@@ -134,6 +134,12 @@ public:
 		    bdt.tm_hour, bdt.tm_min, bdt.tm_sec, usec());
     }
 
+    std::string to_str() const {
+        char buff[32];
+        sprintf(buff, 32);
+        return std::string(buff);
+    }
+
     static int snprintf(char *out, int outlen, time_t tt) {
         struct tm bdt;
         localtime_r(&tt, &bdt);
@@ -148,6 +154,24 @@ public:
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         return utime_t(ts);
+    }
+
+    static utime_t get_by_nsec(uint64_t nsec) {
+        utime_t tt;
+        tt.set_from_nsec(nsec);
+        return tt;
+    }
+
+    static utime_t get_by_usec(uint64_t usec) {
+        utime_t tt;
+        tt.set_from_usec(usec);
+        return tt;
+    }
+
+    static utime_t get_by_msec(uint64_t msec) {
+        utime_t tt;
+        tt.set_from_msec(msec);
+        return tt;
     }
 };
 

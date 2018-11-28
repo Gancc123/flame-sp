@@ -4,13 +4,10 @@ include $(ROOT)/mk/env.mk
 
 .PHONY: all thread clean
 
-all: thread context.o log.o config.o cmdline.o cli_test
+all: thread context.o log.o config.o cmdline.o
 
 thread:
 	make -C ./thread
-
-cli_test: cli_test.cc cmdline.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(ISRC)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
