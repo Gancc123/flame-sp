@@ -1,7 +1,14 @@
 #include "flame_service.h"
 
+#include "util/utime.h"
+
+#include <string>
+#include <list>
+
 using grpc::ServerContext;
 using grpc::Status;
+
+using namespace std;
 
 namespace flame {
 namespace service {
@@ -58,6 +65,20 @@ const CsdIDListRequest* request, CsdAddrListReply* response)
 Status FlameServiceImpl::getVolGroupList(ServerContext* context,
 const VGListRequest* request, VGListReply* response)
 {
+    int offset = request->offset();
+    int limit = request->limit();
+    list<volume_group_meta_t> res_list;
+    mct_->ms()->get_vg_ms()->list(res_list);
+    for (auto it = res_list.begin(); it != res_list.end(); it++) {
+        VGItem* item = response->add_vg_list();
+        item->set_vg_id(it->vg_id);
+        item->set_name(it->name);
+        item->set_ctime(it->ctime);
+        item->set_volumes(it->volumes);
+        item->set_size(it->size);
+        item->set_alloced(it->alloced);
+        item->set_used(it->used);
+    }
     return Status::OK;
 }
 
@@ -65,6 +86,11 @@ const VGListRequest* request, VGListReply* response)
 Status FlameServiceImpl::createVolGroup(ServerContext* context,
 const VGCreateRequest* request, FlameReply* response)
 {
+    volume_group_meta_t vg;
+    vg.name = request->vg_name();
+    vg.ctime = utime_t::now().to_msec();
+    int r = mct_->ms()->get_vg_ms()->create(vg);
+    response->set_code(r);
     return Status::OK;
 }
 

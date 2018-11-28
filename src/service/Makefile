@@ -5,7 +5,7 @@ include $(ROOT)/mk/grpc.mk
 
 .PHONY: all clean
 
-all: flame_service.o internal_service.o
+all: flame_service.o flame_client.o internal_service.o
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -c $(ISRC) $(GRPC_LDFLAGS)

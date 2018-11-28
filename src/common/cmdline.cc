@@ -117,7 +117,7 @@ static void print_usage__(print_context_t& pcxt, const std::string& mod_list) {
             printf("--%c <%c> ", (*it)->short_name(), (*it)->short_name());
     }
 
-    printf("[optional]\n\n");
+    printf("\n\n");
 }
 
 static void print_des__(const std::string& des) {
@@ -286,7 +286,10 @@ int Cmdline::run(int argc, char** argv) {
             return cur->act_->run(cur);
         return cur->def_run();
     } else if (r == CmdRetCode::FORMAT_ERROR) {
-        cur->print_error();
+        if (cur->act_->long_name() == "help")
+            cur->print_help();
+        else
+            cur->print_error();
         return r;
     } else {
         cur->print_internal_error();
