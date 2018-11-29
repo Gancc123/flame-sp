@@ -246,6 +246,10 @@ std::string UpdateStmt::to_str() const {
     stmt += tables_;
     stmt += " SET ";
     stmt += assignment_;
+    if (!conditions_.empty()) {
+        stmt += " WHERE ";
+        stmt += conditions_;
+    }
     if (!order_by_.empty()) {
         stmt += " ORDER BY ";
         stmt += order_by_;
@@ -286,7 +290,7 @@ DeleteStmt& DeleteStmt::order_by(const ColumnStmt& col, int order) {
 
 std::string DeleteStmt::to_str() const {
     std::string stmt;
-    stmt += "DELETE ";
+    stmt += "DELETE FROM ";
     stmt += table_;
     if (!conditions_.empty()) {
         stmt += " WHERE ";

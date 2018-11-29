@@ -586,7 +586,7 @@ private:
  */
 class DeleteStmt : public Stmt {
 public:
-    DeleteStmt() {}
+    DeleteStmt() : limit_(0) {}
     virtual ~DeleteStmt() {}
 
     DeleteStmt(const DeleteStmt&) = default;
