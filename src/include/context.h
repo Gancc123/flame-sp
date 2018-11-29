@@ -1,8 +1,8 @@
-#ifndef FLAME_COMMON_CONTEXT_H
-#define FLAME_COMMON_CONTEXT_H
+#ifndef FLAME_INCLUDE_CONTEXT_H
+#define FLAME_INCLUDE_CONTEXT_H
 
-#include "common/log.h"
-#include "common/config.h"
+#include "log.h"
+#include "config.h"
 
 namespace flame {
     
@@ -37,4 +37,4 @@ private:
 } // namespace flame
 
 
-#endif // FLAME_COMMON_CONTEXT_H
+#endif // FLAME_INCLUDE_CONTEXT_H
