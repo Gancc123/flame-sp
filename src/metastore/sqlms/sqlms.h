@@ -92,7 +92,7 @@ public:
     /**
      * Get all of the volume group
      */
-    virtual int list(std::list<volume_group_meta_t>& res_list) override;
+    virtual int list(std::list<volume_group_meta_t>& res_list, uint32_t offset = 0, uint32_t limit = 0) override;
 
     /**
      * Get a single volume group
@@ -140,7 +140,7 @@ public:
      * Get all volume information in same volume group
      * @By: vg_id
      */
-    virtual int list(std::list<volume_meta_t>& res_list, uint64_t vg_id) override;
+    virtual int list(std::list<volume_meta_t>& res_list, uint64_t vg_id, uint32_t offset = 0, uint32_t limit = 0) override;
 
     /**
      * Get a single volume

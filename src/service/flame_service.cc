@@ -22,6 +22,13 @@ namespace service {
 Status FlameServiceImpl::connect(ServerContext* context, 
 const ConnectRequest* request, FlameReply* response) 
 {
+    gateway_meta_t gw;
+    gw.gw_id = request->gw_id();
+    gw.admin_addr = request->admin_addr();
+    gw.ltime = utime_t::now().to_msec();
+    gw.atime = utime_t::now().to_msec();
+    int r = gw_ms->create(gw);
+    response->set_code(r);
     return Status::OK;
 }
     
@@ -29,6 +36,9 @@ const ConnectRequest* request, FlameReply* response)
 Status FlameServiceImpl::disconnect(ServerContext* context, 
 const DisconnectRequest* request, FlameReply* response)
 {
+    int gw_id = request->gw_id();
+    int r = gw_ms->remove(gw_id);
+    response->set_code(r);
     return Status::OK;
 }
     
@@ -36,6 +46,14 @@ const DisconnectRequest* request, FlameReply* response)
 Status FlameServiceImpl::getClusterInfo(ServerContext* context, 
 const NoneRequest* request, ClusterInfoReply* response)
 {
+    cluster_meta_t cluster;
+    cluster_ms->get(cluster);
+    response->set_name(cluster.name);
+    response->set_mgrs(cluster.mgrs);
+    response->set_csds(cluster.csds);
+    response->set_size(cluster.size);
+    response->set_alloced(cluster.alloced);
+    response->set_used(cluster.used);
     return Status::OK;
 }
 
@@ -43,6 +61,7 @@ const NoneRequest* request, ClusterInfoReply* response)
 Status FlameServiceImpl::shutdownCluster(ServerContext* context, 
 const NoneRequest* request, FlameReply* response)
 {
+
     return Status::OK;
 }
 
@@ -57,6 +76,21 @@ const NoneRequest* request, FlameReply* response)
 Status FlameServiceImpl::pullCsdAddr(ServerContext* context,
 const CsdIDListRequest* request, CsdAddrListReply* response)
 {
+    list<uint64_t> csd_ids;
+    for(uint64_t i = 0; i < request->csd_id_list_size(); ++i)
+    {
+        csd_ids.push_back(request->csd_id_list(i));
+    }
+    list<csd_meta_t> res_list;
+    csd_ms->list(res_list, csd_ids);
+
+    for(auto it = res_list.begin(); it != res_list.end(); ++it)
+    {
+        CsdAddrItem* item = response->add_csd_list();
+        item->set_csd_id(it->csd_id);
+        item->set_io_addr(it->io_addr);
+        item->set_stat(it->stat);
+    }
     return Status::OK;
 }
     
@@ -68,7 +102,7 @@ const VGListRequest* request, VGListReply* response)
     int offset = request->offset();
     int limit = request->limit();
     list<volume_group_meta_t> res_list;
-    mct_->ms()->get_vg_ms()->list(res_list);
+    vg_ms->list(res_list, offset, limit);
     for (auto it = res_list.begin(); it != res_list.end(); it++) {
         VGItem* item = response->add_vg_list();
         item->set_vg_id(it->vg_id);
@@ -89,7 +123,7 @@ const VGCreateRequest* request, FlameReply* response)
     volume_group_meta_t vg;
     vg.name = request->vg_name();
     vg.ctime = utime_t::now().to_msec();
-    int r = mct_->ms()->get_vg_ms()->create(vg);
+    int r = vg_ms->create(vg);
     response->set_code(r);
     return Status::OK;
 }
@@ -98,6 +132,9 @@ const VGCreateRequest* request, FlameReply* response)
 Status FlameServiceImpl::removeVolGroup(ServerContext* context,
 const VGRemoveRequest* request, FlameReply* response)
 {
+    std::string name = request->vg_name();
+    int r = vg_ms->remove(name);
+    response->set_code(r);
     return Status::OK;
 }
     
@@ -105,6 +142,10 @@ const VGRemoveRequest* request, FlameReply* response)
 Status FlameServiceImpl::renameVolGroup(ServerContext* context,
 const VGRenameRequest* request, FlameReply* response)
 {
+    std::string old_name = request->old_vg_name();
+    std::string new_name = request->new_vg_name();
+    int r = vg_ms->rename(old_name, new_name);
+    response->set_code(r);
     return Status::OK;
 }
 
@@ -113,6 +154,28 @@ const VGRenameRequest* request, FlameReply* response)
 Status FlameServiceImpl::getVolumeList(ServerContext* context,
 const VolListRequest* request, VolListReply* response)
 {
+    volume_group_meta_t vg;
+    vg_ms->get(vg, request->vg_name());
+    uint64_t vg_id = vg.vg_id;
+
+    list<volume_meta_t> res_list;
+    vol_ms->list(res_list, vg_id, request->offset(), request->limit());
+    for(auto it = res_list.begin(); it != res_list.end(); ++it)
+    {
+        VolumeItem* item = response->add_vol_list();
+        item->set_vol_id(it->vol_id);
+        item->set_vg_id(it->vg_id);
+        item->set_name(it->name);
+        item->set_ctime(it->ctime);
+        item->set_chk_sz(it->chk_sz);
+        item->set_size(it->size);
+        item->set_alloced(it->alloced);
+        item->set_used(it->used);
+        item->set_flags(it->flags);
+        item->set_spolicy(it->spolicy);
+        item->set_chunks(it->chunks);
+    }
+
     return Status::OK;
 }
     
@@ -120,6 +183,21 @@ const VolListRequest* request, VolListReply* response)
 Status FlameServiceImpl::createVolume(ServerContext* context,
 const VolCreateRequest* request, FlameReply* response)
 {
+    volume_group_meta_t vg;
+    vg_ms->get(vg, request->vg_name());
+    uint64_t vg_id = vg.vg_id;
+
+    volume_meta_t vol;
+    vol.vg_id = vg_id;
+    vol.name = request->vol_name();
+    vol.ctime = utime_t::now().to_msec();
+    vol.chk_sz = request->chk_sz();
+    vol.size = request->size();
+    vol.flags = request->flags();
+    vol.spolicy = request->spolicy();
+
+    int r = vol_ms->create(vol);
+    response->set_code(r);
     return Status::OK;
 }
 
@@ -127,6 +205,13 @@ const VolCreateRequest* request, FlameReply* response)
 Status FlameServiceImpl::removeVolume(ServerContext* context,
 const VolRemoveRequest* request, FlameReply* response)
 {
+    volume_group_meta_t vg;
+    vg_ms->get(vg, request->vg_name());
+    uint64_t vg_id = vg.vg_id;
+
+    int r = vol_ms->remove(vg_id, request->vol_name());
+    response->set_code(r);
+
     return Status::OK;
 }
     
@@ -134,6 +219,12 @@ const VolRemoveRequest* request, FlameReply* response)
 Status FlameServiceImpl::renameVolume(ServerContext* context,
 const VolRenameRequest* request, FlameReply* response)
 {
+    volume_group_meta_t vg;
+    vg_ms->get(vg, request->vg_name());
+    uint64_t vg_id = vg.vg_id;
+
+    int r = vol_ms->rename(vg_id, request->old_vol_name(), request->new_vol_name());
+    response->set_code(r);
     return Status::OK;
 }
     
@@ -141,6 +232,26 @@ const VolRenameRequest* request, FlameReply* response)
 Status FlameServiceImpl::getVolumeInfo(ServerContext* context,
 const VolInfoRequest* request, VolInfoReply* response)
 {
+    volume_group_meta_t vg;
+    vg_ms->get(vg, request->vg_name());
+    uint64_t vg_id = vg.vg_id;
+
+    volume_meta_t res;
+    int r = vol_ms->get(res, vg_id, request->vol_name());
+    response->set_retcode(r);
+    VolumeItem* item = response->mutable_vol();
+    item->set_vol_id(res.vol_id); 
+    item->set_vg_id(res.vg_id);  
+    item->set_name(res.name);   
+    item->set_ctime(res.ctime);  
+    item->set_chk_sz(res.chk_sz); 
+    item->set_size(res.size);   
+    item->set_alloced(res.alloced);
+    item->set_used(res.used);   
+    item->set_flags(res.flags);  
+    item->set_spolicy(res.spolicy);
+    item->set_chunks(res.chunks);
+
     return Status::OK;
 }
 
@@ -148,6 +259,16 @@ const VolInfoRequest* request, VolInfoReply* response)
 Status FlameServiceImpl::resizeVolume(ServerContext* context,
 const VolResizeRequest* request, FlameReply* response)
 {
+    volume_group_meta_t vg;
+    vg_ms->get(vg, request->vg_name());
+    uint64_t vg_id = vg.vg_id;
+
+    volume_meta_t res;
+    vol_ms->get(res, vg_id, request->vol_name());
+    res.size = request->new_size();
+
+    int r = vol_ms->update(res);
+    response->set_code(r);
     return Status::OK;
 }
     
@@ -183,6 +304,22 @@ const VolUnlockRequest* request, FlameReply* response)
 Status FlameServiceImpl::getVolumeMaps(ServerContext* context,
 const VolMapsRequest* request, VolMapsReply* response)
 {
+    list<chunk_meta_t> res_list;
+    chk_ms->list(res_list, request->vol_id());
+
+    for(auto it = res_list.begin(); it != res_list.end(); ++it)
+    {
+        ChunkItem* item = response->add_chk_list();
+        item->set_chk_id(it->chk_id);
+        item->set_vol_id(it->vol_id);
+        item->set_index(it->index);
+        item->set_stat(it->stat);
+        item->set_spolicy(it->spolicy);
+        item->set_primary(it->primary);
+        item->set_size(it->size);
+        item->set_csd_id(it->csd_id);
+        item->set_dst_id(it->dst_id);
+    }
     return Status::OK;
 }
 
@@ -191,6 +328,28 @@ const VolMapsRequest* request, VolMapsReply* response)
 Status FlameServiceImpl::getChunkMaps(ServerContext* context,
 const ChunkMapsRequest* request, ChunkMapsReply* response)
 {
+    list<uint64_t> chk_ids;
+    for(uint64_t i = 0; i < request->chk_id_list_size(); ++i)
+    {
+        chk_ids.push_back(request->chk_id_list(i));
+    }
+
+    list<chunk_meta_t> res_list;
+    chk_ms->list(res_list, chk_ids);
+    for(auto it = res_list.begin(); it != res_list.end(); ++it)
+    {
+        ChunkItem* item = response->add_chk_list();
+        item->set_chk_id(it->chk_id);
+        item->set_vol_id(it->vol_id);
+        item->set_index(it->index);
+        item->set_stat(it->stat);
+        item->set_spolicy(it->spolicy);
+        item->set_primary(it->primary);
+        item->set_size(it->size);
+        item->set_csd_id(it->csd_id);
+        item->set_dst_id(it->dst_id);
+    }
+
     return Status::OK;
 }
 

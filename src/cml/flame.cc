@@ -113,8 +113,12 @@ public:
     HelpAction help {this};
 
     int def_run() {
-        // pass
-        return 0;
+        auto cct = make_flame_client_context();
+
+        int r = cct->client()->remove_vol_group(name.get());
+        check_faild__(r, "remove volume group");
+        
+        return success__();
     }
 }; // class VGRemoveCli
 
@@ -127,6 +131,15 @@ public:
     Serial<string> new_name {this, 2, "new_name", "the new name of vg"};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+
+        int r = cct->client()->rename_vol_group(old_name.get(), new_name.get());
+        check_faild__(r, "rename volume group");
+        
+        return success__();
+    }
 }; // class VGRenameCli
 
 class VolGroupCli : public Cmdline {
@@ -153,6 +166,27 @@ public:
     Argument<int> number {this, 'n', "number", "the number of vg that need to be showed", 0};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+        list<volume_meta_t> res;
+        int r = cct->client()->get_volume_list(vg_name.get(), offset.get(), number.get(), res);
+        check_faild__(r, "get volume list");
+
+        printf("Size: %d\n", res.size());
+        printf("vol_id\tvg_id\tname\tsize\tctime\n");
+        for (auto it = res.begin(); it != res.end(); it++) {
+            printf("%llu\t%llu\t%s\t%llu\t%s\n",
+                it->vol_id,
+                it->vg_id,
+                it->name.c_str(),
+                it->size,
+                utime_t::get_by_msec(it->ctime).to_str().c_str()
+            );
+        }
+        return 0;
+    }
+
 }; // class VolShowCli
 
 class VolCreateCli : public Cmdline {
@@ -170,6 +204,21 @@ public:
     Switch  prealloc    {this, "preallocate", "pre allocating the physical space for volume"};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+        volume_attr_t att;
+        att.vg_name = vg_name.get();
+        att.vol_name = vol_name.get();
+        att.size = size.get();
+        att.chk_sz = chk_sz.get();
+        att.spolicy = 0;
+        
+        int r = cct->client()->create_volume(att);
+        check_faild__(r, "create volume");
+
+        return success__();
+    }
 }; // class VolCreateCli
 
 class VolRemoveCli : public Cmdline {
@@ -181,6 +230,14 @@ public:
     Serial<string>  vol_name {this, 2, "vol_name", "the name of volume"};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+        int r = cct->client()->remove_volume(vg_name.get(), vol_name.get());
+        check_faild__(r, "remove volume");
+
+        return success__();
+    }
 }; // class VolRemoveCli
 
 class VolRenameCli : public Cmdline {
@@ -193,6 +250,14 @@ public:
     Serial<string>  new_name {this, 3, "new_name", "the new name of volume"};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+        int r = cct->client()->rename_volume(vg_name.get(), vol_name.get(), new_name.get());
+        check_faild__(r, "rename volume");
+
+        return success__();
+    }
 }; // class VolRemoveCli
 
 class VolInfoCli : public Cmdline {
@@ -204,6 +269,26 @@ public:
     Serial<string>  vol_name {this, 2, "vol_name", "the name of volume"};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+        uint32_t retcode;
+        volume_meta_t res;
+        int r = cct->client()->get_volume_info(vg_name.get(), vol_name.get(), retcode, res);
+        check_faild__(r, "get volume info");
+
+        printf("retcode: %d\n", retcode);
+        printf("vol_id\tvg_id\tname\tsize\tctime\n");
+    
+        printf("%llu\t%llu\t%s\t%llu\t%s\n",
+            res.vol_id,
+            res.vg_id,
+            res.name.c_str(),
+            res.size,
+            utime_t::get_by_msec(res.ctime).to_str().c_str()
+        );
+        return 0;
+    }
 }; // class VolInfoCli
 
 class VolResizeCli : public Cmdline {
@@ -216,6 +301,14 @@ public:
     Serial<int>     size     {this, 3, "size", "the new size of volume, unit(GB)"};
 
     HelpAction help {this};
+
+    int def_run() {
+        auto cct = make_flame_client_context();
+        int r = cct->client()->resize_volume(vg_name.get(), vol_name.get(), size.get());
+        check_faild__(r, "resize volume");
+
+        return success__();
+    }
 }; // class VolResizeCli
 
 class VolumeCli : public Cmdline {
@@ -241,6 +334,20 @@ public:
     HelpAction help {this};
 
     int def_run() {
+        auto cct = make_flame_client_context();
+        cluster_meta_t res;
+        int r = cct->client()->get_cluster_info(res);
+        check_faild__(r, "resize volume");
+
+        printf("name\tmgrs\tcsds\tsize\talloced\tused\n");
+        printf("%s\t%d\t%d\t%llu\t%llu\t%llu\n",
+              res.name.c_str(),
+              res.mgrs,
+              res.csds,
+              res.size,
+              res.alloced,
+              res.used);
+        
         return 0;
     }
 };

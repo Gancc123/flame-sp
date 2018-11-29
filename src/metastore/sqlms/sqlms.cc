@@ -110,8 +110,8 @@ int SqlClusterMS::update(const cluster_meta_t& cluster) {
  * SqlVolumeGroupMS
  */
 
-int SqlVolumeGroupMS::list(std::list<volume_group_meta_t>& res_list) {
-    shared_ptr<Result> ret = m_vg.query().exec();
+int SqlVolumeGroupMS::list(std::list<volume_group_meta_t>& res_list, uint32_t offset, uint32_t limit) {
+    shared_ptr<Result> ret = m_vg.query().offset(offset).limit(limit).exec();
 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
@@ -263,8 +263,8 @@ int SqlVolumeGroupMS::rename(const std::string& old_name, const std::string& new
  * SqlVolumeMS
  */
 
-int SqlVolumeMS::list(std::list<volume_meta_t>& res_list, uint64_t vg_id) {
-    shared_ptr<Result> ret = m_volume.query().where(m_volume.vg_id == vg_id).exec();
+int SqlVolumeMS::list(std::list<volume_meta_t>& res_list, uint64_t vg_id, uint32_t offset, uint32_t limit) {
+    shared_ptr<Result> ret = m_volume.query().where(m_volume.vg_id == vg_id).offset(offset).limit(limit).exec();
 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
