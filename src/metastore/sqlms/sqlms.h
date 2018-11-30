@@ -193,6 +193,7 @@ public:
      */
     virtual int list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t off = 0, uint32_t len = 0) override;
     virtual int list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t>& chk_ids) override;
+    virtual int list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) override;
     virtual int list_all(std::list<chunk_meta_t>& res_list) override;
 
     /**
