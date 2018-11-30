@@ -33,6 +33,15 @@ public:
     virtual ::grpc::Status pullRelatedChunk(::grpc::ServerContext* context, const ::ChunkPullRequest* request, ::ChunkPullReply* response);
     // 推送Chunk相关信息
     virtual ::grpc::Status pushChunkStatus(::grpc::ServerContext* context, const ::ChunkPushRequest* request, ::InternalReply* response);
+protected:
+    ClusterMS* cluster_ms {mct_->ms()->get_cluster_ms()};
+    VolumeGroupMS* vg_ms {mct_->ms()->get_vg_ms()};
+    VolumeMS* vol_ms {mct_->ms()->get_volume_ms()};
+    ChunkMS* chk_ms {mct_->ms()->get_chunk_ms()};
+    ChunkHealthMS* chk_hlt_ms {mct_->ms()->get_chunk_health_ms()};
+    CsdMS* csd_ms {mct_->ms()->get_csd_ms()};
+    CsdHealthMS* csd_hlt_ms {mct_->ms()->get_csd_health_ms()};
+    GatewayMS* gw_ms {mct_->ms()->get_gw_ms()};
 }; // class InternalServiceImpl
 
 } // namespace service 

@@ -498,6 +498,32 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t
     return MSRetCode::FAILD;
 }
 
+int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) {
+    shared_ptr<Result> ret = m_chunk.query()
+        .where(m_chunk.vol_id == vol_id, m_chunk.index == index).exec();
+
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            chunk_meta_t item;
+            item.chk_id = it->get(m_chunk.chk_id);
+            item.vol_id = it->get(m_chunk.vol_id);
+            item.index = it->get(m_chunk.index);
+            item.stat = it->get(m_chunk.stat);
+            item.spolicy = it->get(m_chunk.spolicy);
+            item.primary = it->get(m_chunk.primary);
+            item.size = it->get(m_chunk.size);
+            item.csd_id = it->get(m_chunk.csd_id);
+            item.csd_mtime = it->get(m_chunk.csd_mtime);
+            item.dst_id = it->get(m_chunk.dst_id);
+            item.dst_ctime = it->get(m_chunk.dst_ctime);
+            res_list.push_back(item);
+        }
+        return MSRetCode::SUCCESS;
+    }
+    return MSRetCode::FAILD;
+}
+
 int SqlChunkMS::list_all(std::list<chunk_meta_t>& res_list) {
     shared_ptr<Result> ret = m_chunk.query().exec();
     if (ret && ret->OK()) {
@@ -831,12 +857,20 @@ int SqlCsdMS::update(const csd_meta_t& csd) {
 }
 
 int SqlCsdMS::update_sm(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64_t admin_addr) {
-    shared_ptr<Result> ret = m_csd.update()
-        .assign({
-            set_(m_csd.io_addr, io_addr), 
-            set_(m_csd.admin_addr, admin_addr), 
-            set_(m_csd.stat, stat)
-        }).where(m_csd.csd_id == csd_id).exec();
+    auto handle = m_csd.update().
+                  assign(set_(m_csd.stat, stat)
+                  .where(m_csd.csd_id == csd_id);
+
+    if (io_addr & 0xffff != 0xffff)
+    {
+        handle.assign(set_(m_csd.io_addr, io_addr));
+    }
+    if(admin_addr & 0xffff != 0xffff)
+    {
+        handle.assign(set_(m_csd.admin_addr, admin_addr));
+    }
+    
+    shared_ptr<Result> ret = handle.exec();
 
     if (ret && ret->OK()) {
         return MSRetCode::SUCCESS;
