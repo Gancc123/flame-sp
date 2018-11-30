@@ -66,7 +66,7 @@ public:
     int def_run() {
         auto cct = make_flame_client_context();
         list<volume_group_meta_t> res;
-        int r = cct->client()->get_vol_group_list(offset.get(), number.get(), res);
+        int r = cct->client()->get_vol_group_list(res, offset.get(), number.get());
         check_faild__(r, "show volume group.\n");
         
         printf("Size: %d\n", res.size());
@@ -170,7 +170,7 @@ public:
     int def_run() {
         auto cct = make_flame_client_context();
         list<volume_meta_t> res;
-        int r = cct->client()->get_volume_list(vg_name.get(), offset.get(), number.get(), res);
+        int r = cct->client()->get_volume_list(res, vg_name.get(), offset.get(), number.get());
         check_faild__(r, "get volume list");
 
         printf("Size: %d\n", res.size());
@@ -274,7 +274,7 @@ public:
         auto cct = make_flame_client_context();
         uint32_t retcode;
         volume_meta_t res;
-        int r = cct->client()->get_volume_info(vg_name.get(), vol_name.get(), retcode, res);
+        int r = cct->client()->get_volume_info(res, vg_name.get(), vol_name.get(), retcode);
         check_faild__(r, "get volume info");
 
         printf("retcode: %d\n", retcode);

@@ -78,6 +78,7 @@ public:
     : orm::DBTable(engine, "chunk_health") { auto_create(); }
     
     orm::BigIntCol  chk_id      {this, "chk_id", orm::ColFlag::PRIMARY_KEY}; // Chunk ID
+    orm::IntCol     stat        {this, "stat"};
     orm::BigIntCol  size        {this, "size"}; // 可视大小（B）
     orm::BigIntCol  used        {this, "used"}; // 实际已使用的空间（B
     orm::BigIntCol  csd_used    {this, "csd_used"}; // 有效已使用的空间，针对迁移场景（B）
@@ -115,6 +116,7 @@ public:
     : orm::DBTable(engine, "csd_health") { auto_create(); } 
 
     orm::BigIntCol  csd_id      {this, "csd_id", orm::ColFlag::PRIMARY_KEY};    // CSD ID
+    orm::IntCol     stat        {this, "stat"};
     orm::BigIntCol  size        {this, "size"};
     orm::BigIntCol  alloced     {this, "alloced"};  // 需要分配的空间（B）
     orm::BigIntCol  used        {this, "used"}; // 实际已使用的空间（B）

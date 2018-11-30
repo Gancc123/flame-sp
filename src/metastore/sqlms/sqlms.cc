@@ -498,9 +498,9 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t
     return MSRetCode::FAILD;
 }
 
-int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) {
+int SqlChunkMS::list_cg(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) {
     shared_ptr<Result> ret = m_chunk.query()
-        .where(m_chunk.vol_id == vol_id, m_chunk.index == index).exec();
+        .where({m_chunk.vol_id == vol_id, m_chunk.index == index}).exec();
 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
@@ -656,7 +656,8 @@ int SqlChunkHealthMS::get(chunk_health_meta_t& chk_hlt, uint64_t chk_id) {
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            chk_hlt.chk_id  = it->get(m_chk_health.chk_id);        
+            chk_hlt.chk_id  = it->get(m_chk_health.chk_id);
+            chk_hlt.stat    = it->get(m_chk_health.stat);
             chk_hlt.size    =  it->get(m_chk_health.size);
             chk_hlt.used    = it->get(m_chk_health.used);       
             chk_hlt.csd_used    = it->get(m_chk_health.csd_used);  
@@ -680,13 +681,13 @@ int SqlChunkHealthMS::get(chunk_health_meta_t& chk_hlt, uint64_t chk_id) {
 int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
     shared_ptr<Result> ret = m_chk_health.insert()
         .column({
-            m_chk_health.chk_id, m_chk_health.size, m_chk_health.used, 
+            m_chk_health.chk_id, m_chk_health.stat, m_chk_health.size, m_chk_health.used, 
             m_chk_health.csd_used, m_chk_health.dst_used, m_chk_health.write_count, 
             m_chk_health.read_count, m_chk_health.last_time, m_chk_health.last_write, 
             m_chk_health.last_read, m_chk_health.last_latency, m_chk_health.last_alloc, 
             m_chk_health.load_weight, m_chk_health.wear_weight, m_chk_health.total_weight
         }).value({
-            chk_hlt.chk_id, chk_hlt.size, chk_hlt.used, 
+            chk_hlt.chk_id, chk_hlt.stat, chk_hlt.size, chk_hlt.used, 
             chk_hlt.csd_used, chk_hlt.dst_used, chk_hlt.write_count, 
             chk_hlt.read_count, chk_hlt.last_time, chk_hlt.last_write, 
             chk_hlt.last_read, chk_hlt.last_latency, chk_hlt.last_alloc, 
@@ -716,6 +717,7 @@ int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
     shared_ptr<Result> ret = m_chk_health.update()
         .assign({
             set_(m_chk_health.size, chk_hlt.size),
+            set_(m_chk_health.stat, chk_hlt.stat),
             set_(m_chk_health.used, chk_hlt.used), 
             set_(m_chk_health.csd_used, chk_hlt.csd_used), 
             set_(m_chk_health.dst_used, chk_hlt.dst_used),
@@ -857,16 +859,14 @@ int SqlCsdMS::update(const csd_meta_t& csd) {
 }
 
 int SqlCsdMS::update_sm(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64_t admin_addr) {
-    auto handle = m_csd.update().
-                  assign(set_(m_csd.stat, stat)
-                  .where(m_csd.csd_id == csd_id);
+    auto handle = m_csd.update()
+        .assign(set_(m_csd.stat, stat))
+        .where(m_csd.csd_id == csd_id);
 
-    if (io_addr & 0xffff != 0xffff)
-    {
+    if (io_addr & 0xffff != 0xffff) {
         handle.assign(set_(m_csd.io_addr, io_addr));
     }
-    if(admin_addr & 0xffff != 0xffff)
-    {
+    if (admin_addr & 0xffff != 0xffff) {
         handle.assign(set_(m_csd.admin_addr, admin_addr));
     }
     
@@ -903,6 +903,7 @@ int SqlCsdHealthMS::list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             csd_health_meta_t csd_hlt;
             csd_hlt.csd_id      = it->get(m_csd_health.csd_id);
+            csd_hlt.stat        = it->get(m_csd_health.stat);
             csd_hlt.size        = it->get(m_csd_health.size);
             csd_hlt.alloced     = it->get(m_csd_health.alloced);
             csd_hlt.used        = it->get(m_csd_health.used);
@@ -931,6 +932,7 @@ int SqlCsdHealthMS::get(csd_health_meta_t& csd_hlt, uint64_t csd_id) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             csd_hlt.csd_id      = it->get(m_csd_health.csd_id);
+            csd_hlt.stat        = it->get(m_csd_health.stat);
             csd_hlt.size        = it->get(m_csd_health.size);
             csd_hlt.alloced     = it->get(m_csd_health.alloced);
             csd_hlt.used        = it->get(m_csd_health.used);
@@ -953,13 +955,13 @@ int SqlCsdHealthMS::get(csd_health_meta_t& csd_hlt, uint64_t csd_id) {
 int SqlCsdHealthMS::create(const csd_health_meta_t& new_csd) {
     shared_ptr<Result> ret = m_csd_health.insert()
         .column({
-            m_csd_health.csd_id, m_csd_health.size, m_csd_health.alloced, 
+            m_csd_health.csd_id, m_csd_health.stat, m_csd_health.size, m_csd_health.alloced, 
             m_csd_health.used, m_csd_health.write_count, m_csd_health.read_count,
             m_csd_health.last_time, m_csd_health.last_write, m_csd_health.last_read, 
             m_csd_health.last_latency, m_csd_health.last_alloc, m_csd_health.load_weight, 
             m_csd_health.wear_weight, m_csd_health.total_weight
         }).value({
-            new_csd.csd_id, new_csd.size, new_csd.alloced, 
+            new_csd.csd_id, new_csd.stat, new_csd.size, new_csd.alloced, 
             new_csd.used, new_csd.write_count, new_csd.read_count,
             new_csd.last_time, new_csd.last_write, new_csd.last_read, 
             new_csd.last_latency, new_csd.last_alloc, new_csd.load_weight, 
@@ -989,6 +991,7 @@ int SqlCsdHealthMS::remove(uint64_t csd_id) {
 int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
     shared_ptr<Result> ret = m_csd_health.update()
         .assign({
+            set_(m_csd_health.stat, csd_hlt.stat),
             set_(m_csd_health.size, csd_hlt.size), 
             set_(m_csd_health.alloced, csd_hlt.alloced), 
             set_(m_csd_health.used, csd_hlt.used),

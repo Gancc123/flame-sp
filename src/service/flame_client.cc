@@ -96,7 +96,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
     }
  }
 
- int FlameClientImpl::pull_csd_addr(const std::list<uint64_t>& csd_id_list, std::list<csd_addr_attr_t>& res) {
+ int FlameClientImpl::pull_csd_addr(std::list<csd_addr_attr_t>& res, const std::list<uint64_t>& csd_id_list) {
     CsdIDListRequest req;
     for (auto it = csd_id_list.begin(); it != csd_id_list.end(); ++it) {
         req.add_csd_id_list(*it);
@@ -121,7 +121,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
     }
  }
 
- int FlameClientImpl::get_vol_group_list(uint32_t offset, uint32_t limit, std::list<volume_group_meta_t>& res) {
+ int FlameClientImpl::get_vol_group_list(std::list<volume_group_meta_t>& res, uint32_t offset, uint32_t limit) {
     VGListRequest req;
     req.set_offset(offset);
     req.set_limit(limit);
@@ -198,7 +198,7 @@ int FlameClientImpl::rename_vol_group(const std::string& old_name, const std::st
     }
 }
 
-int FlameClientImpl::get_volume_list(const std::string& name, uint32_t offset, uint32_t limit, std::list<volume_meta_t>& res) {
+int FlameClientImpl::get_volume_list(std::list<volume_meta_t>& res, const std::string& name, uint32_t offset, uint32_t limit) {
     VolListRequest req;
     req.set_vg_name(name);
     req.set_offset(offset);
@@ -231,7 +231,7 @@ int FlameClientImpl::get_volume_list(const std::string& name, uint32_t offset, u
     }
 }
 
-int FlameClientImpl::create_volume(volume_attr_t& vol_attr) {
+int FlameClientImpl::create_volume(const volume_attr_t& vol_attr) {
     VolCreateRequest req;
     req.set_vg_name(vol_attr.vg_name);
     req.set_vol_name(vol_attr.vol_name);
@@ -287,7 +287,7 @@ int FlameClientImpl::rename_volume(const std::string& vg_name, const std::string
     }
 }
 
-int FlameClientImpl::get_volume_info(const std::string& vg_name, const std::string& vol_name, uint32_t retcode, volume_meta_t& res) {
+int FlameClientImpl::get_volume_info(volume_meta_t& res, const std::string& vg_name, const std::string& vol_name, uint32_t retcode) {
     VolInfoRequest req;
     req.set_vg_name(vg_name);
     req.set_vol_name(vol_name);
@@ -408,7 +408,7 @@ int FlameClientImpl::unlock_volume(uint64_t gw_id, const std::string& vg_name, c
     }
 }
 
-int FlameClientImpl::get_volume_maps(uint64_t vol_id, std::list<chunk_attr_t>& res) {
+int FlameClientImpl::get_volume_maps(std::list<chunk_attr_t>& res, uint64_t vol_id) {
     VolMapsRequest req;
     req.set_vol_id(vol_id);
 
@@ -438,7 +438,7 @@ int FlameClientImpl::get_volume_maps(uint64_t vol_id, std::list<chunk_attr_t>& r
     }
 }
 
-int FlameClientImpl::get_chunk_maps(const std::list<uint64_t>& chk_list, std::list<chunk_attr_t>& res) {
+int FlameClientImpl::get_chunk_maps(std::list<chunk_attr_t>& res, const std::list<uint64_t>& chk_list) {
     ChunkMapsRequest req;
     for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
         req.add_chk_id_list(*it);
@@ -470,9 +470,4 @@ int FlameClientImpl::get_chunk_maps(const std::list<uint64_t>& chk_list, std::li
     }
 }
 
-int FlameClientImpl::return_error__(const grpc::Status& stat) {
-    fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
-    return -stat.error_code();
-}
-
-} // namespace 
+} // namespace flame

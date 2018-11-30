@@ -215,6 +215,7 @@ public:
      */
     virtual int list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t off = 0, uint32_t len = 0) = 0;
     virtual int list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t>& chk_ids) = 0;
+    virtual int list_cg(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) = 0;
     virtual int list_all(std::list<chunk_meta_t>& res_list) = 0;
 
     /**
@@ -254,6 +255,7 @@ protected:
  */
 struct chunk_health_meta_t {
     uint64_t    chk_id  {0};
+    uint32_t    stat    {0};
     uint64_t    size    {0};
     uint64_t    used    {0};
     uint64_t    csd_used    {0};
@@ -360,6 +362,7 @@ protected:
  */
 struct csd_health_meta_t {
     uint64_t    csd_id  {0};
+    uint32_t    stat    {0};
     uint64_t    size    {0};
     uint64_t    alloced {0};
     uint64_t    used    {0};
