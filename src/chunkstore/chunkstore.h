@@ -254,9 +254,11 @@ public:
         CLT_IN = 3      // 有效的Flame CSD数据并且属于所配置集群
     };
 
-    enum DevRetCode {
+    enum RetCode {
         SUCCESS = 0,
-        FAILD = 1
+        FAILD = 1,
+        OBJ_NOTFOUND = 2,
+        OBJ_EXISTED = 3
     };
 
     /**
@@ -281,7 +283,7 @@ public:
      * 将主元数据信息写回
      * @return: 0 is success
      */
-    virtual int dev_umount() = 0;
+    virtual int dev_unmount() = 0;
 
     /**
      * is_mounted()
@@ -292,12 +294,6 @@ public:
     /**
      * Chunk操作部分
      */
-    enum OpRetCode {
-        SUCCESS = 0,
-        FAILD = 1,
-        OBJ_NOTFOUND = 2,
-        OBJ_EXISTED = 3
-    };
 
     // 创建Chunk
     virtual int chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) = 0;

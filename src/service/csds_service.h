@@ -6,12 +6,14 @@
 #include "proto/csds.pb.h"
 #include "proto/csds.grpc.pb.h"
 
+#include "csd/csd_service.h"
+
 namespace flame {
 namespace service {
 
-class CsdsServiceImpl final : public CsdsService::Service {
+class CsdsServiceImpl final : public CsdsService::Service, public CsdService {
 public:
-    CsdsServiceImpl() : CsdsService::Service() {}
+    CsdsServiceImpl(CsdContext* cct) : CsdsService::Service(), CsdService(cct) {}
 
     // 拉取Chunk版本信息
     virtual ::grpc::Status fetchChunk(::grpc::ServerContext* context, const ::ChunkFetchRequest* request, ::ChunkFetchReply* response);

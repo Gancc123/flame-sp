@@ -103,7 +103,7 @@ bool Manager::init_metastore(MgrCli* mgr_cli) {
 bool Manager::init_server(MgrCli* mgr_cli) {
     FlameConfig* config = mct_->config();
     string addr;
-    if (mgr_cli->addr.done() && !mgr_cli->metastore.get().empty()) {
+    if (mgr_cli->addr.done() && !mgr_cli->addr.get().empty()) {
         addr = mgr_cli->addr;
     } else if (config->has_key(CFG_MGR_ADDR)) {
         addr = config->get(CFG_MGR_ADDR, "");
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    // 创建MGR上下文，并从
+    // 创建MGR上下文
     MgrContext* mct = new MgrContext(fct);
 
     // 创建MGR主程序

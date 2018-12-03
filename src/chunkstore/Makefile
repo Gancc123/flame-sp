@@ -2,15 +2,16 @@ ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
-.PHONY: all clean
+.PHONY: all simstore clean
 
-all: test
+all: simstore cs.o
 
-test: test.cc 
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(ISRC)
+simstore:
+	make -C ./simstore
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
 
 clean:
-	rm -f *.o test
+	make -C ./simstore clean
+	rm -f *.o

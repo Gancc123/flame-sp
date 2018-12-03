@@ -14,8 +14,12 @@ public:
     Logger* log() const { return fct_->log(); }
     FlameConfig* config() const { return fct_->config(); }
 
+    std::shared_ptr<ChunkStore> cs() const { return cs_; }
+    void cs(std::shared_ptr<ChunkStore>& csv) { cs_ = csv; }
+
 private:
     FlameContext* fct_;
+    std::shared_ptr<ChunkStore> cs_;
 }; // class CsdContext
 
 } // namespace flame
