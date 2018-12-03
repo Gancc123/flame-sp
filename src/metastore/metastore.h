@@ -31,6 +31,7 @@ struct cluster_meta_t {
     uint64_t    size    {0};
     uint64_t    alloced {0};
     uint64_t    used    {0};
+    uint64_t    ctime   {0};
 }; // struct cluster_meta_t
 
 class ClusterMS {
@@ -191,6 +192,7 @@ struct chunk_meta_t {
     uint32_t    index   {0};    // Thera is a same index in a chunk group
     uint32_t    stat    {0};    // chunk status
     uint32_t    spolicy {0};
+    uint64_t    ctime   {0};
     uint64_t    primary {0};    // this chunk is the primary chunk when primary == chk_id
     uint64_t    size    {0};
     uint64_t    csd_id  {0};

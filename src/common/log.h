@@ -68,11 +68,11 @@ extern const char* LogDict[];
 class LogPrinter final {
 public:
     explicit LogPrinter(int level) 
-    : fp_(stdout), level_(level), imm_flush_(true) {}
+    : with_console_(false), fp_(stdout), level_(level), imm_flush_(true) {}
     explicit LogPrinter(FILE* fp) 
-    : fp_(fp), level_(LogLevel::INFO), imm_flush_(true) {}
+    : with_console_(false), fp_(fp), level_(LogLevel::INFO), imm_flush_(true) {}
     explicit LogPrinter(FILE* fp = stdout, int level = LogLevel::INFO) 
-    : fp_(fp), level_(level), imm_flush_(true) {}
+    : with_console_(false), fp_(fp), level_(level), imm_flush_(true) {}
 
     ~LogPrinter();
 
@@ -83,6 +83,8 @@ public:
     long int size() const { return ftell(fp_); }
     bool is_imm_flush() const { return imm_flush_; }
     void set_imm_flush(bool v) { imm_flush_ = v; }
+    bool with_console() const { return with_console_; }
+    void set_with_console(bool v) { with_console_ = v; }
 
     void flush() const { fflush(fp_); }
 
@@ -95,10 +97,12 @@ public:
             snprintf(buff + r, MAX_LOG_LEN - r, "\n");
             fprintf(fp_, buff);
             if (imm_flush_) fflush(fp_);
+            if (with_console_) fprintf(stdout, buff);
         }
     }
 
 private:
+    bool with_console_;
     std::atomic<FILE*> fp_; // primary file pointor
     std::atomic<int> level_;
     std::atomic<bool> imm_flush_; // immediately flush
@@ -106,19 +110,24 @@ private:
 
 class Logger final {
 public:
-    explicit Logger(int level = LogLevel::INFO) : printer_(level), threshold_(LOG_DEF_THRESHOLD) {}
+    explicit Logger(int level = LogLevel::INFO) 
+    : printer_(level), threshold_(LOG_DEF_THRESHOLD) {}
+
     explicit Logger(const std::string& dir, const std::string& prefix, int level = LogLevel::INFO)
     : dir_(dir), prefix_(prefix), printer_(level), threshold_(LOG_DEF_THRESHOLD) {
         switch_log_file();
     }
     ~Logger() {}
 
+    bool set_level_with_name(const std::string& level_name);
     void set_level(int level) { printer_.set_level(level); }
     int get_level() const { return printer_.get_level(); }
     void set_threshold(long int t) { threshold_ = t; }
     long int get_threshold() const { return threshold_; }
     bool is_imm_flush() const { return printer_.is_imm_flush(); }
     void set_imm_flush(bool v) { printer_.set_imm_flush(v); }
+    bool with_console() const { return printer_.with_console(); }
+    void set_with_console(bool v) { printer_.set_with_console(v); }
 
     void flush() const { printer_.flush(); }
     bool reopen(const std::string& dir, const std::string& prefix);

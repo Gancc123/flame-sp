@@ -17,6 +17,7 @@ public:
     orm::StringCol  name    {this, "name", 64};
     orm::IntCol     mgrs    {this, "mgrs"};
     orm::IntCol     csds    {this, "csds"};
+    orm::BigIntCol  ctime   {this, "ctime"};
     orm::BigIntCol  size    {this, "size"};
     orm::BigIntCol  alloced {this, "alloced"};
     orm::BigIntCol  used    {this, "used"};
@@ -64,6 +65,7 @@ public:
     orm::IntCol     index   {this, "index"};    // Index in Same Volume
     orm::IntCol     stat    {this, "stat"};     // CSD状态
     orm::IntCol     spolicy {this, "spolicy"};
+    orm::BigIntCol  ctime   {this, "ctime"};    // 创建时间
     orm::BigIntCol  primary {this, "primary"};
     orm::BigIntCol  size    {this, "size"};     // 可视大小（B）
     orm::BigIntCol  csd_id  {this, "csd_id"};   // 当前所在CSD ID

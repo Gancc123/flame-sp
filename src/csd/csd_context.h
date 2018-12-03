@@ -1,7 +1,8 @@
 #ifndef FLAME_CSD_CONTEXT_H
 #define FLAME_CSD_CONTEXT_H
 
-#include "include/context.h"
+#include "common/context.h"
+#include "chunkstore/cs.h"
 
 namespace flame {
 

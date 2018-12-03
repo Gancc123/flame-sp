@@ -130,32 +130,17 @@ int main(int argc, char** argv) {
     // 获取全局上下文
     FlameContext* fct = FlameContext::get_context();
 
-    // 创建命令行日志并设置
-    Logger* cmdlog = new Logger(LogLevel::PRINT);
-    fct->set_log(cmdlog);
-
-    // 加载配置文件
-    string path = mgr_cli->config_path;
-    FlameConfig* config = FlameConfig::create_config(fct, path);
-    if (config == nullptr) {
-        fct->log()->error("read config file(%s) faild.", path.c_str());
-        exit(-1);
-    }
-    fct->set_config(config);
-
-    // 重载日志
-    string log_dir;
-    if (mgr_cli->log_dir.done() && !mgr_cli->log_dir.get().empty()) {
-        log_dir = mgr_cli->log_dir;
-    } else if (config->has_key(CFG_LOG_DIR)) {
-        log_dir = config->get(CFG_LOG_DIR, ".");
-    } else {
-        fct->log()->error("missing config item '%s'", CFG_LOG_DIR);
+    if (!fct->init_config(mgr_cli->config_path)) {
+        fct->log()->error("init config faild");
         exit(-1);
     }
 
-    if (!fct->log()->reopen(log_dir, "mgr")) {
-        fct->log()->error("reopen logger to file faild");
+    if (!fct->init_log(
+        mgr_cli->log_dir.done() ? mgr_cli->log_dir.get() : "", 
+        mgr_cli->log_level, 
+        "mgr"
+    )) {
+        fct->log()->error("init log faild");
         exit(-1);
     }
 

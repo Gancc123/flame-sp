@@ -19,6 +19,7 @@ struct cs_info_t {
     uint64_t    size;
     uint64_t    used;
     uint64_t    ftime;    // format time (ms)
+    uint32_t    chk_num;
 }; // cs_info_t
 
 enum ChunkFlags {
@@ -37,6 +38,7 @@ struct chunk_info_t {
     uint32_t    flags;
     uint64_t    size;
     uint64_t    used;
+    uint64_t    ctime;
     uint64_t    dst_id;    // 只在状态为迁移时有效
     uint64_t    dst_ctime;
 }; // struct chunk_info_t
@@ -103,7 +105,7 @@ public:
      * stat()
      * @return: the status of chunk
      */
-    virtual uint64_t stat() const = 0;
+    virtual uint32_t stat() const = 0;
 
     /**
      * vol_id()
@@ -247,9 +249,14 @@ public:
     virtual int dev_check() = 0;
     enum DevStatus {
         NONE = 0,       // 空设备/目录 （可能很难检测设备为空）
-        UNKNOWN = 1,    // 位置结构数据
+        UNKNOWN = 1,    // 未知结构数据
         CLT_OUT = 2,    // 有效的Flame CSD数据，但不属于所配置集群
         CLT_IN = 3      // 有效的Flame CSD数据并且属于所配置集群
+    };
+
+    enum DevRetCode {
+        SUCCESS = 0,
+        FAILD = 1
     };
 
     /**
@@ -285,6 +292,12 @@ public:
     /**
      * Chunk操作部分
      */
+    enum OpRetCode {
+        SUCCESS = 0,
+        FAILD = 1,
+        OBJ_NOTFOUND = 2,
+        OBJ_EXISTED = 3
+    };
 
     // 创建Chunk
     virtual int chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) = 0;
@@ -293,7 +306,7 @@ public:
     virtual int chunk_remove(uint64_t chk_id) = 0;
 
     // 查看Chunk是否已经存在
-    virtual int chunk_exist(uint64_t chk_id) = 0;
+    virtual bool chunk_exist(uint64_t chk_id) = 0;
 
     // 打开一个Chunk，不存在时返回空指针
     virtual std::shared_ptr<Chunk> chunk_open(uint64_t chk_id) = 0;

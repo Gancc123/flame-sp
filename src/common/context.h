@@ -4,6 +4,8 @@
 #include "common/log.h"
 #include "common/config.h"
 
+#include <string>
+
 namespace flame {
     
 class FlameContext {
@@ -16,13 +18,21 @@ public:
     }
     static FlameContext* g_context;
 
-    FlameContext() : log_(nullptr), config_(nullptr) {}
+    FlameContext() : log_(new Logger(LogLevel::PRINT)), config_(nullptr) {}
     
     Logger* log() const { return log_; }
     void set_log(Logger* log);
+    bool init_config(const std::string& path);
+    bool init_log(const std::string& dir, const std::string& level, const std::string& prefix);
 
     FlameConfig* config() const { return config_; }
     void set_config(FlameConfig* config);
+
+    const std::string& cluster_name() const { return cluster_name_; }
+    void set_cluster_name(const std::string& name) { cluster_name_ = name; }
+
+    const std::string& node_name() const { return node_name_; }
+    void set_node_name(const std::string& name) { node_name_ = name; } 
 
 private:
     FlameContext(const FlameContext&) = delete;
@@ -32,6 +42,8 @@ private:
 
     Logger* log_;
     FlameConfig* config_;
+    std::string cluster_name_;
+    std::string node_name_;
 }; // class FlameContext
 
 } // namespace flame
