@@ -609,10 +609,12 @@ bool SimChunk::is_preallocated() const {
 }
 
 int SimChunk::read_sync(void* buff, uint64_t off, uint64_t len) {
+    rd_count__(off, len);
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_sync(void* buff, uint64_t off, uint64_t len) {
+    wr_count__(off, len);
     return ChunkStore::RetCode::SUCCESS;
 }
 
@@ -630,15 +632,46 @@ int SimChunk::set_xattr(const std::string& name, const std::string& value) {
 }
 
 int SimChunk::read_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
+    rd_count__(off, len);
     if (cb != nullptr)
         cb(cb_arg);
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
+    wr_count__(off, len);
     if (cb != nullptr)
         cb(cb_arg);
     return ChunkStore::RetCode::SUCCESS;
+}
+
+void SimChunk::blk_range__(uint32_t& begin, uint32_t& end, uint64_t off, uint64_t len) {
+    int chk_size = chk_->info.size;
+    uint64_t sz;
+    end = begin = off / SIMSTORE_BLOCK_SIZE;
+    sz = off % SIMSTORE_BLOCK_SIZE;
+    if (!sz) sz = SIMSTORE_BLOCK_SIZE;
+    len -= sz;
+    while (len > 0) {
+        end++;
+        len -= SIMSTORE_BLOCK_SIZE;
+    }
+}
+
+void SimChunk::rd_count__(uint64_t off, uint64_t len) {
+    uint32_t begin, end;
+    blk_range__(begin, end, off, len);
+    for (int idx = begin; idx < end; idx++) {
+        chk_->blocks[idx].cnt.rd++;
+    }
+}
+
+void SimChunk::wr_count__(uint64_t off, uint64_t len) {
+    uint32_t begin, end;
+    blk_range__(begin, end, off, len);
+    for (int idx = begin; idx < end; idx++) {
+        chk_->blocks[idx].cnt.wr++;
+    }
 }
 
 } // namespace flame
