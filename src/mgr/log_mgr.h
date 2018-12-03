@@ -1,5 +1,5 @@
-#ifndef FLAME_MGR_LOG_MGR_H
-#define FLAME_MGR_LOG_MGR_H
+#ifndef FLAME_MGR_LOG_H
+#define FLAME_MGR_LOG_H
 
 #include "common/log.h"
 
@@ -33,4 +33,4 @@
 
 #endif
 
-#endif // FLAME_mgr_LOG_MS_H
+#endif // FLAME_MGR_LOG_H

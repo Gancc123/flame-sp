@@ -21,12 +21,12 @@
 namespace flame {
 
 struct simstore_counter_t {
-    std::atomic<int64_t> rd {0};
-    std::atomic<int64_t> wr {0};
+    int64_t rd {0};
+    int64_t wr {0};
 };
 
 struct simstore_block_t {
-    uint64_t ctime;
+    uint64_t ctime  {0};
     simstore_counter_t cnt;
 };
 
@@ -34,6 +34,8 @@ struct simstore_chunk_t {
     chunk_info_t info;
     std::map<std::string, std::string> xattr;
     std::vector<simstore_block_t> blocks;
+
+    void init_blocks__();
 }; 
 
 class SimStore final : public ChunkStore {
@@ -52,7 +54,7 @@ public:
     virtual int dev_check() override;
     virtual int dev_format() override;
     virtual int dev_mount() override;
-    virtual int dev_umount() override;
+    virtual int dev_unmount() override;
     virtual bool is_mounted() override;
 
     virtual int chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) override;
@@ -63,7 +65,7 @@ public:
     friend class SimChunk;
 
 private:
-    SimStore(FlameConfig* fct, uint64_t size, const std::string& bk_file) 
+    SimStore(FlameContext* fct, uint64_t size, const std::string& bk_file) 
     : ChunkStore(fct), size_(size), bk_file_(bk_file), formated_(false), mounted_(false) {}
 
     bool formated_;
@@ -73,7 +75,7 @@ private:
     cs_info_t info_;
     std::map<uint64_t, simstore_chunk_t> chk_map_;
 
-    int info_init__();
+    int info_init__();    
     int backup_load__();
     int backup_store__();
 
@@ -118,6 +120,7 @@ public:
     virtual int read_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) override;
     virtual int write_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) override;
 
+    friend class SimStore;
 private:
     SimChunk(FlameContext* fct, SimStore* parent, simstore_chunk_t* chk) 
     : Chunk(fct), parent_(parent), chk_(chk) {}

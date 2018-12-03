@@ -17,7 +17,7 @@ void FlameContext::set_config(FlameConfig* config) {
 }
 
 bool FlameContext::init_config(const std::string& path) {
-    FlameConfig* config = FlameConfig::create_config(fct, path);
+    FlameConfig* config = FlameConfig::create_config(this, path);
     if (config == nullptr) {
         log()->error("FlameContext", "read config file (%s) faild.", path.c_str());
         exit(-1);
@@ -27,8 +27,8 @@ bool FlameContext::init_config(const std::string& path) {
 
 bool FlameContext::init_log(const std::string& dir, const std::string& level, const std::string& prefix) {
     std::string log_dir;
-    if (dir.empty()) 
-        if (confg()->has_key(CFG_LOG_DIR)) {
+    if (dir.empty()) {
+        if (config()->has_key(CFG_LOG_DIR)) {
             log_dir = config()->get(CFG_LOG_DIR, ".");
         } else {
             log()->error("FlameContext", "missing config item '%s'", CFG_LOG_DIR);
@@ -44,7 +44,7 @@ bool FlameContext::init_log(const std::string& dir, const std::string& level, co
     }
     
     if (!log()->reopen(log_dir, prefix)) {
-        log()->error("FlameContext"， "reopen logger to file faild");
+        log()->error("FlameContext", "reopen logger to file faild");
         return false;
     }
     return true;

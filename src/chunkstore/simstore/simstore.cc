@@ -2,6 +2,8 @@
 
 #include "util/utime.h"
 
+#include "chunkstore/log_cs.h"
+
 #include <memory>
 #include <sstream>
 #include <fstream>
@@ -14,16 +16,61 @@ using namespace std;
 
 namespace flame {
 
-SimStore* SimStore::create_simstore(FlameContext* fct, const std::string& url) {
-    string pstr = "^(\\w+)://(\\d+)([tmgTMG])(:.+)?$";
-    regex pattern(pstr);
-    smathc result;
-    if (!regex_match(url, result, pattern)) {
-        fct->log()->error("");
+void simstore_chunk_t::init_blocks__() {
+    uint32_t blk_num = info.size / SIMSTORE_BLOCK_SIZE + (info.size % SIMSTORE_BLOCK_SIZE ? 1 : 0);
+    uint32_t idx = blocks.size();
+    while (idx < blk_num) {
+        simstore_block_t blk;
+        blocks.push_back(blk);
     }
 }
 
-SimStore* SimStore::create_simstore(FlameContext* fct, uint64_t size, const std::string& bk_file = "") {
+SimStore* SimStore::create_simstore(FlameContext* fct, const std::string& url) {
+    string pstr = "^(\\w+)://(\\d+)([tmgTMG])(:.+)?$";
+    regex pattern(pstr);
+    smatch result;
+    if (!regex_match(url, result, pattern)) {
+        fct->log()->error("format error for url: %s", url.c_str());
+        return nullptr;
+    }
+
+    string driver = result[1];
+    string size_str = result[2];
+    string size_unit = result[3];
+    string path = result[4];
+    if (!path.empty())
+        path = path.substr(1);
+    uint64_t size;
+    try {
+        size = stoull(size_str);
+    } catch (exception& e) {
+        fct->log()->error("size (%s) is invalid", size_str.c_str());
+        return nullptr;
+    }
+
+    string units = "MmGgTt";
+    size_t pos = units.find(size_unit[0]);
+    if (pos != string::npos) {
+        fct->log()->error("size unit (%s) is invalid", size_unit.c_str());
+        return nullptr;
+    }
+
+    switch (pos / 2) {
+    case 0:
+        size <<= 20;
+        break;
+    case 1:
+        size <<= 30;
+        break;
+    case 2:
+        size <<= 40;
+        break;
+    }
+
+    return new SimStore(fct, size, path);
+}
+
+SimStore* SimStore::create_simstore(FlameContext* fct, uint64_t size, const std::string& bk_file) {
     return new SimStore(fct, size, bk_file);
 }
 
@@ -57,27 +104,49 @@ int SimStore::dev_check() {
     if (!bk_file_.empty()) {
         fstream fs;
         fs.open(bk_file_, fstream::in);
-        if (!fp.is_open())
+        if (!fs.is_open())
             return ChunkStore::DevStatus::NONE;
     }
     return ChunkStore::DevStatus::CLT_IN;
 }
 
 int SimStore::dev_format() {
+    if (!bk_file_.empty()) {
+        fstream fs;
+        fs.open(bk_file_, fstream::out);
+        if (!fs.is_open())
+            return ChunkStore::RetCode::OBJ_NOTFOUND;
+    }
     formated_ = true;
-    return 0;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimStore::dev_mount() {
     if (!bk_file_.empty()) {
-        mounted_ = true;
-        return DevRetCode::SUCCESS;
-    }
+        int r = backup_load__();
+        if (r != 0) 
+            return RetCode::FAILD;
+    } else 
+        info_init__();
+    
+    mounted_ = true;
+    return RetCode::SUCCESS;
 }
 
-int SimStore::dev_umount() {
+int SimStore::dev_unmount() {
     if (!mounted_)
-        return DevRetCode::SUCCESS;
+        return RetCode::SUCCESS;
+    if (!bk_file_.empty()) {
+        int r = backup_store__();
+        if (r == 0) {
+            mounted_ = false;
+            return RetCode::SUCCESS;
+        }
+        fct_->log()->error("faild to store data to backup file");
+        return RetCode::FAILD;
+    }
+    mounted_ = false;
+    return RetCode::SUCCESS;
 }
 
 bool SimStore::is_mounted() {
@@ -87,7 +156,7 @@ bool SimStore::is_mounted() {
 int SimStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
     auto it = chk_map_.find(chk_id);
     if (it != chk_map_.end()) 
-        return OpRetCode::OBJ_EXISTED;
+        return RetCode::OBJ_EXISTED;
     
     simstore_chunk_t chk;
     chunk_info_t& chk_info = chk.info;
@@ -103,19 +172,20 @@ int SimStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
     chk_info.dst_id = 0;
     chk_info.dst_ctime = 0;
     
-    chk_map_[chk_id] = chk_info;
+    chk.init_blocks__();
+    chk_map_[chk_id] = chk;
     info_.chk_num++;
-    return OpRetCode::SUCCESS;
+    return RetCode::SUCCESS;
 }
 
 int SimStore::chunk_remove(uint64_t chk_id) {
     auto it = chk_map_.find(chk_id);
     if (it == chk_map_.end())
-        return OpRetCode::OBJ_NOTFOUND;
+        return RetCode::OBJ_NOTFOUND;
     
     chk_map_.erase(chk_id);
     info_.chk_num--;
-    return OpRetCode::SUCCESS;
+    return RetCode::SUCCESS;
 }
 
 bool SimStore::chunk_exist(uint64_t chk_id) {
@@ -137,26 +207,23 @@ int SimStore::info_init__() {
     info_.used = 0;
     info_.ftime = utime_t::now().to_msec();
     info_.chk_num = 0;
-    return OpRetCode::SUCCESS;
+    return RetCode::SUCCESS;
 }
 
 int SimStore::backup_load__() {
     fstream fin;
     fin.open(bk_file_, fstream::in);
     if (!fin.is_open())
-        return OpRetCode::OBJ_NOTFOUND;
+        return RetCode::OBJ_NOTFOUND;
 
-    char chr;
-    while (fin.get(chr)) {
-
-    }
+    return ld_upper__(fin);
 }
 
 int SimStore::backup_store__() {
     fstream fout;
     fout.open(bk_file_, fstream::out);
     if (!fout.is_open())
-        return OpRetCode::OBJ_NOTFOUND;
+        return RetCode::OBJ_NOTFOUND;
     
     // store ChunkStore Information
     fout << "@kv" << endl;
@@ -209,21 +276,11 @@ int SimStore::backup_store__() {
         fout << SIMSTORE_SEP_L1;
 
         // blocks
-        blk_num = info.size / SIMSTORE_BLOCK_SIZE + (info.size % SIMSTORE_BLOCK_SIZE ? 1 : 0);
-        for (uint32_t blk_id = 0; blk_id < blk_num; blk_id++) {
-            auto bit = chk.blocks.find(blk_id);
-            if (bit == chk.blocks.end()) {
-                // not found
-                fout << 0 << SIMSTORE_SEP_L2;
-                fout << -1 << SIMSTORE_SEP_L2;
-                fout << -1 << SIMSTORE_SEP_L2;
-            } else {
-                // founded
-                simstore_block_t& blk = bit->second; 
-                fout << blk.ctime << SIMSTORE_SEP_L2;
-                fout << blk.cnt.rd << SIMSTORE_SEP_L2;
-                fout << blk.cnt.wr << SIMSTORE_SEP_L2;
-            }
+        for (uint32_t blk_id = 0; blk_id < chk.blocks.size(); blk_id++) {
+            simstore_block_t& blk = chk.blocks[blk_id];
+            fout << blk.ctime << SIMSTORE_SEP_L2;
+            fout << blk.cnt.rd << SIMSTORE_SEP_L2;
+            fout << blk.cnt.wr << SIMSTORE_SEP_L2;
         }
         fout << SIMSTORE_SEP_L1;
 
@@ -233,7 +290,7 @@ int SimStore::backup_store__() {
     fout << "@end" << endl;
 
     fout.close();
-    return OpRetCode::SUCCESS;
+    return RetCode::SUCCESS;
 }
 
 int SimStore::ld_upper__(fstream& fin) {
@@ -273,6 +330,8 @@ int SimStore::ld_sub_name__(fstream& fin) {
         return ld_sub_kv__(fin);
     } else if (name == "table") {
         return ld_sub_table__(fin);
+    } else if (name == "end") {
+        return 0;
     } else 
         return 1;
 }
@@ -313,9 +372,9 @@ int SimStore::ld_sub_kv__(fstream& fin) {
 }
 
 int SimStore::ld_sub_table__(fstream& fin) {
-    map<int, string> header;
+    vector<string> header;
     
-    int r = ld_sub_table__(fin, header);
+    int r = ld_sub_table_header__(fin, header);
     if (r != 0)
         return 3;
     
@@ -339,7 +398,6 @@ int SimStore::ld_sub_table_header__(fstream& fin, vector<string>& header) {
             if (col.empty())
                 return 1;
             header.push_back(col);
-            idx++;
             col.clear();
         } else 
             col.push_back(chr);
@@ -408,7 +466,7 @@ int SimStore::st_info__(const std::string& key, const std::string& value) {
         }
     } else if (key == "chk_num") {
         try {
-            uint32_t chk_num = stou(value);
+            uint32_t chk_num = stoull(value);
             info_.chk_num = chk_num;
         } catch (exception& e) {
             return 1;
@@ -453,23 +511,14 @@ int SimStore::st_chunk__(simstore_chunk_t& chk, const string& key, const string&
     } else if (key == "dst_ctime") {
         chk.info.dst_ctime = v;
         return 0;
-    }
-    
-    uint32_t sv;
-    try {
-        sv = stou(value);
-    } catch (exception& e) {
-        return 1;
-    }
-    
-    if (key == "index") {
-        chk.info.index = sv;
+    } else if (key == "index") {
+        chk.info.index = v;
     } else if (key == "stat") {
-        chk.info.stat = sv;
+        chk.info.stat = v;
     } else if (key == "spolicy") {
-        chk.info.spolicy = sv;
+        chk.info.spolicy = v;
     } else if (key == "flags") {
-        chk.info.flags = sv;
+        chk.info.flags = v;
     }
 
     return 0;
@@ -485,7 +534,7 @@ int SimStore::st_chunk_xattr__(simstore_chunk_t& chk, const string& value) {
             return 1;
         string key = value.substr(off, eq_pos - off);
         string val = value.substr(eq_pos + 1, pos - eq_pos -1);
-        if (key.empty() !! val.empty())
+        if (key.empty() || val.empty())
             return 1;
         chk.xattr[key] = val;
         off = pos + 1;
@@ -527,69 +576,69 @@ int SimStore::st_chunk_blocks__(simstore_chunk_t& chk, const string& value) {
 }
 
 int SimChunk::get_info(chunk_info_t& info) const {
-    info = info_;
-    return ChunkStore::OpRetCode::SUCCESS;
+    info = chk_->info;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 uint64_t SimChunk::size() const {
-    return chk_->info_.size;
+    return chk_->info.size;
 }
 
 uint64_t SimChunk::used() const {
-    return chk_->info_.used;
+    return chk_->info.used;
 }
 
-uint64_t SimChunk::stat() const {
-    return chk_->info_.stat;
+uint32_t SimChunk::stat() const {
+    return chk_->info.stat;
 }
 
 uint64_t SimChunk::vol_id() const {
-    return chk_->info_.vol_id;
+    return chk_->info.vol_id;
 }
 
 uint32_t SimChunk::vol_index() const {
-    return chk_->info_.index;
+    return chk_->info.index;
 }
 
 uint32_t SimChunk::spolicy() const {
-    return chk_->info_.spolicy;
+    return chk_->info.spolicy;
 }
 
 bool SimChunk::is_preallocated() const {
-    return chk_->info_.flags & ChunkFlags::PREALLOC;
+    return chk_->info.flags & ChunkFlags::PREALLOC;
 }
 
 int SimChunk::read_sync(void* buff, uint64_t off, uint64_t len) {
-    return ChunkStore::OpRetCode::SUCCESS;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_sync(void* buff, uint64_t off, uint64_t len) {
-    return ChunkStore::OpRetCode::SUCCESS;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::get_xattr(const std::string& name, std::string& value) {
     auto it = chk_->xattr.find(name);
     if (it == chk_->xattr.end())
-        return ChunkStore::OpRetCode::OBJ_NOTFOUND;
+        return ChunkStore::RetCode::OBJ_NOTFOUND;
     value = chk_->xattr[name];
-    return ChunkStore::OpRetCode::SUCCESS;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::set_xattr(const std::string& name, const std::string& value) {
     chk_->xattr[name] = value;
-    return ChunkStore::OpRetCode::SUCCESS;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::read_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
     if (cb != nullptr)
         cb(cb_arg);
-    return ChunkStore::OpRetCode::SUCCESS;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
     if (cb != nullptr)
         cb(cb_arg);
-    return ChunkStore::OpRetCode::SUCCESS;
+    return ChunkStore::RetCode::SUCCESS;
 }
 
 } // namespace flame

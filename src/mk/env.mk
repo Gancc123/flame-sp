@@ -4,6 +4,7 @@
 
 ISRC = -I$(ROOT)
 
+DCHUNKSTORE = $(ROOT)/chunkstore
 DCOMMON = $(ROOT)/common
 DMETASTORE = $(ROOT)/metastore
 DORM = $(ROOT)/orm
