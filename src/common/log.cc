@@ -30,6 +30,16 @@ LogPrinter::~LogPrinter() {
     }
 }
 
+bool Logger::set_level_with_name(const std::string& level_name) {
+    for (int i = 0; i < 9; i++) {
+        if (level_name == LogDict[i]) {
+            set_level(i);
+            return true;
+        }
+    }
+    return false;
+}
+
 bool Logger::reopen(const std::string& dir, const std::string& prefix) {
     dir_ = dir;
     prefix_ = prefix;

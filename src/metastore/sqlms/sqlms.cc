@@ -62,6 +62,16 @@ GatewayMS* SqlMetaStore::get_gw_ms() {
  * SqlClusterMS
  */
 
+static void cluster_meta_set__(cluster_meta_t& clt, const ClusterModel& m_cluster, const DataSet::const_iterator& it) {
+    clt.name = it->get(m_cluster.name);
+    clt.mgrs = it->get(m_cluster.mgrs);
+    clt.csds = it->get(m_cluster.csds);
+    clt.size = it->get(m_cluster.size);
+    clt.alloced = it->get(m_cluster.alloced);
+    clt.used = it->get(m_cluster.used);
+    clt.ctime = it->get(m_cluster.ctime);
+}
+
 int SqlClusterMS::get(cluster_meta_t& cluster) {
     shared_ptr<Result> res = m_cluster.query()
         .order_by(m_cluster.clt_id, Order::DESC)
@@ -71,12 +81,7 @@ int SqlClusterMS::get(cluster_meta_t& cluster) {
     if (res && res->OK()) {
         shared_ptr<DataSet> ds = res->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); it++) {
-            cluster.name = it->get(m_cluster.name);
-            cluster.mgrs = it->get(m_cluster.mgrs);
-            cluster.csds = it->get(m_cluster.csds);
-            cluster.size = it->get(m_cluster.size);
-            cluster.alloced = it->get(m_cluster.alloced);
-            cluster.used = it->get(m_cluster.used);
+            cluster_meta_set__(cluster, m_cluster, it);
             break;
         }
         return MSRetCode::SUCCESS;
@@ -89,11 +94,13 @@ int SqlClusterMS::create(const cluster_meta_t& cluster) {
         .column({
             m_cluster.clt_id, 
             m_cluster.name, m_cluster.mgrs, m_cluster.csds,
-            m_cluster.size, m_cluster.alloced, m_cluster.used
+            m_cluster.size, m_cluster.alloced, m_cluster.used,
+            m_cluster.ctime
         }).value({
             utime_t::now().to_msec(),
             cluster.name, cluster.mgrs, cluster.csds, 
-            cluster.size, cluster.alloced, cluster.used
+            cluster.size, cluster.alloced, cluster.used,
+            cluster.ctime
         }).exec();
 
     if (ret && ret->OK()) {
@@ -110,6 +117,16 @@ int SqlClusterMS::update(const cluster_meta_t& cluster) {
  * SqlVolumeGroupMS
  */
 
+static void volume_group_meta_set__(volume_group_meta_t& vg, const VolumeGroupModel& m_vg, const DataSet::const_iterator& it) {
+    vg.vg_id  = it->get(m_vg.vg_id);
+    vg.name   = it->get(m_vg.name);
+    vg.ctime  = it->get(m_vg.ctime);
+    vg.volumes = it->get(m_vg.volumes);
+    vg.size   = it->get(m_vg.size);
+    vg.alloced = it->get(m_vg.alloced);
+    vg.used   = it->get(m_vg.used);
+}
+
 int SqlVolumeGroupMS::list(std::list<volume_group_meta_t>& res_list, uint32_t offset, uint32_t limit) {
     shared_ptr<Result> ret = m_vg.query().offset(offset).limit(limit).exec();
 
@@ -117,13 +134,7 @@ int SqlVolumeGroupMS::list(std::list<volume_group_meta_t>& res_list, uint32_t of
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             volume_group_meta_t item;
-            item.vg_id  = it->get(m_vg.vg_id);
-            item.name   = it->get(m_vg.name);
-            item.ctime  = it->get(m_vg.ctime);
-            item.volumes = it->get(m_vg.volumes);
-            item.size   = it->get(m_vg.size);
-            item.alloced = it->get(m_vg.alloced);
-            item.used   = it->get(m_vg.used);
+            volume_group_meta_set__(item, m_vg, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -137,13 +148,7 @@ int SqlVolumeGroupMS::get(volume_group_meta_t& res_vg, uint64_t vg_id) {
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for(auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_vg.vg_id    = it->get(m_vg.vg_id);
-            res_vg.name     = it->get(m_vg.name);
-            res_vg.ctime    = it->get(m_vg.ctime);
-            res_vg.volumes  = it->get(m_vg.volumes);
-            res_vg.size     = it->get(m_vg.size);
-            res_vg.alloced  = it->get(m_vg.alloced);
-            res_vg.used     = it->get(m_vg.used);
+            volume_group_meta_set__(res_vg, m_vg, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -156,13 +161,7 @@ int SqlVolumeGroupMS::get(volume_group_meta_t& res_vg, const std::string& name) 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_vg.vg_id    = it->get(m_vg.vg_id);
-            res_vg.name     = it->get(m_vg.name);
-            res_vg.ctime    = it->get(m_vg.ctime);
-            res_vg.volumes  = it->get(m_vg.volumes);
-            res_vg.size     = it->get(m_vg.size);
-            res_vg.alloced  = it->get(m_vg.alloced);
-            res_vg.used     = it->get(m_vg.used);
+            volume_group_meta_set__(res_vg, m_vg, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -263,6 +262,20 @@ int SqlVolumeGroupMS::rename(const std::string& old_name, const std::string& new
  * SqlVolumeMS
  */
 
+static void volume_meta_set__(volume_meta_t& vol, const VolumeModel& m_volume, const DataSet::const_iterator& it) {
+    vol.vol_id = it->get(m_volume.vol_id);
+    vol.vg_id  = it->get(m_volume.vg_id);
+    vol.name   = it->get(m_volume.name);
+    vol.ctime  = it->get(m_volume.ctime);
+    vol.chk_sz = it->get(m_volume.chk_sz);
+    vol.size   = it->get(m_volume.size);
+    vol.alloced = it->get(m_volume.alloced);
+    vol.used   = it->get(m_volume.used);
+    vol.flags  = it->get(m_volume.flags);
+    vol.spolicy = it->get(m_volume.spolicy);
+    vol.chunks = it->get(m_volume.chunks);
+}
+
 int SqlVolumeMS::list(std::list<volume_meta_t>& res_list, uint64_t vg_id, uint32_t offset, uint32_t limit) {
     shared_ptr<Result> ret = m_volume.query().where(m_volume.vg_id == vg_id).offset(offset).limit(limit).exec();
 
@@ -270,17 +283,7 @@ int SqlVolumeMS::list(std::list<volume_meta_t>& res_list, uint64_t vg_id, uint32
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             volume_meta_t item;
-            item.vol_id = it->get(m_volume.vol_id);
-            item.vg_id  = it->get(m_volume.vg_id);
-            item.name   = it->get(m_volume.name);
-            item.ctime  = it->get(m_volume.ctime);
-            item.chk_sz = it->get(m_volume.chk_sz);
-            item.size   = it->get(m_volume.size);
-            item.alloced = it->get(m_volume.alloced);
-            item.used   = it->get(m_volume.used);
-            item.flags  = it->get(m_volume.flags);
-            item.spolicy = it->get(m_volume.spolicy);
-            item.chunks = it->get(m_volume.chunks);
+            volume_meta_set__(item, m_volume, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -294,17 +297,7 @@ int SqlVolumeMS::get(volume_meta_t& res_vol, uint64_t vol_id) {
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_vol.vol_id  = it->get(m_volume.vol_id);
-            res_vol.vg_id   = it->get(m_volume.vg_id);
-            res_vol.name    = it->get(m_volume.name);
-            res_vol.ctime   = it->get(m_volume.ctime);
-            res_vol.chk_sz  = it->get(m_volume.chk_sz);
-            res_vol.size    = it->get(m_volume.size);
-            res_vol.alloced = it->get(m_volume.alloced);
-            res_vol.used    = it->get(m_volume.used);
-            res_vol.flags   = it->get(m_volume.flags);
-            res_vol.spolicy = it->get(m_volume.spolicy);
-            res_vol.chunks  = it->get(m_volume.chunks);
+            volume_meta_set__(res_vol, m_volume, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -318,17 +311,7 @@ int SqlVolumeMS::get(volume_meta_t& res_vol, uint64_t vg_id, const std::string& 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_vol.vol_id  = it->get(m_volume.vol_id);
-            res_vol.vg_id   = it->get(m_volume.vg_id);
-            res_vol.name    = it->get(m_volume.name);
-            res_vol.ctime   = it->get(m_volume.ctime);
-            res_vol.chk_sz  = it->get(m_volume.chk_sz);
-            res_vol.size    = it->get(m_volume.size);
-            res_vol.alloced = it->get(m_volume.alloced);
-            res_vol.used    = it->get(m_volume.used);
-            res_vol.flags   = it->get(m_volume.flags);
-            res_vol.spolicy = it->get(m_volume.spolicy);
-            res_vol.chunks  = it->get(m_volume.chunks);
+            volume_meta_set__(res_vol, m_volume, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -445,6 +428,21 @@ int SqlVolumeMS::rename(uint64_t vg_id, const std::string& old_name, const std::
  * SqlChunkMS
  */
 
+static void chunk_meta_set__(chunk_meta_t& chk, const ChunkModel& m_chunk, const DataSet::const_iterator& it) {
+    chk.chk_id     = it->get(m_chunk.chk_id);
+    chk.vol_id     = it->get(m_chunk.vol_id);
+    chk.index      = it->get(m_chunk.index);
+    chk.stat       = it->get(m_chunk.stat);
+    chk.spolicy    = it->get(m_chunk.spolicy);
+    chk.ctime      = it->get(m_chunk.ctime);
+    chk.primary    = it->get(m_chunk.primary);
+    chk.size       = it->get(m_chunk.size);
+    chk.csd_id     = it->get(m_chunk.csd_id);
+    chk.csd_mtime  = it->get(m_chunk.csd_mtime);
+    chk.dst_id     = it->get(m_chunk.dst_id);
+    chk.dst_ctime  = it->get(m_chunk.dst_ctime);
+}
+
 int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t off, uint32_t len) {
     shared_ptr<Result> ret = m_chunk.query()
         .where(m_chunk.vol_id == vol_id)
@@ -454,17 +452,7 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             chunk_meta_t item;
-            item.chk_id = it->get(m_chunk.chk_id);
-            item.vol_id = it->get(m_chunk.vol_id);
-            item.index = it->get(m_chunk.index);
-            item.stat = it->get(m_chunk.stat);
-            item.spolicy = it->get(m_chunk.spolicy);
-            item.primary = it->get(m_chunk.primary);
-            item.size = it->get(m_chunk.size);
-            item.csd_id = it->get(m_chunk.csd_id);
-            item.csd_mtime = it->get(m_chunk.csd_mtime);
-            item.dst_id = it->get(m_chunk.dst_id);
-            item.dst_ctime = it->get(m_chunk.dst_ctime);
+            chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -480,17 +468,7 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             chunk_meta_t item;
-            item.chk_id = it->get(m_chunk.chk_id);
-            item.vol_id = it->get(m_chunk.vol_id);
-            item.index = it->get(m_chunk.index);
-            item.stat = it->get(m_chunk.stat);
-            item.spolicy = it->get(m_chunk.spolicy);
-            item.primary = it->get(m_chunk.primary);
-            item.size = it->get(m_chunk.size);
-            item.csd_id = it->get(m_chunk.csd_id);
-            item.csd_mtime = it->get(m_chunk.csd_mtime);
-            item.dst_id = it->get(m_chunk.dst_id);
-            item.dst_ctime = it->get(m_chunk.dst_ctime);
+            chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -498,25 +476,15 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t
     return MSRetCode::FAILD;
 }
 
-int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) {
+int SqlChunkMS::list_cg(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) {
     shared_ptr<Result> ret = m_chunk.query()
-        .where(m_chunk.vol_id == vol_id, m_chunk.index == index).exec();
+        .where({m_chunk.vol_id == vol_id, m_chunk.index == index}).exec();
 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             chunk_meta_t item;
-            item.chk_id = it->get(m_chunk.chk_id);
-            item.vol_id = it->get(m_chunk.vol_id);
-            item.index = it->get(m_chunk.index);
-            item.stat = it->get(m_chunk.stat);
-            item.spolicy = it->get(m_chunk.spolicy);
-            item.primary = it->get(m_chunk.primary);
-            item.size = it->get(m_chunk.size);
-            item.csd_id = it->get(m_chunk.csd_id);
-            item.csd_mtime = it->get(m_chunk.csd_mtime);
-            item.dst_id = it->get(m_chunk.dst_id);
-            item.dst_ctime = it->get(m_chunk.dst_ctime);
+            chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -530,17 +498,7 @@ int SqlChunkMS::list_all(std::list<chunk_meta_t>& res_list) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             chunk_meta_t item;
-            item.chk_id = it->get(m_chunk.chk_id);
-            item.vol_id = it->get(m_chunk.vol_id);
-            item.index = it->get(m_chunk.index);
-            item.stat = it->get(m_chunk.stat);
-            item.spolicy = it->get(m_chunk.spolicy);
-            item.primary = it->get(m_chunk.primary);
-            item.size = it->get(m_chunk.size);
-            item.csd_id = it->get(m_chunk.csd_id);
-            item.csd_mtime = it->get(m_chunk.csd_mtime);
-            item.dst_id = it->get(m_chunk.dst_id);
-            item.dst_ctime = it->get(m_chunk.dst_ctime);
+            chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -554,17 +512,7 @@ int SqlChunkMS::get(chunk_meta_t& res_chk, uint64_t chk_id) {
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_chk.chk_id = it->get(m_chunk.chk_id);
-            res_chk.vol_id = it->get(m_chunk.vol_id);
-            res_chk.index = it->get(m_chunk.index);
-            res_chk.stat = it->get(m_chunk.stat);
-            res_chk.spolicy = it->get(m_chunk.spolicy);
-            res_chk.primary = it->get(m_chunk.primary);
-            res_chk.size = it->get(m_chunk.size);
-            res_chk.csd_id = it->get(m_chunk.csd_id);
-            res_chk.csd_mtime = it->get(m_chunk.csd_mtime);
-            res_chk.dst_id = it->get(m_chunk.dst_id);
-            res_chk.dst_ctime = it->get(m_chunk.dst_ctime);
+            chunk_meta_set__(res_chk, m_chunk, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -650,27 +598,32 @@ int SqlChunkMS::update(const chunk_meta_t& chk) {
  * SqlChunkHealthMS
  */
 
+static void chunk_health_meta_set__(chunk_health_meta_t& chk_hlt, const ChunkHealthModel& m_chk_health, const DataSet::const_iterator& it) {
+    chk_hlt.chk_id  = it->get(m_chk_health.chk_id);
+    chk_hlt.stat    = it->get(m_chk_health.stat);
+    chk_hlt.size    =  it->get(m_chk_health.size);
+    chk_hlt.used    = it->get(m_chk_health.used);       
+    chk_hlt.csd_used    = it->get(m_chk_health.csd_used);  
+    chk_hlt.dst_used    = it->get(m_chk_health.dst_used);  
+    chk_hlt.write_count = it->get(m_chk_health.write_count);
+    chk_hlt.read_count  = it->get(m_chk_health.read_count);
+    chk_hlt.last_time   = it->get(m_chk_health.last_time);
+    chk_hlt.last_write  = it->get(m_chk_health.last_write);
+    chk_hlt.last_read   = it->get(m_chk_health.last_read);
+    chk_hlt.last_latency = it->get(m_chk_health.last_latency);
+    chk_hlt.last_alloc  = it->get(m_chk_health.last_alloc);
+    chk_hlt.load_weight = it->get(m_chk_health.load_weight);
+    chk_hlt.wear_weight = it->get(m_chk_health.wear_weight);
+    chk_hlt.total_weight = it->get(m_chk_health.total_weight);
+}
+
 int SqlChunkHealthMS::get(chunk_health_meta_t& chk_hlt, uint64_t chk_id) {
     shared_ptr<Result> ret = m_chk_health.query().where(m_chk_health.chk_id == chk_id).exec();
     
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            chk_hlt.chk_id  = it->get(m_chk_health.chk_id);        
-            chk_hlt.size    =  it->get(m_chk_health.size);
-            chk_hlt.used    = it->get(m_chk_health.used);       
-            chk_hlt.csd_used    = it->get(m_chk_health.csd_used);  
-            chk_hlt.dst_used    = it->get(m_chk_health.dst_used);  
-            chk_hlt.write_count = it->get(m_chk_health.write_count);
-            chk_hlt.read_count  = it->get(m_chk_health.read_count);
-            chk_hlt.last_time   = it->get(m_chk_health.last_time);
-            chk_hlt.last_write  = it->get(m_chk_health.last_write);
-            chk_hlt.last_read   = it->get(m_chk_health.last_read);
-            chk_hlt.last_latency = it->get(m_chk_health.last_latency);
-            chk_hlt.last_alloc  = it->get(m_chk_health.last_alloc);
-            chk_hlt.load_weight = it->get(m_chk_health.load_weight);
-            chk_hlt.wear_weight = it->get(m_chk_health.wear_weight);
-            chk_hlt.total_weight = it->get(m_chk_health.total_weight);
+            chunk_health_meta_set__(chk_hlt, m_chk_health, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -680,13 +633,13 @@ int SqlChunkHealthMS::get(chunk_health_meta_t& chk_hlt, uint64_t chk_id) {
 int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
     shared_ptr<Result> ret = m_chk_health.insert()
         .column({
-            m_chk_health.chk_id, m_chk_health.size, m_chk_health.used, 
+            m_chk_health.chk_id, m_chk_health.stat, m_chk_health.size, m_chk_health.used, 
             m_chk_health.csd_used, m_chk_health.dst_used, m_chk_health.write_count, 
             m_chk_health.read_count, m_chk_health.last_time, m_chk_health.last_write, 
             m_chk_health.last_read, m_chk_health.last_latency, m_chk_health.last_alloc, 
             m_chk_health.load_weight, m_chk_health.wear_weight, m_chk_health.total_weight
         }).value({
-            chk_hlt.chk_id, chk_hlt.size, chk_hlt.used, 
+            chk_hlt.chk_id, chk_hlt.stat, chk_hlt.size, chk_hlt.used, 
             chk_hlt.csd_used, chk_hlt.dst_used, chk_hlt.write_count, 
             chk_hlt.read_count, chk_hlt.last_time, chk_hlt.last_write, 
             chk_hlt.last_read, chk_hlt.last_latency, chk_hlt.last_alloc, 
@@ -716,6 +669,7 @@ int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
     shared_ptr<Result> ret = m_chk_health.update()
         .assign({
             set_(m_chk_health.size, chk_hlt.size),
+            set_(m_chk_health.stat, chk_hlt.stat),
             set_(m_chk_health.used, chk_hlt.used), 
             set_(m_chk_health.csd_used, chk_hlt.csd_used), 
             set_(m_chk_health.dst_used, chk_hlt.dst_used),
@@ -741,6 +695,17 @@ int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
  * SqlCsdMS
  */
 
+static void csd_meta_set__(csd_meta_t& csd, const CsdModel& m_csd, const DataSet::const_iterator& it) {
+    csd.csd_id     = it->get(m_csd.csd_id);
+    csd.name       = it->get(m_csd.name);
+    csd.size       = it->get(m_csd.size);
+    csd.ctime      = it->get(m_csd.ctime);
+    csd.io_addr    = it->get(m_csd.io_addr);
+    csd.admin_addr = it->get(m_csd.admin_addr);
+    csd.stat       = it->get(m_csd.stat);
+    csd.latime     = it->get(m_csd.latime);
+}
+
 int SqlCsdMS::list(std::list<csd_meta_t>& res_list, const std::list<uint64_t>& csd_ids) {
     shared_ptr<Result> ret = m_csd.query().where(in_(m_csd.csd_id, csd_ids)).exec();
     
@@ -748,14 +713,7 @@ int SqlCsdMS::list(std::list<csd_meta_t>& res_list, const std::list<uint64_t>& c
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             csd_meta_t item;
-            item.csd_id     = it->get(m_csd.csd_id);
-            item.name       = it->get(m_csd.name);
-            item.size       = it->get(m_csd.size);
-            item.ctime      = it->get(m_csd.ctime);
-            item.io_addr    = it->get(m_csd.io_addr);
-            item.admin_addr = it->get(m_csd.admin_addr);
-            item.stat       = it->get(m_csd.stat);
-            item.latime     = it->get(m_csd.latime);
+            csd_meta_set__(item, m_csd, it);
             res_list.push_back(item);
         }
         return MSRetCode::SUCCESS;
@@ -769,14 +727,7 @@ int SqlCsdMS::get(csd_meta_t& res_csd, uint64_t csd_id) {
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_csd.csd_id = it->get(m_csd.csd_id);
-            res_csd.name = it->get(m_csd.name);
-            res_csd.size = it->get(m_csd.size);
-            res_csd.ctime = it->get(m_csd.ctime);
-            res_csd.io_addr = it->get(m_csd.io_addr);
-            res_csd.admin_addr = it->get(m_csd.admin_addr);
-            res_csd.stat = it->get(m_csd.stat);
-            res_csd.latime = it->get(m_csd.latime);
+            csd_meta_set__(res_csd, m_csd, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -857,16 +808,14 @@ int SqlCsdMS::update(const csd_meta_t& csd) {
 }
 
 int SqlCsdMS::update_sm(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64_t admin_addr) {
-    auto handle = m_csd.update().
-                  assign(set_(m_csd.stat, stat)
-                  .where(m_csd.csd_id == csd_id);
+    auto handle = m_csd.update()
+        .assign(set_(m_csd.stat, stat))
+        .where(m_csd.csd_id == csd_id);
 
-    if (io_addr & 0xffff != 0xffff)
-    {
+    if (io_addr & 0xffff != 0xffff) {
         handle.assign(set_(m_csd.io_addr, io_addr));
     }
-    if(admin_addr & 0xffff != 0xffff)
-    {
+    if (admin_addr & 0xffff != 0xffff) {
         handle.assign(set_(m_csd.admin_addr, admin_addr));
     }
     
@@ -894,6 +843,24 @@ int SqlCsdMS::update_at(uint64_t csd_id, uint64_t latime) {
  * SqlCsdHealthMS
  */
 
+static void csd_health_meta_set__(csd_health_meta_t& csd_hlt, const CsdHealthModel& m_csd_health, const DataSet::const_iterator& it) {
+    csd_hlt.csd_id      = it->get(m_csd_health.csd_id);
+    csd_hlt.stat        = it->get(m_csd_health.stat);
+    csd_hlt.size        = it->get(m_csd_health.size);
+    csd_hlt.alloced     = it->get(m_csd_health.alloced);
+    csd_hlt.used        = it->get(m_csd_health.used);
+    csd_hlt.write_count = it->get(m_csd_health.write_count);
+    csd_hlt.read_count  = it->get(m_csd_health.read_count);
+    csd_hlt.last_time   = it->get(m_csd_health.last_time);
+    csd_hlt.last_write  = it->get(m_csd_health.last_write);
+    csd_hlt.last_read   = it->get(m_csd_health.last_read);
+    csd_hlt.last_latency = it->get(m_csd_health.last_latency);
+    csd_hlt.last_alloc  = it->get(m_csd_health.last_alloc);
+    csd_hlt.load_weight = it->get(m_csd_health.load_weight);
+    csd_hlt.wear_weight = it->get(m_csd_health.wear_weight);
+    csd_hlt.total_weight = it->get(m_csd_health.total_weight);
+}
+
 int SqlCsdHealthMS::list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint32_t limit) {
     shared_ptr<Result> ret = m_csd_health.query()
         .order_by(m_csd_health.total_weight, Order::DESC).limit(limit).exec();
@@ -902,20 +869,7 @@ int SqlCsdHealthMS::list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             csd_health_meta_t csd_hlt;
-            csd_hlt.csd_id      = it->get(m_csd_health.csd_id);
-            csd_hlt.size        = it->get(m_csd_health.size);
-            csd_hlt.alloced     = it->get(m_csd_health.alloced);
-            csd_hlt.used        = it->get(m_csd_health.used);
-            csd_hlt.write_count = it->get(m_csd_health.write_count);
-            csd_hlt.read_count  = it->get(m_csd_health.read_count);
-            csd_hlt.last_time   = it->get(m_csd_health.last_time);
-            csd_hlt.last_write  = it->get(m_csd_health.last_write);
-            csd_hlt.last_read   = it->get(m_csd_health.last_read);
-            csd_hlt.last_latency = it->get(m_csd_health.last_latency);
-            csd_hlt.last_alloc  = it->get(m_csd_health.last_alloc);
-            csd_hlt.load_weight = it->get(m_csd_health.load_weight);
-            csd_hlt.wear_weight = it->get(m_csd_health.wear_weight);
-            csd_hlt.total_weight = it->get(m_csd_health.total_weight);
+            csd_health_meta_set__(csd_hlt, m_csd_health, it);
             res_list.push_back(csd_hlt);
         }
         return MSRetCode::SUCCESS;
@@ -930,20 +884,7 @@ int SqlCsdHealthMS::get(csd_health_meta_t& csd_hlt, uint64_t csd_id) {
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            csd_hlt.csd_id      = it->get(m_csd_health.csd_id);
-            csd_hlt.size        = it->get(m_csd_health.size);
-            csd_hlt.alloced     = it->get(m_csd_health.alloced);
-            csd_hlt.used        = it->get(m_csd_health.used);
-            csd_hlt.write_count = it->get(m_csd_health.write_count);
-            csd_hlt.read_count  = it->get(m_csd_health.read_count);
-            csd_hlt.last_time   = it->get(m_csd_health.last_time);
-            csd_hlt.last_write  = it->get(m_csd_health.last_write);
-            csd_hlt.last_read   = it->get(m_csd_health.last_read);
-            csd_hlt.last_latency = it->get(m_csd_health.last_latency);
-            csd_hlt.last_alloc  = it->get(m_csd_health.last_alloc);
-            csd_hlt.load_weight = it->get(m_csd_health.load_weight);
-            csd_hlt.wear_weight = it->get(m_csd_health.wear_weight);
-            csd_hlt.total_weight = it->get(m_csd_health.total_weight);
+            csd_health_meta_set__(csd_hlt, m_csd_health, it);
         }
         return MSRetCode::SUCCESS;
     }
@@ -953,13 +894,13 @@ int SqlCsdHealthMS::get(csd_health_meta_t& csd_hlt, uint64_t csd_id) {
 int SqlCsdHealthMS::create(const csd_health_meta_t& new_csd) {
     shared_ptr<Result> ret = m_csd_health.insert()
         .column({
-            m_csd_health.csd_id, m_csd_health.size, m_csd_health.alloced, 
+            m_csd_health.csd_id, m_csd_health.stat, m_csd_health.size, m_csd_health.alloced, 
             m_csd_health.used, m_csd_health.write_count, m_csd_health.read_count,
             m_csd_health.last_time, m_csd_health.last_write, m_csd_health.last_read, 
             m_csd_health.last_latency, m_csd_health.last_alloc, m_csd_health.load_weight, 
             m_csd_health.wear_weight, m_csd_health.total_weight
         }).value({
-            new_csd.csd_id, new_csd.size, new_csd.alloced, 
+            new_csd.csd_id, new_csd.stat, new_csd.size, new_csd.alloced, 
             new_csd.used, new_csd.write_count, new_csd.read_count,
             new_csd.last_time, new_csd.last_write, new_csd.last_read, 
             new_csd.last_latency, new_csd.last_alloc, new_csd.load_weight, 
@@ -989,6 +930,7 @@ int SqlCsdHealthMS::remove(uint64_t csd_id) {
 int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
     shared_ptr<Result> ret = m_csd_health.update()
         .assign({
+            set_(m_csd_health.stat, csd_hlt.stat),
             set_(m_csd_health.size, csd_hlt.size), 
             set_(m_csd_health.alloced, csd_hlt.alloced), 
             set_(m_csd_health.used, csd_hlt.used),
@@ -1014,15 +956,19 @@ int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
  * SqlGatewayMS
  */
 
+static void gateway_meta_set__(gateway_meta_t& gw, const GatewayModel& m_gw, const DataSet::const_iterator& it) {
+    gw.gw_id = it->get(m_gw.gw_id);
+    gw.admin_addr = it->get(m_gw.admin_addr);
+    gw.ltime = it->get(m_gw.ltime);
+    gw.atime = it->get(m_gw.atime);
+}
+
 int SqlGatewayMS::get(gateway_meta_t& res_gw, uint64_t gw_id) {
     shared_ptr<Result> ret = m_gw.query().where(m_gw.gw_id == gw_id).exec();
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            res_gw.gw_id = it->get(m_gw.gw_id);
-            res_gw.admin_addr = it->get(m_gw.admin_addr);
-            res_gw.ltime = it->get(m_gw.ltime);
-            res_gw.atime = it->get(m_gw.atime);
+            gateway_meta_set__(res_gw, m_gw, it);
         }
         return MSRetCode::SUCCESS;
     }

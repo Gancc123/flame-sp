@@ -268,7 +268,7 @@ int Cmdline::parser(int argc, char** argv) {
     change_active__();
 
     // there is not command line args
-    if (argc <= 1) return 0;
+    if (argc <= 1) return CmdRetCode::SUCCESS;
 
     Cmdline* sub = check_submodule__(argv[1]);
     if (sub == nullptr) 
@@ -286,7 +286,7 @@ int Cmdline::run(int argc, char** argv) {
             return cur->act_->run(cur);
         return cur->def_run();
     } else if (r == CmdRetCode::FORMAT_ERROR) {
-        if (cur->act_->long_name() == "help")
+        if (cur->act_ && cur->act_->long_name() == "help")
             cur->print_help();
         else
             cur->print_error();
@@ -343,6 +343,7 @@ int Cmdline::do_parser__(int argc, char** argv) {
     while (idx < argc) {
         char* str = argv[idx];
         int len = strlen(str);
+        printf("%s\n", str);
         if (len == 1 && str[0] == '-') {
             err_msg_ << "single '-' is invalid";
             return CmdRetCode::FORMAT_ERROR;
@@ -455,9 +456,9 @@ int Cmdline::do_parser__(int argc, char** argv) {
                 }
             }
         } else if (serial_idx >= max_idx_) {
-            if (tail_)
+            if (tail_) {
                 tail_vec_.push_back(str);
-            else {
+            } else {
                 err_msg_ << "not matched serial";
                 return CmdRetCode::FORMAT_ERROR;
             }
@@ -465,6 +466,7 @@ int Cmdline::do_parser__(int argc, char** argv) {
             // serial
             serial_idx++;
             auto it = idx_map_.find(serial_idx);
+            printf("hello!\n");
             if (it == idx_map_.end() || it->second->done()) {
                 err_msg_ << "not matched serial";
                 return CmdRetCode::FORMAT_ERROR;

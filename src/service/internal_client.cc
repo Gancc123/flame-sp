@@ -9,8 +9,7 @@ using grpc::Status;
 
 namespace flame {
 
-int InternalClientImpl::register_csd(reg_attr_t& reg_attr, uint64_t csd_id, uint64_t ctime)
-{
+int InternalClientImpl::register_csd(reg_res_t& res, const reg_attr_t& reg_attr) {
     RegisterRequest req;
     req.set_csd_name(reg_attr.csd_name);
     req.set_size(reg_attr.size);
@@ -23,17 +22,16 @@ int InternalClientImpl::register_csd(reg_attr_t& reg_attr, uint64_t csd_id, uint
     Status stat = stub_->registerCsd(&ctx, req, &reply);
 
     if (stat.ok()) {
-        csd_id = reply.csd_id();
-        ctime = reply.ctime();
-        return reply.retcode.code();
+        res.csd_id = reply.csd_id();
+        res.ctime = reply.ctime();
+        return reply.retcode().code();
     } else {
         fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
 
-int InternalClientImpl::unregister_csd(uint64_t csd_id)
-{
+int InternalClientImpl::unregister_csd(uint64_t csd_id) {
     UnregisterRequest req;
     req.set_csd_id(csd_id);
 
@@ -49,28 +47,26 @@ int InternalClientImpl::unregister_csd(uint64_t csd_id)
     }
 }
 
-int InternalClientImpl::sign_up(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64_t admin_addr)
-{
+int InternalClientImpl::sign_up(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64_t admin_addr) {
     SignUpRequest req;
     req.set_csd_id(csd_id);
     req.set_stat(stat);
-    req->set_io_addr(io_addr);
-    req->set_admin_addr(admin_addr);
+    req.set_io_addr(io_addr);
+    req.set_admin_addr(admin_addr);
 
     InternalReply reply;
     ClientContext ctx;
-    Status stat = stub_->signUp(&ctx, req, &reply);
+    Status rets = stub_->signUp(&ctx, req, &reply);
 
-    if (stat.ok()) {
+    if (rets.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
-        return -stat.error_code();
+        fct_->log()->error("RPC Faild(%d): %s", rets.error_code(), rets.error_message().c_str());
+        return -rets.error_code();
     }
 }
 
-int InternalClientImpl::sign_out(uint64_t csd_id)
-{
+int InternalClientImpl::sign_out(uint64_t csd_id) {
     SignOutRequest req;
     req.set_csd_id(csd_id);
 
@@ -86,8 +82,7 @@ int InternalClientImpl::sign_out(uint64_t csd_id)
     }
 }
 
-int InternalClientImpl::push_heart_beat(uint64_t csd_id)
-{
+int InternalClientImpl::push_heart_beat(uint64_t csd_id) {
     HeartBeatRequest req;
     req.set_csd_id(csd_id);
 
@@ -103,26 +98,24 @@ int InternalClientImpl::push_heart_beat(uint64_t csd_id)
     }
 }
 
-int InternalClientImpl::push_status(uint64_t csd_id, uint32_t stat)
-{
+int InternalClientImpl::push_status(uint64_t csd_id, uint32_t stat) {
     StatusRequest req;
     req.set_csd_id(csd_id);
     req.set_stat(stat);
 
     InternalReply reply;
     ClientContext ctx;
-    Status stat = stub_->pushStatus(&ctx, req, &reply);
+    Status rets = stub_->pushStatus(&ctx, req, &reply);
 
-    if (stat.ok()) {
+    if (rets.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
-        return -stat.error_code();
+        fct_->log()->error("RPC Faild(%d): %s", rets.error_code(), rets.error_message().c_str());
+        return -rets.error_code();
     }
 }
 
-int InternalClientImpl::push_health(csd_hlt_attr_t& csd_hlt_attr)
-{
+int InternalClientImpl::push_health(const csd_hlt_attr_t& csd_hlt_attr) {
     HealthRequest req;
     
     req.set_csd_id(csd_hlt_attr.csd_id);
@@ -134,20 +127,19 @@ int InternalClientImpl::push_health(csd_hlt_attr_t& csd_hlt_attr)
     req.set_last_read(csd_hlt_attr.last_read);
     req.set_last_latency(csd_hlt_attr.last_latency);
     req.set_last_alloc(csd_hlt_attr.last_alloc);
-    for(auto it = csd_hlt_attr.chk_hlt_list.begin(); it != csd_hlt_attr.chk_hlt_list.end(); ++it)
-    {
-        ChunkHealthItem* item = req.add_chk_id_list();
+    for (auto it = csd_hlt_attr.chk_hlt_list.begin(); it != csd_hlt_attr.chk_hlt_list.end(); ++it) {
+        ChunkHealthItem* item = req.add_chunk_health_list();
         item->set_chk_id(it->chk_id);
         item->set_size(it->size);
         item->set_stat(it->stat);
         item->set_used(it->used);
-        item->set_csd_used(csd_used);
-        item->set_dst_used(dst_used);
+        item->set_csd_used(it->csd_used);
+        item->set_dst_used(it->dst_used);
         item->set_last_time(it->last_time);
         item->set_last_write(it->last_write);
         item->set_last_read(it->last_read);
         item->set_last_latency(it->last_latency);
-        item->set_last_alloc(it->last->alloc);
+        item->set_last_alloc(it->last_alloc);
     }
 
     InternalReply reply;
@@ -162,12 +154,10 @@ int InternalClientImpl::push_health(csd_hlt_attr_t& csd_hlt_attr)
     }
 }
 
-int InternalClientImpl::pull_related_chunk(list<uint64_t>& chk_list, list<related_chk_attr_t>& res)
-{
+int InternalClientImpl::pull_related_chunk(std::list<related_chk_attr_t>& res, const std::list<uint64_t>& chk_list) {
     ChunkPullRequest req;
-    for(auto it = chk_list.begin(); it != chk_list.end(); ++it)
-    {
-        req.add_chkid_list()->set_from_uint64(*it);
+    for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
+        req.add_chkid_list(*it);
     }
 
     ChunkPullReply reply;
@@ -175,8 +165,7 @@ int InternalClientImpl::pull_related_chunk(list<uint64_t>& chk_list, list<relate
     Status stat = stub_->pullRelatedChunk(&ctx, req, &reply);
 
     if (stat.ok()) {
-        for(uint64_t i = 0; i < reply.rchk_list_size(); ++i)
-        {
+        for (uint64_t i = 0; i < reply.rchk_list_size(); ++i) {
             related_chk_attr_t item;
             item.org_id = reply.rchk_list(i).org_id();
             item.chk_id = reply.rchk_list(i).chk_id();
@@ -184,18 +173,16 @@ int InternalClientImpl::pull_related_chunk(list<uint64_t>& chk_list, list<relate
             item.dst_id = reply.rchk_list(i).dst_id();
             res.push_back(item);
         }
-        return reply.code();
+        return 0;
     } else {
         fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
 
-int InternalClientImpl::push_chunk_status(list<chk_push_attr_t>& chk_list)
-{
+int InternalClientImpl::push_chunk_status(const std::list<chk_push_attr_t>& chk_list) {
     ChunkPushRequest req;
-    for(auto it = chk_list.begin(); it != chk_list.end(); ++it)
-    {
+    for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
         ChunkPushItem* item = req.add_chk_list();
         item->set_chk_id(it->chk_id);
         item->set_stat(it->stat);
@@ -216,4 +203,4 @@ int InternalClientImpl::push_chunk_status(list<chk_push_attr_t>& chk_list)
     }
 }
 
-} // namespace 
+} // namespace flame

@@ -37,11 +37,11 @@ public:
     int clean_clustrt() override;
 
     // 获取CSD地址信息，需要指定一系列CSD ID
-    int pull_csd_addr(const std::list<uint64_t>& csd_id_list, std::list<csd_addr_attr_t>& res) override;
+    int pull_csd_addr(std::list<csd_addr_attr_t>& res, const std::list<uint64_t>& csd_id_list) override;
 
     //* Group Set
     // 获取所有VG信息，支持分页（需要提供<offset, limit>，以vg_name字典顺序排序）
-    int get_vol_group_list(uint32_t offset, uint32_t limit, std::list<volume_group_meta_t>& res) override;
+    int get_vol_group_list(std::list<volume_group_meta_t>& res, uint32_t offset, uint32_t limit) override;
 
     // 创建VG
     int create_vol_group(const std::string& name) override;
@@ -54,10 +54,10 @@ public:
 
     //* Volume Set
     // 获取指定VG内的所有Volume信息
-    int get_volume_list(const std::string& name, uint32_t offset, uint32_t limit, std::list<volume_meta_t>& res) override;
+    int get_volume_list(std::list<volume_meta_t>& res, const std::string& name, uint32_t offset, uint32_t limit) override;
 
     // 创建Volume
-    int create_volume(volume_attr_t& vol_attr) override;
+    int create_volume(const volume_attr_t& vol_attr) override;
 
     // 删除Volume
     int remove_volume(const std::string& vg_name, const std::string& vol_name) override;
@@ -66,7 +66,7 @@ public:
     int rename_volume(const std::string& vg_name, const std::string& old_vol_name, const std::string& new_vol_name) override;
 
     // 获取Volume信息
-    int get_volume_info(const std::string& vg_name, const std::string& vol_name, uint32_t retcode, volume_meta_t& res) override;
+    int get_volume_info(volume_meta_t& res, const std::string& vg_name, const std::string& vol_name, uint32_t retcode) override;
 
     // 更改Volume大小
     int resize_volume(const std::string& vg_name, const std::string& vol_name, uint64_t new_size) override;
@@ -84,16 +84,14 @@ public:
     int unlock_volume(uint64_t gw_id, const std::string& vg_name, const std::string& vol_name) override;
 
     // 获取Volume的Chunk信息
-    int get_volume_maps(uint64_t vol_id, std::list<chunk_attr_t>& res) override;
+    int get_volume_maps(std::list<chunk_attr_t>& res, uint64_t vol_id) override;
 
     //* Chunk Set
     // 获取指定Chunk信息
-    int get_chunk_maps(const std::list<uint64_t>& chk_list, std::list<chunk_attr_t>& res) override;
+    int get_chunk_maps(std::list<chunk_attr_t>& res, const std::list<uint64_t>& chk_list) override;
 
 private:
     std::unique_ptr<FlameService::Stub> stub_;
-
-    int return_error__(const grpc::Status& stat);
 }; // class FlameClientImpl
 
 } // namespace flame

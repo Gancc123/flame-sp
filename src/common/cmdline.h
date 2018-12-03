@@ -295,7 +295,7 @@ protected:
     : max_idx_(0), name_(name), des_(des), active_(this), parent_(nullptr), tail_(tail), act_(nullptr) {}
     
     Cmdline(Cmdline* parent, const std::string& name, const std::string& des, bool tail = false) 
-    : max_idx_(0), name_(name), des_(des), active_(this), parent_(parent), tail_(false), act_(nullptr) {
+    : max_idx_(0), name_(name), des_(des), active_(this), parent_(parent), tail_(tail), act_(nullptr) {
         assert_msg(parent != nullptr, "Cmdline: Cmdline's parent can't be set with nullptr explicitly!");
         parent->register_submodule(this, name);
     }
