@@ -126,8 +126,8 @@ bool CSD::init_chunkstore(CsdCli* csd_cli) {
         }
     }
 
-    if (!cs->dev_mount()) {
-        cct_->log()->error("mount device faild");
+    if ((r = cs->dev_mount()) != 0) {
+        cct_->log()->error("mount device faild (%d)", r);
         return false;
     }
 

@@ -40,7 +40,7 @@
 #define ktrace(module, fmt, arg...) klog(7, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
 #define kprint(module, fmt, arg...) klog(8, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
 
-#define LOG_META_FILENAME "log.meta"
+#define LOG_META_FILENAME ".log.meta"
 #define LOG_DEF_THRESHOLD (1 << 30) // 1GB
 #define LOG_DEF_WAIT_MS   200000 // us  
 
