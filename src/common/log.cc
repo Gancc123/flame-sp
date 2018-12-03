@@ -47,7 +47,7 @@ bool Logger::reopen(const std::string& dir, const std::string& prefix) {
 }
 
 int Logger::read_log_index__() {
-    std::string path = string_concat({dir_, "/", LOG_META_FILENAME});
+    std::string path = string_concat({dir_, "/", prefix_, LOG_META_FILENAME});
     FILE* fp = fopen(path.c_str(), "r");
     if (fp == nullptr)
         return 0;
@@ -58,7 +58,7 @@ int Logger::read_log_index__() {
 }
 
 bool Logger::write_log_index__(int idx) {
-    std::string path = string_concat({dir_, "/", LOG_META_FILENAME});
+    std::string path = string_concat({dir_, "/", prefix_, LOG_META_FILENAME});
     FILE* fp = fopen(path.c_str(), "w");
     if (fp == nullptr) {
         error("logger", "open log file(%s) faild", path.c_str());
@@ -94,7 +94,6 @@ bool Logger::check_and_switch(useconds_t us) {
 void Logger::switch_file__(FILE* fp, useconds_t us) {
     FILE* old = printer_.get_file();
     printer_.set_file(fp);
-    info("logger", "old: %x, new: %x", old, fp);
     if (old != stdout && old != stderr) {
         if (us != 0)
             usleep(us);

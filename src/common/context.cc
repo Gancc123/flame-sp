@@ -20,9 +20,10 @@ bool FlameContext::init_config(const std::string& path) {
     FlameConfig* config = FlameConfig::create_config(this, path);
     if (config == nullptr) {
         log()->error("FlameContext", "read config file (%s) faild.", path.c_str());
-        exit(-1);
+        return false;
     }
     set_config(config);
+    return true;
 }
 
 bool FlameContext::init_log(const std::string& dir, const std::string& level, const std::string& prefix) {

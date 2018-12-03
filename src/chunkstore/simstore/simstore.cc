@@ -50,7 +50,7 @@ SimStore* SimStore::create_simstore(FlameContext* fct, const std::string& url) {
 
     string units = "MmGgTt";
     size_t pos = units.find(size_unit[0]);
-    if (pos != string::npos) {
+    if (pos == string::npos) {
         fct->log()->error("size unit (%s) is invalid", size_unit.c_str());
         return nullptr;
     }
