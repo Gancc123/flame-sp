@@ -207,9 +207,8 @@ public:
      * @Note: create_and_get would update chk_id iff create successfully.
      */
     virtual int create(const chunk_meta_t& new_chk) override;
-    virtual int create_and_get(chunk_meta_t& new_chk) override;
     // create chunks with same parameter except index.
-    virtual int create_bulk(const chunk_meta_t& new_chk, uint32_t idx_start, uint32_t idx_len) override;
+    virtual int create_bulk(const std::list<chunk_meta_t>& chk_list) override;
 
     /**
      * Remove a single chunk
@@ -244,7 +243,7 @@ public:
      * @Note: create_and_get would update chk_id iff create successfully.
      */
     virtual int create(const chunk_health_meta_t& chk_hlt) override;
-    virtual int create_and_get(chunk_health_meta_t& chk_hlt) override;
+    virtual int create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_list) override;
 
     /**
      * Remove a single chunk health
@@ -322,7 +321,6 @@ public:
      * Create a single CSD Health
      */
     virtual int create(const csd_health_meta_t& new_csd) override;
-    virtual int create_and_get(csd_health_meta_t& new_csd) override;
 
     /**
      * Remove a single CSD Health

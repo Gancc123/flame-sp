@@ -522,15 +522,13 @@ int SqlChunkMS::get(chunk_meta_t& res_chk, uint64_t chk_id) {
 int SqlChunkMS::create(const chunk_meta_t& new_chk) {
     shared_ptr<Result> ret = m_chunk.insert()
         .column({
-            m_chunk.vol_id, m_chunk.index, m_chunk.stat, 
-            m_chunk.spolicy, m_chunk.primary, m_chunk.size, 
-            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, 
-            m_chunk.dst_ctime
+            m_chunk.chk_id, m_chunk.vol_id, m_chunk.index, m_chunk.stat, 
+            m_chunk.spolicy, m_chunk.ctime, m_chunk.primary, m_chunk.size, 
+            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime
         }).value({
-            new_chk.vol_id, new_chk.index, new_chk.stat, 
-            new_chk.spolicy, new_chk.primary, new_chk.size, 
-            new_chk.csd_id, new_chk.csd_mtime, new_chk.dst_id, 
-            new_chk.dst_ctime
+            new_chk.chk_id, new_chk.vol_id, new_chk.index, new_chk.stat, 
+            new_chk.spolicy, new_chk.ctime, new_chk.primary, new_chk.size, 
+            new_chk.csd_id, new_chk.csd_mtime, new_chk.dst_id, new_chk.dst_ctime
         }).exec();
 
     if (ret && ret->OK()) {
@@ -539,30 +537,28 @@ int SqlChunkMS::create(const chunk_meta_t& new_chk) {
     return MSRetCode::FAILD;
 }
 
-//??
-int SqlChunkMS::create_and_get(chunk_meta_t& new_chk) {
-    shared_ptr<Result> ret = m_chunk.insert()
+
+int SqlChunkMS::create_bulk(const std::list<chunk_meta_t>& chk_list) {
+    auto handle = m_chunk.multi_insert()
         .column({
-            m_chunk.vol_id, m_chunk.index, m_chunk.stat, 
-            m_chunk.spolicy, m_chunk.primary, m_chunk.size, 
-            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, 
-            m_chunk.dst_ctime
-        }).value({
-            new_chk.vol_id, new_chk.index, new_chk.stat, 
-            new_chk.spolicy, new_chk.primary, new_chk.size, 
-            new_chk.csd_id, new_chk.csd_mtime, new_chk.dst_id, 
-            new_chk.dst_ctime
-        }).exec();
+            m_chunk.chk_id, m_chunk.vol_id, m_chunk.index, m_chunk.stat, 
+            m_chunk.spolicy, m_chunk.ctime, m_chunk.primary, m_chunk.size, 
+            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime
+        });
+    for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
+        handle.values({
+            it->chk_id, it->vol_id, it->index, it->stat, 
+            it->spolicy, it->ctime, it->primary,it->size, 
+            it->csd_id, it->csd_mtime, it->dst_id, it->dst_ctime
+        });
+    }
+
+    shared_ptr<Result> ret = handle.exec();
 
     if (ret && ret->OK()) {
         return MSRetCode::SUCCESS;
     }
     return MSRetCode::FAILD;
-}
-
-//??
-int SqlChunkMS::create_bulk(const chunk_meta_t& new_chk, uint32_t idx_start, uint32_t idx_len) {
-    return MSRetCode::SUCCESS;
 }
 
 int SqlChunkMS::remove(uint64_t chk_id) {
@@ -652,10 +648,34 @@ int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
     return MSRetCode::FAILD;
 }
 
-//??
-int SqlChunkHealthMS::create_and_get(chunk_health_meta_t& chk_hlt) {
-    return MSRetCode::SUCCESS;
+int SqlChunkHealthMS::create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_list) {
+    auto handel = m_chk_health.multi_insert()
+        .column({
+            m_chk_health.chk_id, m_chk_health.stat, m_chk_health.size, m_chk_health.used, 
+            m_chk_health.csd_used, m_chk_health.dst_used, m_chk_health.write_count, 
+            m_chk_health.read_count, m_chk_health.last_time, m_chk_health.last_write, 
+            m_chk_health.last_read, m_chk_health.last_latency, m_chk_health.last_alloc, 
+            m_chk_health.load_weight, m_chk_health.wear_weight, m_chk_health.total_weight
+            });
+    
+    for(auto it = chk_hlt_list.begin(); it != chk_hlt_list.end(); ++it){
+        handle.values({
+            it->chk_id, it->stat, it->size, it->used, 
+            it->csd_used, it->dst_used, it->write_count, 
+            it->read_count, it->last_time, it->last_write, 
+            it->last_read, it->last_latency, it->last_alloc, 
+            it->load_weight, it->wear_weight, it->total_weight
+        });
+    }
+
+    shared_ptr<Result> ret = handle.exec();
+
+    if (ret && ret->OK()) {
+        return MSRetCode::SUCCESS;
+    }
+    return MSRetCode::FAILD;
 }
+
 
 int SqlChunkHealthMS::remove(uint64_t chk_id) {
     shared_ptr<Result> ret = m_chk_health.remove().where(m_chk_health.chk_id == chk_id).exec();
@@ -911,11 +931,6 @@ int SqlCsdHealthMS::create(const csd_health_meta_t& new_csd) {
         return MSRetCode::SUCCESS;
     }
     return MSRetCode::FAILD;
-}
-
-//??
-int SqlCsdHealthMS::create_and_get(csd_health_meta_t& new_csd) {
-    return MSRetCode::SUCCESS;
 }
 
 int SqlCsdHealthMS::remove(uint64_t csd_id) {
