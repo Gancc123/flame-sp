@@ -98,7 +98,26 @@ protected:
     InternalClient(FlameContext* fct) : fct_(fct) {}
 
     FlameContext* fct_;
-}; // class FlameClientImpl
+}; // class InternalClient
+
+class InternalClientContext {
+public:
+    InternalClientContext(FlameContext* fct, InternalClient* client) 
+    : fct_(fct), client_(client) {}
+
+    ~InternalClientContext() {}
+
+    FlameContext* fct() const { return fct_; }
+    Logger* log() const { return fct_->log(); }
+    FlameConfig* config() const { return fct_->config(); }
+    
+    InternalClient* client() const { return client_.get(); }
+    void set_client(InternalClient* c) { client_.reset(c); }
+
+private:
+    FlameContext* fct_;
+    std::unique_ptr<InternalClient> client_;
+}; // class InternalClientContext
 
 } // namespace flame
 

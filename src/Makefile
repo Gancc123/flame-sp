@@ -2,7 +2,7 @@ ROOT = ../src
 
 include $(ROOT)/mk/env.mk
 
-MODULES = util common orm metastore chunkstore proto service mgr csd cml
+MODULES = util common orm metastore chunkstore proto service mgr csd cml csm
 
 .PHONY: all $(MODULES) clean
 
@@ -38,6 +38,9 @@ csd:
 cml:
 	make -C ./cml
 
+csm:
+	make -C ./csm
+
 clean:
 	make -C util clean
 	make -C common clean
@@ -49,4 +52,5 @@ clean:
 	make -C mgr clean
 	make -C csd clean
 	make -C cml clean
+	make -C csm clean
 	rm -f *.o
