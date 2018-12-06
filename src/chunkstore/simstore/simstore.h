@@ -125,6 +125,10 @@ private:
     SimChunk(FlameContext* fct, SimStore* parent, simstore_chunk_t* chk) 
     : Chunk(fct), parent_(parent), chk_(chk) {}
 
+    void blk_range__(uint32_t& begin, uint32_t& end, uint64_t off, uint64_t len);
+    void rd_count__(uint64_t off, uint64_t len);
+    void wr_count__(uint64_t off, uint64_t len);
+
     SimStore* parent_;
     simstore_chunk_t* chk_;
 }; // class Chunk

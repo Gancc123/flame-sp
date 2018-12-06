@@ -118,6 +118,7 @@ int SimStore::dev_format() {
             return ChunkStore::RetCode::OBJ_NOTFOUND;
     }
     formated_ = true;
+    fct_->log()->info("simstore: device (%llu:%s) format", size_, bk_file_.c_str());
     return ChunkStore::RetCode::SUCCESS;
 }
 
@@ -130,6 +131,7 @@ int SimStore::dev_mount() {
         info_init__();
     
     mounted_ = true;
+    fct_->log()->info("simstore: device mount success");
     return RetCode::SUCCESS;
 }
 
@@ -146,6 +148,7 @@ int SimStore::dev_unmount() {
         return RetCode::FAILD;
     }
     mounted_ = false;
+    fct_->log()->info("simstore: device unmount success");
     return RetCode::SUCCESS;
 }
 
@@ -175,6 +178,8 @@ int SimStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
     chk.init_blocks__();
     chk_map_[chk_id] = chk;
     info_.chk_num++;
+    fct_->log()->info("simstore: create chunk: chk_id(%llu), vol_id(%llu), index(%u), size(%llu)", 
+        chk_info.chk_id, chk_info.vol_id, chk_info.index, chk_info.size);
     return RetCode::SUCCESS;
 }
 
@@ -185,6 +190,7 @@ int SimStore::chunk_remove(uint64_t chk_id) {
     
     chk_map_.erase(chk_id);
     info_.chk_num--;
+    fct_->log()->info("simstore: remove chunk: chk_id(%llu)", chk_id);
     return RetCode::SUCCESS;
 }
 
@@ -196,6 +202,7 @@ shared_ptr<Chunk> SimStore::chunk_open(uint64_t chk_id) {
     auto it = chk_map_.find(chk_id);
     if (it == chk_map_.end())
         return nullptr;
+    fct_->log()->info("simstore: open chunk: chk_id(%llu)", chk_id);
     return shared_ptr<Chunk>(new SimChunk(fct_, this, &it->second));
 }
 
@@ -609,10 +616,16 @@ bool SimChunk::is_preallocated() const {
 }
 
 int SimChunk::read_sync(void* buff, uint64_t off, uint64_t len) {
+    rd_count__(off, len);
+    fct_->log()->info("simstore: read sync chk_id(%llu), off(%llu), len(%llu)",
+        chk_->info.chk_id, off, len);
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_sync(void* buff, uint64_t off, uint64_t len) {
+    wr_count__(off, len);
+    fct_->log()->info("simstore: write sync chk_id(%llu), off(%llu), len(%llu)",
+        chk_->info.chk_id, off, len);
     return ChunkStore::RetCode::SUCCESS;
 }
 
@@ -621,24 +634,63 @@ int SimChunk::get_xattr(const std::string& name, std::string& value) {
     if (it == chk_->xattr.end())
         return ChunkStore::RetCode::OBJ_NOTFOUND;
     value = chk_->xattr[name];
+    fct_->log()->info("simstore: xattr get chk_id(%llu), name(%s), value(%s)",
+        chk_->info.chk_id, name.c_str(), value.c_str());
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::set_xattr(const std::string& name, const std::string& value) {
     chk_->xattr[name] = value;
+    fct_->log()->info("simstore: xattr set chk_id(%llu), name(%s), value(%s)",
+        chk_->info.chk_id, name.c_str(), value.c_str());
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::read_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
+    rd_count__(off, len);
+    fct_->log()->info("simstore: read async chk_id(%llu), off(%llu), len(%llu)",
+        chk_->info.chk_id, off, len);
     if (cb != nullptr)
         cb(cb_arg);
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
+    wr_count__(off, len);
+    fct_->log()->info("simstore: write async chk_id(%llu), off(%llu), len(%llu)",
+        chk_->info.chk_id, off, len);
     if (cb != nullptr)
         cb(cb_arg);
     return ChunkStore::RetCode::SUCCESS;
+}
+
+void SimChunk::blk_range__(uint32_t& begin, uint32_t& end, uint64_t off, uint64_t len) {
+    int chk_size = chk_->info.size;
+    uint64_t sz;
+    end = begin = off / SIMSTORE_BLOCK_SIZE;
+    sz = off % SIMSTORE_BLOCK_SIZE;
+    if (!sz) sz = SIMSTORE_BLOCK_SIZE;
+    len -= sz;
+    while (len > 0) {
+        end++;
+        len -= SIMSTORE_BLOCK_SIZE;
+    }
+}
+
+void SimChunk::rd_count__(uint64_t off, uint64_t len) {
+    uint32_t begin, end;
+    blk_range__(begin, end, off, len);
+    for (int idx = begin; idx < end; idx++) {
+        chk_->blocks[idx].cnt.rd++;
+    }
+}
+
+void SimChunk::wr_count__(uint64_t off, uint64_t len) {
+    uint32_t begin, end;
+    blk_range__(begin, end, off, len);
+    for (int idx = begin; idx < end; idx++) {
+        chk_->blocks[idx].cnt.wr++;
+    }
 }
 
 } // namespace flame
