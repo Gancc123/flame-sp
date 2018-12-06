@@ -60,7 +60,7 @@ public:
     ChunkModel(std::shared_ptr<orm::DBEngine>& engine) 
     : orm::DBTable(engine, "chunk") { auto_create(); }
     
-    orm::BigIntCol  chk_id  {this, "chk_id", orm::ColFlag::PRIMARY_KEY | orm::ColFlag::AUTO_INCREMENT}; // Chunk ID
+    orm::BigIntCol  chk_id  {this, "chk_id", orm::ColFlag::PRIMARY_KEY}; // Chunk ID
     orm::BigIntCol  vol_id  {this, "vol_id"};   // Volume ID
     orm::IntCol     index   {this, "index"};    // Index in Same Volume
     orm::IntCol     stat    {this, "stat"};     // CSD状态
