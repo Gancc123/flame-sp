@@ -546,7 +546,7 @@ int SqlChunkMS::create_bulk(const std::list<chunk_meta_t>& chk_list) {
             m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime
         });
     for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
-        handle.values({
+        handle.value({
             it->chk_id, it->vol_id, it->index, it->stat, 
             it->spolicy, it->ctime, it->primary,it->size, 
             it->csd_id, it->csd_mtime, it->dst_id, it->dst_ctime
@@ -649,7 +649,7 @@ int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
 }
 
 int SqlChunkHealthMS::create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_list) {
-    auto handel = m_chk_health.multi_insert()
+    auto handle = m_chk_health.multi_insert()
         .column({
             m_chk_health.chk_id, m_chk_health.stat, m_chk_health.size, m_chk_health.used, 
             m_chk_health.csd_used, m_chk_health.dst_used, m_chk_health.write_count, 
@@ -658,8 +658,8 @@ int SqlChunkHealthMS::create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_
             m_chk_health.load_weight, m_chk_health.wear_weight, m_chk_health.total_weight
             });
     
-    for(auto it = chk_hlt_list.begin(); it != chk_hlt_list.end(); ++it){
-        handle.values({
+    for (auto it = chk_hlt_list.begin(); it != chk_hlt_list.end(); ++it) {
+        handle.value({
             it->chk_id, it->stat, it->size, it->used, 
             it->csd_used, it->dst_used, it->write_count, 
             it->read_count, it->last_time, it->last_write, 

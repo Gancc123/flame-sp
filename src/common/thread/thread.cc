@@ -48,12 +48,12 @@ Thread::~Thread() {
     // do nothing
 }
 
-void *Thread::_entry_func(void *arg) {
-    void *r = ((Thread *) arg)->entry_wrapper();
-    return r;
+void* Thread::_entry_func(void* arg) {
+    ((Thread *) arg)->entry_wrapper();
+    return nullptr;
 }
 
-void *Thread::entry_wrapper() {
+void Thread::entry_wrapper() {
     int p = flame_gettid(); // may return -ENOSYS on other platforms
     if (p > 0)
         pid = p;
@@ -68,10 +68,10 @@ void *Thread::entry_wrapper() {
         _set_affinity(cpuid);
 
     pthread_setname_np(pthread_self(), thread_name);
-    return entry();
+    entry();
 }
 
-const pthread_t &Thread::get_thread_id() const {
+const pthread_t& Thread::get_thread_id() const {
     return thread_id;
 }
 
@@ -91,7 +91,7 @@ int Thread::kill(int signal) {
 }
 
 int Thread::try_create(size_t stacksize) {
-    pthread_attr_t *thread_attr = NULL;
+    pthread_attr_t* thread_attr = NULL;
     pthread_attr_t thread_attr_loc;
 
     if (pid != 0 || thread_id != 0) {
