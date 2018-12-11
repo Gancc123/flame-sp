@@ -14,7 +14,7 @@ private:
     int cpuid;
     const char *thread_name;
 
-    void *entry_wrapper();
+    void entry_wrapper();
 
 public:
     Thread(const Thread&) = delete;
@@ -23,23 +23,23 @@ public:
     Thread();
     virtual ~Thread();
 
-    const char *get_name() { return thread_name; }
+    const char* get_name() { return thread_name; }
 
 protected:
-    virtual void *entry() = 0;
+    virtual void entry() = 0;
 
 private:
-    static void *_entry_func(void *arg);
+    static void* _entry_func(void *arg);
 
 public:
-    const pthread_t &get_thread_id() const;
+    const pthread_t& get_thread_id() const;
     pid_t get_pid() const { return pid; }
     bool is_started() const;
     bool am_self() const;
     int kill(int signal);
     int try_create(size_t stacksize);
-    void create(const char *name, size_t stacksize = 0);
-    int join(void **prval = 0);
+    void create(const char* name, size_t stacksize = 0);
+    int join(void** prval = 0);
     int detach();
     int set_ioprio(int cls, int prio);
     // set_affinity should be called before create(), or within target thread

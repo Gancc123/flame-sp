@@ -13,7 +13,10 @@ $(DCOMMON)/context.o \
 $(DCOMMON)/log.o \
 $(DCOMMON)/config.o \
 $(DCOMMON)/cmdline.o \
-$(DCOMMON)/thread/mutex.o
+$(DCOMMON)/thread/mutex.o \
+$(DCOMMON)/thread/thread.o \
+$(DCOMMON)/thread/signal.o \
+$(DCOMMON)/thread/io_priority.o
 
 # /proto
 OBJ_PROTO = \

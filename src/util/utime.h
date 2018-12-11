@@ -41,10 +41,10 @@ public:
         tv.tv_nsec = n; 
         normalize(); 
     }
-    utime_t(const struct timespec &ts) { set_from_timespec(&ts); }
-    utime_t(const struct timespec *ts) { set_from_timespec(ts); }
-    utime_t(const struct timeval &v) { set_from_timeval(&v); }
-    utime_t(const struct timeval *v) { set_from_timeval(v); }
+    utime_t(const struct timespec& ts) { set_from_timespec(&ts); }
+    utime_t(const struct timespec* ts) { set_from_timespec(ts); }
+    utime_t(const struct timeval& v) { set_from_timeval(&v); }
+    utime_t(const struct timeval* v) { set_from_timeval(v); }
 
     void set_from_timespec(const struct timespec *ts) {
         tv.tv_sec = ts->tv_sec; 
@@ -77,8 +77,8 @@ public:
     uint32_t nsec() const { return tv.tv_nsec; }
 
     // ref accessors/modifiers
-    uint32_t &sec_ref() { return tv.tv_sec; }
-    uint32_t &nsec_ref() { return tv.tv_nsec; }
+    uint32_t& sec_ref() { return tv.tv_sec; }
+    uint32_t& nsec_ref() { return tv.tv_nsec; }
 
     // timestamp
     uint64_t to_uint64() {
@@ -117,13 +117,37 @@ public:
         tv.tv_nsec = _msec % 1000ULL * 1000000ULL;
     }
 
+    uint32_t to_sec() const { return tv.tv_sec; }
+    void set_from_sec(uint32_t _sec) {
+        tv.tv_sec = _sec;
+        tv.tv_nsec = 0;
+    }
+
+    uint32_t to_min() const { return tv.tv_sec / 60; }
+    void set_from_min(uint32_t _min) {
+        tv.tv_sec = _min * 60;
+        tv.tv_nsec = 0;
+    }
+
+    uint32_t to_hour() const { return tv.tv_sec / 3600; }
+    void set_from_hour(uint32_t _hour) {
+        tv.tv_sec = _hour * 3600;
+        tv.tv_nsec = 0;
+    }
+
+    uint32_t to_day() const { return tv.tv_sec / 86400; }
+    void set_from_day(uint32_t _day) {
+        tv.tv_sec = _day * 86400;
+        tv.tv_nsec = 0;
+    }
+
     void sleep() const {
         struct timespec ts;
         to_timespec(&ts);
         nanosleep(&ts, NULL);
     }
 
-    int sprintf(char *out, int outlen) const {
+    int sprintf(char* out, int outlen) const {
         struct tm bdt;
         time_t tt = sec();
         localtime_r(&tt, &bdt);
@@ -140,7 +164,7 @@ public:
         return std::string(buff);
     }
 
-    static int snprintf(char *out, int outlen, time_t tt) {
+    static int snprintf(char* out, int outlen, time_t tt) {
         struct tm bdt;
         localtime_r(&tt, &bdt);
 
@@ -173,22 +197,46 @@ public:
         tt.set_from_msec(msec);
         return tt;
     }
+
+    static utime_t get_by_sec(uint32_t sec) {
+        utime_t tt;
+        tt.set_from_sec(sec);
+        return tt;
+    }
+
+    static utime_t get_by_min(uint32_t min) {
+        utime_t tt;
+        tt.set_from_min(min);
+        return tt;
+    }
+
+    static utime_t get_by_hour(uint32_t hour) {
+        utime_t tt;
+        tt.set_from_hour(hour);
+        return tt;
+    }
+
+    static utime_t get_by_day(uint32_t day) {
+        utime_t tt;
+        tt.set_from_day(day);
+        return tt;
+    }
 };
 
 // arithmetic operators
-inline utime_t operator + (const utime_t &l, const utime_t &r) {
+inline utime_t operator + (const utime_t& l, const utime_t& r) {
     uint64_t sec = (uint64_t)l.sec() + r.sec();
     return utime_t(cap_to_u32_max(sec), l.nsec() + r.nsec());
 }
 
-inline utime_t &operator += (utime_t &l, const utime_t &r) {
+inline utime_t& operator += (utime_t& l, const utime_t& r) {
     l.sec_ref() = cap_to_u32_max((uint64_t)l.sec() + r.sec());
     l.nsec_ref() += r.nsec();
     l.normalize();
     return l;
 }
 
-inline utime_t &operator += (utime_t &l, double f) {
+inline utime_t& operator += (utime_t& l, double f) {
     double fs = trunc(f);
     double ns = (f - fs) * 1000000000.0;
     l.sec_ref() = cap_to_u32_max(l.sec() + (uint64_t)fs);
@@ -197,12 +245,12 @@ inline utime_t &operator += (utime_t &l, double f) {
     return l;
 }
 
-inline utime_t operator - (const utime_t &l, const utime_t &r) {
+inline utime_t operator - (const utime_t& l, const utime_t& r) {
     return utime_t( l.sec() - r.sec() - (l.nsec()<r.nsec() ? 1:0),
                   l.nsec() - r.nsec() + (l.nsec()<r.nsec() ? 1000000000:0) );
 }
 
-inline utime_t &operator -= (utime_t &l, const utime_t &r) {
+inline utime_t& operator -= (utime_t& l, const utime_t& r) {
     l.sec_ref() -= r.sec();
     if (l.nsec() >= r.nsec())
         l.nsec_ref() -= r.nsec();
@@ -213,7 +261,7 @@ inline utime_t &operator -= (utime_t &l, const utime_t &r) {
     return l;
 }
 
-inline utime_t &operator -= (utime_t &l, double f) {
+inline utime_t& operator -= (utime_t& l, double f) {
     double fs = trunc(f);
     double ns = (f - fs) * 1000000000.0;
     l.sec_ref() -= (long)fs;
@@ -227,27 +275,27 @@ inline utime_t &operator -= (utime_t &l, double f) {
 }
 
 // comparators
-inline bool operator > (const utime_t &a, const utime_t &b) {
+inline bool operator > (const utime_t& a, const utime_t& b) {
   return (a.sec() > b.sec()) || (a.sec() == b.sec() && a.nsec() > b.nsec());
 }
 
-inline bool operator <= (const utime_t &a, const utime_t &b) {
+inline bool operator <= (const utime_t& a, const utime_t& b) {
   return !(operator > (a, b));
 }
 
-inline bool operator < (const utime_t &a, const utime_t &b) {
+inline bool operator < (const utime_t& a, const utime_t& b) {
   return (a.sec() < b.sec()) || (a.sec() == b.sec() && a.nsec() < b.nsec());
 }
 
-inline bool operator >= (const utime_t &a, const utime_t &b) {
+inline bool operator >= (const utime_t& a, const utime_t& b) {
   return !(operator < (a, b));
 }
 
-inline bool operator == (const utime_t &a, const utime_t &b) {
+inline bool operator == (const utime_t& a, const utime_t& b) {
   return a.sec() == b.sec() && a.nsec() == b.nsec();
 }
 
-inline bool operator != (const utime_t &a, const utime_t &b) {
+inline bool operator != (const utime_t& a, const utime_t& b) {
   return a.sec() != b.sec() || a.nsec() != b.nsec();
 }
 

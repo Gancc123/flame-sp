@@ -2,7 +2,7 @@
 #define FLAME_INCLUDE_FLAME_H
 
 #include "common/context.h"
-#include "metastore/metastore.h"
+#include "include/meta.h"
 
 #include <memory>
 #include <list>

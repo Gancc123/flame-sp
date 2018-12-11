@@ -1,17 +1,16 @@
 #ifndef FLAME_SERVICE_FLAME_CLIENT_H
 #define FLAME_SERVICE_FLAME_CLIENT_H
 
-#include <memory>
-#include <string>
-#include <cstdint>
-
-
 #include "include/flame.h"
 #include "common/context.h"
 #include "metastore/metastore.h"
 
 #include <grpcpp/grpcpp.h>
 #include "proto/flame.grpc.pb.h"
+
+#include <memory>
+#include <string>
+#include <cstdint>
 
 namespace flame {
 

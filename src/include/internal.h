@@ -2,6 +2,7 @@
 #define FLAME_INCLUDE_INTERNAL_H
 
 #include "common/context.h"
+#include "include/meta.h"
 
 #include <cstdint>
 #include <list>
