@@ -2,16 +2,16 @@ ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
-.PHONY: all example clean
+.PHONY: all queue clean
 
-all: timer_work.o example
+all: queue
 
-example:
-	make -C ./example
+queue:
+	make -C ./queue
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
 
 clean:
-	make -C example clean
+	make -C queue clean
 	rm -f *.o

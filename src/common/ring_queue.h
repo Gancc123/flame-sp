@@ -1,6 +1,11 @@
 #ifndef FLAME_COMMON_RING_QUEUE_H
 #define FLAME_COMMON_RING_QUEUE_H
 
+#include "common/atom_queue.h"
+
+#include <cstdio>
+
+#include <cstdint>
 #include <cstddef>
 #include <atomic>
 
@@ -9,10 +14,10 @@
 namespace flame {
 
 template<typename ELEM>
-class RingQueue final {
+class RingQueue : public AtomQueue<ELEM> {
 public:
     explicit RingQueue(size_t cap, size_t max_try_times = 0)
-    : cap_(cap), real_cap_(cap - 1), max_try_times_(max_try_times) {
+    : cap_(cap), max_try_times_(max_try_times) {
         arr_ = alloc__(cap_);
     }
 
@@ -22,11 +27,10 @@ public:
     bool max_try_times() const { return max_try_times_; }
 
     size_t capacity() const { return cap_; }
-    size_t real_cap() const { return real_cap_; }
 
     size_t size() const { return (cap_ + prod_head_.load() - cons_tail_.load()) % cap_; }
-    bool empty() const { return size() == 0; }
-    bool full() const { return size() == real_cap(); }
+    virtual bool empty() const override { return size() == 0; }
+    bool full() const { return size() == capacity(); }
 
     void clear() {
         cons_head_ = 0;
@@ -35,9 +39,9 @@ public:
         prod_tail_ = 0;
     }
     
-    bool push(const ELEM& elem) { return push__(elem, true); }
+    virtual bool push(const ELEM& elem) override { return push__(elem, true); }
     bool try_push(const ELEM& elem) { return push__(elem, false); }
-    bool pop(ELEM& elem) { return pop__(elem, true); }
+    virtual bool pop(ELEM& elem) override { return pop__(elem, true); }
     bool try_pop(ELEM& elem) { return pop__(elem, false); }
 
     RingQueue(const RingQueue& rhs) {
@@ -71,23 +75,23 @@ public:
 private:
     ELEM* arr_ {nullptr};
     size_t cap_ {0};
-    size_t real_cap_ {0};
-    std::atomic<size_t> cons_head_ {0};
-    std::atomic<size_t> cons_tail_ {0};
-    std::atomic<size_t> prod_head_ {0};
-    std::atomic<size_t> prod_tail_ {0};
+    std::atomic<uint64_t> cons_head_ {0};
+    std::atomic<uint64_t> cons_tail_ {0};
+    std::atomic<uint64_t> prod_head_ {0};
+    std::atomic<uint64_t> prod_tail_ {0};
     size_t max_try_times_ {0};
 
     bool push__(const ELEM& elem, bool block) {
         int try_times = 0;
-        size_t prod_head;
-        size_t prod_next;
-        size_t cons_tail;
+        uint64_t prod_head;
+        uint64_t prod_next;
+        uint64_t cons_tail;
         while (true) {
             prod_head = prod_head_;
-            prod_next = prod_head == real_cap_ ? 0 : prod_head + 1;
+            prod_next = prod_head + 1;
             cons_tail = cons_tail_;
-            if (prod_next == cons_tail) {
+
+            if (prod_next - cons_tail > cap_) {
                 // full
                 if (!block) 
                     return false;
@@ -105,7 +109,7 @@ private:
             if (prod_head_.compare_exchange_weak(prod_head, prod_next))
                 break;
         }
-        arr_[prod_head] = elem;
+        arr_[count_index__(prod_head)] = elem;
         while (!prod_tail_.compare_exchange_weak(prod_head, prod_next));
         return true;
     }
@@ -118,8 +122,9 @@ private:
         while (true) {
             prod_tail = prod_tail_;
             cons_head = cons_head_;
-            cons_next = cons_head == real_cap_ ? 0 : cons_head + 1;
-            if (cons_head == prod_tail) {
+            cons_next = cons_head + 1;
+
+            if (cons_head >= prod_tail) {
                 // emtpy
                 if (!block)
                     return false;
@@ -130,14 +135,14 @@ private:
                         sched_yield();
                         try_times = 0;
                     }
-                } else 
+                } else
                     continue;
             }
 
             if (cons_head_.compare_exchange_weak(cons_head, cons_next))
                 break;
         }
-        elem = arr_[cons_head];
+        elem = arr_[count_index__(cons_head)];
         while (!cons_tail_.compare_exchange_weak(cons_head, cons_next));
         return true;
     }
@@ -150,13 +155,14 @@ private:
     }
     void attr_copy__(const RingQueue& rhs) {
         cap_ = rhs.cap_;
-        real_cap_ = rhs.real_cap_;
         cons_head_ = rhs.cons_head_;
         cons_tail_ = rhs.cons_tail_;
         prod_head_ = rhs.prod_head_;
         prod_tail_ = rhs.prod_tail_;
         max_try_times_ = rhs.max_try_times_;
     }
+
+    size_t count_index__(uint64_t i) { return i % cap_; }
 
 }; // class RingQueue
 

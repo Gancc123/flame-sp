@@ -26,6 +26,7 @@ private:
     FlameContext* fct_;
     std::shared_ptr<MetaStore> ms_;
     std::map<uint64_t, CsdHandle> csd_map_;
+    RWLock csd_map_lock_;
 }; // class Cluster
 
 class CsdHandle final {

@@ -22,8 +22,8 @@ private:
     pthread_t m_owner;
 
     // don't allow copying
-    void operator = (const Mutex &M);
-    Mutex(const Mutex &M);
+    void operator = (const Mutex& M);
+    Mutex(const Mutex& M);
 
 public:
     Mutex(MutexType t = MUTEX_TYPE_DEFAULT);
@@ -77,7 +77,7 @@ private:
     Mutex &mutex;
 
 public:
-    explicit MutexLocker(Mutex &m) : mutex(m) {
+    explicit MutexLocker(Mutex& m) : mutex(m) {
         mutex.lock();
     }
 

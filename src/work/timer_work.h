@@ -21,7 +21,7 @@ public:
     virtual void entry() override;
 
     void push_cycle(const std::shared_ptr<WorkEntry>& we, const utime_t& interval, bool imm = false);
-    void push_timing(const std::shared_ptr<WorkEntry>& we, const utime_t& attack_time);
+    void push_timing(const std::shared_ptr<WorkEntry>& we, const utime_t& attack);
     void push_delay(const std::shared_ptr<WorkEntry>& we, const utime_t& delay);
 
     size_t size() const { return wait_.size(); }
