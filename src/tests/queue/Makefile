@@ -5,13 +5,13 @@ include $(ROOT)/mk/objs.mk
 
 .PHONY: all clean
 
-all: timer_exp.o timer_exp
+all: lockless
 
-timer_exp: timer_exp.o $(ROOT)/work/timer_work.o $(OBJ_COMMON)
+lockless: lockless.cc $(OBJ_COMMON)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(ISRC) $(THREADLIBS)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
 
 clean:
-	rm -f *.o timer_exp
+	rm -f *.o lockless

@@ -343,7 +343,6 @@ int Cmdline::do_parser__(int argc, char** argv) {
     while (idx < argc) {
         char* str = argv[idx];
         int len = strlen(str);
-        printf("%s\n", str);
         if (len == 1 && str[0] == '-') {
             err_msg_ << "single '-' is invalid";
             return CmdRetCode::FORMAT_ERROR;

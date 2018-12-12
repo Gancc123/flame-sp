@@ -1,6 +1,8 @@
 #ifndef FLAME_COMMON_RING_BUFFER_H
 #define FLAME_COMMON_RING_BUFFER_H
 
+#include "common/atom_queue.h"
+
 #include <cassert>
 #include <atomic>
 #include <cstddef>
@@ -10,10 +12,10 @@
 namespace flame {
 
 template<typename ELEM>
-class RingBuffer final {
+class RingBuffer : public AtomQueue<ELEM> {
 public:
     explicit RingBuffer(size_t cap, size_t max_try_times = 0)
-    : cap_(cap), real_cap_(cap - 1), max_try_times_(max_try_times) {
+    : cap_(cap), max_try_times_(max_try_times) {
         arr_ = alloc__(cap_);
     }
 
@@ -23,11 +25,10 @@ public:
     bool max_try_times() const { return max_try_times_; }
 
     size_t capacity() const { return cap_; }
-    size_t real_cap() const { return real_cap_; }
 
     size_t size() const { return (cap_ + prod_head_.load() - trim_tail_.load()) % cap_; }
     bool empty() const { return size() == 0; }
-    bool full() const { return size() == real_cap(); }
+    bool full() const { return size() == capacity(); }
 
     size_t end() const { return cap_; }
 
@@ -48,11 +49,11 @@ public:
         return false;
     }
 
-    void trim() { trim__(); }
+    void trim() { while (trim__()); }
 
     bool remove_trim(size_t idx) {
         bool r = remove(idx);
-        trim__();
+        trim();
         return r;
     }
 
@@ -103,27 +104,26 @@ private:
 
     Entry* arr_ {nullptr};
     size_t cap_ {0};
-    size_t real_cap_ {0};
-    std::atomic<size_t> prod_head_ {0};
-    std::atomic<size_t> prod_tail_ {0};
-    std::atomic<size_t> load_tail_ {0};
-    std::atomic<size_t> load_head_ {0};
-    std::atomic<size_t> trim_head_ {0};
-    std::atomic<size_t> trim_tail_ {0};
+    std::atomic<uint64_t> prod_head_ {0};
+    std::atomic<uint64_t> prod_tail_ {0};
+    std::atomic<uint64_t> load_tail_ {0};
+    std::atomic<uint64_t> load_head_ {0};
+    std::atomic<uint64_t> trim_head_ {0};
+    std::atomic<uint64_t> trim_tail_ {0};
 
     size_t max_try_times_ {0};
 
     size_t save__(ELEM* elem, bool block) {
         assert(elem != nullptr);
         int try_times = 0;
-        size_t prod_head;
-        size_t prod_next;
-        size_t trim_tail;
+        uint64_t prod_head;
+        uint64_t prod_next;
+        uint64_t trim_tail;
         while (true) {
             prod_head = prod_head_;
-            prod_next = prod_head == real_cap_ ? 0 : prod_head + 1;
+            prod_next = prod_head + 1;
             trim_tail = trim_tail_;
-            if (prod_next == trim_tail) {
+            if (prod_next - trim_tail > cap_) {
                 // full
                 if (!block) 
                     return end();
@@ -141,10 +141,11 @@ private:
             if (prod_head_.compare_exchange_weak(prod_head, prod_next))
                 break;
         }
-        arr_[prod_head].elem = elem;
-        arr_[prod_head].turn_save();
+        size_t idx = count_index__(prod_head);
+        arr_[idx].elem = elem;
+        arr_[idx].turn_save();
         while (!prod_tail_.compare_exchange_weak(prod_head, prod_next));
-        return prod_head;
+        return idx;
     }
 
     size_t load__(ELEM** elem, bool block) {
@@ -156,8 +157,8 @@ private:
         while (true) {
             prod_tail = prod_tail_;
             load_head = load_head_;
-            load_next = load_head == real_cap_ ? 0 : load_head + 1;
-            if (load_head == prod_tail) {
+            load_next = load_head + 1;
+            if (load_head >= prod_tail) {
                 // emtpy
                 if (!block)
                     return end();
@@ -175,13 +176,14 @@ private:
             if (load_head_.compare_exchange_weak(load_head, load_next))
                 break;
         }
-        *elem = arr_[load_head].elem;
-        arr_[load_head].turn_load();
+        size_t idx = count_index__(load_head);
+        *elem = arr_[idx].elem;
+        arr_[idx].turn_load();
         while (!load_tail_.compare_exchange_weak(load_head, load_next));
-        return load_head;
+        return idx;
     }
 
-    void trim__() {
+    bool trim__() {
         Entry* entry;
         size_t load_tail;
         size_t trim_head;
@@ -189,11 +191,11 @@ private:
         while (true) {
             load_tail = load_tail_;
             trim_head = trim_head_;
-            trim_next = trim_head == real_cap_ ? 0 : trim_head + 1;
-            if (trim_head == load_tail) return; // empty
-
-            entry = arr_ + trim_head;
-            if (entry->is_load() && entry->is_save()) return;   // the item can't be trimed
+            trim_next = trim_head + 1;
+            if (trim_head >= load_tail) return false; // empty
+        
+            entry = arr_ + count_index__(trim_head);
+            if (entry->is_load() && entry->is_save()) return false;   // the item can't be trimed
 
             if (trim_head_.compare_exchange_weak(trim_head, trim_next))
                 break;
@@ -203,6 +205,7 @@ private:
             entry->turn_none();
         }
         while (!trim_tail_.compare_exchange_weak(trim_head, trim_next));
+        return true;
     }
 
     bool push__(const ELEM& elem, bool block) {
@@ -227,9 +230,11 @@ private:
     Entry* alloc__(size_t cap) { return new Entry[cap]; }
     void free__(Entry* elems) { delete [] elems; }
     Entry* get_entry__(size_t idx) {
-        if (idx > real_cap_) return nullptr;
+        if (idx >= cap_) return nullptr;
         return arr_ + idx;
     }
+
+    size_t count_index__(uint64_t i) { return i % cap_; }
 
 }; // class RingBuffer
 
