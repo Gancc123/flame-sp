@@ -110,7 +110,9 @@ private:
                 break;
         }
         arr_[count_index__(prod_head)] = elem;
-        while (!prod_tail_.compare_exchange_weak(prod_head, prod_next));
+        uint64_t origin = prod_head;
+        while (!prod_tail_.compare_exchange_weak(origin, prod_next))
+            origin = prod_head;
         return true;
     }
 
@@ -143,7 +145,9 @@ private:
                 break;
         }
         elem = arr_[count_index__(cons_head)];
-        while (!cons_tail_.compare_exchange_weak(cons_head, cons_next));
+        uint64_t origin = cons_head;
+        while (!cons_tail_.compare_exchange_weak(cons_head, cons_next))
+            origin = cons_head;
         return true;
     }
 
