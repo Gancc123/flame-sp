@@ -144,7 +144,9 @@ private:
         size_t idx = count_index__(prod_head);
         arr_[idx].elem = elem;
         arr_[idx].turn_save();
-        while (!prod_tail_.compare_exchange_weak(prod_head, prod_next));
+        uint64_t origin = prod_head;
+        while (!prod_tail_.compare_exchange_weak(origin, prod_next))
+            origin = prod_head;
         return idx;
     }
 
@@ -179,7 +181,10 @@ private:
         size_t idx = count_index__(load_head);
         *elem = arr_[idx].elem;
         arr_[idx].turn_load();
-        while (!load_tail_.compare_exchange_weak(load_head, load_next));
+
+        uint64_t origin = load_head;
+        while (!load_tail_.compare_exchange_weak(origin, load_next))
+            origin = load_head;
         return idx;
     }
 
@@ -204,7 +209,10 @@ private:
             entry->clear();
             entry->turn_none();
         }
-        while (!trim_tail_.compare_exchange_weak(trim_head, trim_next));
+
+        uint64_t origin = trim_head;
+        while (!trim_tail_.compare_exchange_weak(origin, trim_next))
+            origin = trim_head;
         return true;
     }
 

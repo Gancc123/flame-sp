@@ -34,7 +34,6 @@ public:
 
     virtual bool push(const ELEM& elem) override {
         AtomEntry* none = nullptr;
-
         AtomEntry* tail;
         AtomEntry* entry = new AtomEntry(elem);
         assert(entry != nullptr);
@@ -45,16 +44,21 @@ public:
                 tail = tail->next;
             if (tail == nullptr || tail->next == tail)
                 continue;
+            
+            none = nullptr;
             if (tail->next.compare_exchange_weak(none, entry))
                 break;
         }
         
-        while (!tail_.compare_exchange_weak(tail, entry));
+        AtomEntry* origin = tail;
+        while (!tail_.compare_exchange_weak(origin, entry))
+            origin = tail;
         return true;
     }
 
-    virtual bool pop(ELEM& elem) override {
+    virtual bool pop(ELEM& elem) override { 
         AtomEntry* none = nullptr;
+        AtomEntry* origin = nullptr;
         AtomEntry* entry = nullptr;
         AtomEntry* next = nullptr;
 
@@ -67,18 +71,22 @@ public:
 
         AtomEntry* tail;
         while (next == nullptr) {
-            // entry->acs.store(1);
+            none = nullptr;
             if (entry->next.compare_exchange_weak(none, entry)) {
                 do {
                     tail = tail_;
                     if (tail != entry)
                         break;
-                } while (!tail_.compare_exchange_weak(entry, &head_));
+                    origin = entry;
+                } while (!tail_.compare_exchange_weak(origin, &head_));
                 break;
             } else {
                 next = entry->next;
-                if (next != nullptr) 
-                    while (!head_.next.compare_exchange_weak(none, next));
+                if (next != nullptr) {
+                    none = nullptr;
+                    while (!head_.next.compare_exchange_weak(none, next))
+                        none = nullptr;
+                }
             }
         }
 
@@ -99,7 +107,6 @@ private:
         explicit AtomEntry(AtomEntry* n) : next(n) {}
 
         ELEM elem;
-        // std::atomic<int> acs {0};
         std::atomic<AtomEntry*> next {nullptr};
     }; // struct AtomEntry
 
