@@ -1,7 +1,5 @@
 #include "common/thread/thread.h"
 #include "common/atom_queue.h"
-#include "common/ring_queue.h"
-#include "common/ring_buffer.h"
 #include "util/utime.h"
 #include "common/cmdline.h"
 
@@ -21,7 +19,7 @@ struct test_task_t {
 
 enum TestMod {
     TEST_MOD_INDEP = 0, // 独立模式
-    TEST_MOD_INTER = 1, // 干扰模式
+    TEST_MOD_INTER = 1  // 干扰模式
 };
 
 struct test_attr_t {   
@@ -30,6 +28,7 @@ struct test_attr_t {
     int prod_que;   // 每个队列的生产者数量
     int cons_que;   // 每个队列的消费者数量
     int task_num;   // 每个生成队列生成任务数量
+    bool verify {false}; // 是否校验正确性
 
     int prod_num() const { return que_num * prod_que; }
     int cons_num() const { return que_num * cons_que; }
@@ -179,7 +178,7 @@ AtomQueue<test_task_t>* create_rq() {
 }
 
 AtomQueue<test_task_t>* create_rb() {
-    return new RingBuffer<test_task_t>(1 << 16);
+    return new RandomRingQueue<test_task_t>(1 << 16);
 }
 
 class LocklessTestApp : public cli::Cmdline {
@@ -192,8 +191,9 @@ public:
     cli::Argument<int> cons     {this, 'c', "cons", "consumer number", 1};
     cli::Argument<int> event    {this, 'e', "event", "the number of event, that would be produced, per producer", 10000};
     cli::Switch interference    {this, 'i', "interference", "interference between queues (only producer)"};
+    cli::Switch verify          {this, 'v', "verify", "verify the content"};
 
-    cli::Argument<string> qn    {this, 'n', "qname", "queue type: Linked/Ring/RingBuffer", "Ring"};
+    cli::Argument<string> qn    {this, 'n', "qname", "queue type: Linked/Ring/RandomRing", "Ring"};
 
     cli::Argument<int> times    {this, 't', "times", "test times, 0 means that allway run", 1};
 
@@ -204,7 +204,7 @@ public:
             return create_alq;
         } else if (name == "Ring") {
             return create_rq;
-        } else if (name == "RingBuffer") {
+        } else if (name == "RandomRing") {
             return create_rb;
         } else
             return nullptr;
@@ -216,6 +216,7 @@ public:
         tattr.prod_que = prod;   // 每个队列的生产者数量
         tattr.cons_que = cons;   // 每个队列的消费者数量
         tattr.task_num = event;  // 每个生成队列生成任务数量
+        tattr.verify = verify;
 
         if (interference) 
             tattr.prod_mod = TEST_MOD_INTER;
