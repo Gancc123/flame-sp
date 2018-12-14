@@ -158,6 +158,13 @@ struct csd_meta_t {
     uint64_t    latime   {0};    // last active time
 }; // struct csd_meta_t
 
+enum CsdStat {
+    CSD_STAT_NONE   = 0,    // 不存在
+    CSD_STAT_DOWN   = 1,    // 下线
+    CSD_STAT_PAUSE  = 2,    // 在线，但不能提供服务
+    CSD_STAT_ACTIVE = 3     // 正常提供服务
+};
+
 /**
  * CSD Health MetaData
  */
@@ -188,6 +195,63 @@ struct gateway_meta_t {
     uint64_t    ltime   {0};    // connect time (ms)
     uint64_t    atime   {0};    // active time (ms)
 }; // struct gateway_meta_t
+
+/***************************************************
+ * Attributes
+ ***************************************************/
+
+/**
+ * chunk health attr
+ */
+struct chk_hlt_attr_t {
+    uint64_t       chk_id      {0};
+    uint64_t       size        {0};
+    uint32_t       stat        {0};
+    uint64_t       used        {0};
+    uint64_t       csd_used    {0};
+    uint64_t       dst_used    {0};
+    uint64_t       last_time   {0};
+    uint64_t       last_write  {0};
+    uint64_t       last_read   {0};
+    uint64_t       last_latency{0};
+    uint64_t       last_alloc  {0};
+};
+
+/**
+ * csd register attribute
+ */
+struct csd_reg_attr_t {
+    std::string csd_name    {};
+    uint64_t    size        {0};
+    uint64_t    io_addr     {0};
+    uint64_t    admin_addr  {0};
+    uint64_t    stat        {0};
+};
+
+/**
+ * csd sign up attribute
+ */
+struct csd_sgup_attr_t {
+    uint64_t    csd_id;
+    uint32_t    stat;
+    uint64_t    io_addr;
+    uint64_t    admin_addr;
+};
+
+/**
+ * csd health sub
+ */
+struct csd_hlt_sub_t {
+    uint64_t    csd_id;
+    uint64_t    size;
+    uint64_t    alloced;
+    uint64_t    used;
+    uint64_t    last_time;
+    uint64_t    last_write;
+    uint64_t    last_read;
+    uint64_t    last_latency;
+    uint64_t    last_alloc;
+};
 
 } // namespace flame
 

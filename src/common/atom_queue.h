@@ -55,8 +55,6 @@ public:
             tail = tail_;
             while (tail->next != none)
                 tail = tail->next;
-            if (tail == none || tail->next == tail)
-                continue;
             
             if (tail->next.compare_exchange_weak(none, entry))
                 break;
@@ -82,14 +80,12 @@ public:
             next = entry->next;
         } while (!head_.next.compare_exchange_weak(entry, next));
 
-        AtomEntry* tail;
         do {
             origin = entry;
             next = entry->next;
-            tail = tail_;
-            if (tail != entry)
+            if (tail_.load() != entry)
                 break;
-        } while (!tail->next.compare_exchange_weak(origin, next));
+        } while (!tail_.compare_exchange_weak(origin, next));
 
         elem = entry->elem;
         delete entry;
@@ -519,7 +515,7 @@ private:
 
     size_t count_index__(uint64_t i) { return i % cap_; }
 
-}; // class RingBuffer
+}; // class RandomRingQueue
 
 } // namespace flame
 
