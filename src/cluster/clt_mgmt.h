@@ -8,6 +8,8 @@
 
 namespace flame {
 
+class CsdManager;
+
 /**
  * @brief 状态变更回调函数类型
  * 当有节点状态发生改变时调用该回调函数

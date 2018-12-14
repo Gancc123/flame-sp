@@ -22,20 +22,6 @@ struct reg_res_t {
     uint64_t        ctime       {0};
 }; // struct reg_res_t
 
-struct chk_hlt_attr_t {
-    uint64_t       chk_id      {0};
-    uint64_t       size        {0};
-    uint32_t       stat        {0};
-    uint64_t       used        {0};
-    uint64_t       csd_used    {0};
-    uint64_t       dst_used    {0};
-    uint64_t       last_time   {0};
-    uint64_t       last_write  {0};
-    uint64_t       last_read   {0};
-    uint64_t       last_latency{0};
-    uint64_t       last_alloc  {0};
-}; //struct chk_hlt_attr_t
-
 struct csd_hlt_attr_t {
     uint64_t       csd_id      {0};
     uint64_t       size        {0};
