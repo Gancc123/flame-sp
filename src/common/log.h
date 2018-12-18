@@ -13,17 +13,17 @@
 /**
  * Normal Log
  */
-#define dead(module, fmt, arg...) plog(0, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
-#define critical(module, fmt, arg...) plog(1, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
-#define wrong(module, fmt, arg...) plog(2, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define ldead(module, fmt, arg...) plog(0, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define lcritical(module, fmt, arg...) plog(1, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define lwrong(module, fmt, arg...) plog(2, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
 
-#define error(module, fmt, arg...) plog(3, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
-#define warn(module, fmt, arg...) plog(4, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
-#define info(module, fmt, arg...) plog(5, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define lerror(module, fmt, arg...) plog(3, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define lwarn(module, fmt, arg...) plog(4, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define linfo(module, fmt, arg...) plog(5, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
 
-#define debug(module, fmt, arg...) plog(6, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
-#define trace(module, fmt, arg...) plog(7, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
-#define print(module, fmt, arg...) plog(8, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define ldebug(module, fmt, arg...) plog(6, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define ltrace(module, fmt, arg...) plog(7, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
+#define lprint(module, fmt, arg...) plog(8, (module), __FILE__, __LINE__, __func__, (fmt), ##arg)
 
 /**
  * Key Path Log

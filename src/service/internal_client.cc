@@ -26,7 +26,7 @@ int InternalClientImpl::register_csd(reg_res_t& res, const reg_attr_t& reg_attr)
         res.ctime = reply.ctime();
         return reply.retcode().code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -42,7 +42,7 @@ int InternalClientImpl::unregister_csd(uint64_t csd_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -61,7 +61,7 @@ int InternalClientImpl::sign_up(uint64_t csd_id, uint32_t stat, uint64_t io_addr
     if (rets.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", rets.error_code(), rets.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", rets.error_code(), rets.error_message().c_str());
         return -rets.error_code();
     }
 }
@@ -77,7 +77,7 @@ int InternalClientImpl::sign_out(uint64_t csd_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -93,7 +93,7 @@ int InternalClientImpl::push_heart_beat(uint64_t csd_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -110,7 +110,7 @@ int InternalClientImpl::push_status(uint64_t csd_id, uint32_t stat) {
     if (rets.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", rets.error_code(), rets.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", rets.error_code(), rets.error_message().c_str());
         return -rets.error_code();
     }
 }
@@ -149,7 +149,7 @@ int InternalClientImpl::push_health(const csd_hlt_attr_t& csd_hlt_attr) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -175,7 +175,7 @@ int InternalClientImpl::pull_related_chunk(std::list<related_chk_attr_t>& res, c
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -198,7 +198,7 @@ int InternalClientImpl::push_chunk_status(const std::list<chk_push_attr_t>& chk_
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }

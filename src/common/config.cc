@@ -48,24 +48,24 @@ static bool __load(FlameContext* fct, FlameConfig* cfg, std::fstream& fp) {
 
         pm = std::strchr(ps, '=');
         if (pm == NULL) {
-            fct->log()->error("config", "invalid config item in line %d, it must be key=value", line);
+            fct->log()->lerror("config", "invalid config item in line %d, it must be key=value", line);
             return false;
         }
         
         std::string key = __gen_string(ps, pm - 1);
         if (key.empty()) {
-            fct->log()->error("config", "invalid config item in line %d, key can't be empty", line);
+            fct->log()->lerror("config", "invalid config item in line %d, key can't be empty", line);
             return false;
         }
         
         std::string value = __gen_string(pm + 1, buff + len - 1);
         if (value.empty()) {
-            fct->log()->error("config", "invalid config item in line %d, value can't be empty", line);
+            fct->log()->lerror("config", "invalid config item in line %d, value can't be empty", line);
             return false;
         }
 
         if (cfg->has_key(key)) {
-            fct->log()->warn("config", "duplicate definition with key('%s'), in line %d", key.c_str(), line);
+            fct->log()->lwarn("config", "duplicate definition with key('%s'), in line %d", key.c_str(), line);
         }
         cfg->set(key, value);
     }
@@ -76,7 +76,7 @@ FlameConfig* FlameConfig::create_config(FlameContext* fct, const std::string &pa
     std::fstream fp;
     fp.open(path, std::fstream::in);
     if (!fp.is_open()) {
-        fct->log()->error("config", "file %s is not existed.", path.c_str());
+        fct->log()->lerror("config", "file %s is not existed.", path.c_str());
         return nullptr;
     }
     

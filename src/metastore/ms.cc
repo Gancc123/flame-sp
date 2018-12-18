@@ -7,7 +7,7 @@ namespace flame {
 std::shared_ptr<MetaStore> create_metastore(FlameContext* fct, const std::string& url) {
     orm::DBUrlParser parser(url);
     if (!parser.matched()) {
-        fct->log()->error("metastore url is invalid");
+        fct->log()->lerror("metastore url is invalid");
         return nullptr;
     }
     

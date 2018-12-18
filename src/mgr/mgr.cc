@@ -62,13 +62,13 @@ private:
 int Manager::init(MgrCli* mgr_cli) {
     // 初始化MetaStore
     if (!init_metastore(mgr_cli)) {
-        mct_->log()->error("init metastore faild");
+        mct_->log()->lerror("init metastore faild");
         return 1;
     }
     
     // 初始化MgrServer
     if (!init_server(mgr_cli)) {
-        mct_->log()->error("init server faild");
+        mct_->log()->lerror("init server faild");
         return 2;
     }
 
@@ -77,7 +77,7 @@ int Manager::init(MgrCli* mgr_cli) {
 
 int Manager::run() {
     if (!server_) return -1;
-    mct_->log()->info("start service");
+    mct_->log()->linfo("start service");
     return server_->run();
 }
 
@@ -93,7 +93,7 @@ bool Manager::init_metastore(MgrCli* mgr_cli) {
     
     auto ms = create_metastore(mct_->fct(), ms_url);
     if (!ms) {
-        mct_->log()->error("create metastore with url(%s) faild", ms_url.c_str());
+        mct_->log()->lerror("create metastore with url(%s) faild", ms_url.c_str());
         return false;
     }
     mct_->ms(ms);
@@ -120,10 +120,10 @@ int main(int argc, char** argv) {
     MgrCli* mgr_cli = new MgrCli();
     int r = mgr_cli->parser(argc, argv);
     if (r != CmdRetCode::SUCCESS) {
-        mgr_cli->print_error();
+        mgr_cli->lprint_error();
         return r;
     } else if (mgr_cli->help.done()) {
-        mgr_cli->print_help();
+        mgr_cli->lprint_help();
         return 0;
     }
 
@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
     FlameContext* fct = FlameContext::get_context();
 
     if (!fct->init_config(mgr_cli->config_path)) {
-        fct->log()->error("init config faild");
+        fct->log()->lerror("init config faild");
         exit(-1);
     }
 
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
         mgr_cli->log_level, 
         "mgr"
     )) {
-        fct->log()->error("init log faild");
+        fct->log()->lerror("init log faild");
         exit(-1);
     }
 

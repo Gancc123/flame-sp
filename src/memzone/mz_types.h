@@ -1,0 +1,6 @@
+#ifndef FLAME_MEMZONE_MZ_TYPES_H
+#define FLAME_MEMZONE_MZ_TYPES_H
+
+#define MZ_TYPE_STD 1
+
+#endif // !FLAME_MEMZONE_MZ_TYPES_H

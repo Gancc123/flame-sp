@@ -3,6 +3,7 @@
 
 #include "common/context.h"
 #include "include/meta.h"
+#include "include/callback.h"
 
 #include <memory>
 #include <list>
@@ -67,7 +68,7 @@ public:
     virtual int clean(uint64_t csd_id) = 0;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr) = 0;
+    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) = 0;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id) = 0;
@@ -143,32 +144,32 @@ public:
      * Among CSDs
      */
     // 拉取chunk版本信息
-    virtual int chunk_fetch(std::list<chunk_version_t>& res, const std::list<uint64_t>& chk_id_list, csds_async_cb_t cb, void* arg) = 0;
+    virtual int chunk_fetch(std::list<chunk_version_t>& res, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // 推送Chunk信号：告知Chunk的行为或状态
-    virtual int chunk_signal(const std::list<chunk_signal_t>& chk_sgn_list, csds_async_cb_t cb, void* arg) = 0;
+    virtual int chunk_signal(const std::list<chunk_signal_t>& chk_sgn_list, callback_t cb) = 0;
 
     /**
      * MGR Ctrl
      */
     // 关闭CSD
-    virtual int shutdown(uint64_t csd_id, csds_async_cb_t cb, void* arg) = 0;
+    virtual int shutdown(uint64_t csd_id, callback_t cb) = 0;
 
     // 清理CSD
-    virtual int clean(uint64_t csd_id, csds_async_cb_t cb, void* arg) = 0;
+    virtual int clean(uint64_t csd_id, callback_t cb) = 0;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr, csds_async_cb_t cb, void* arg) = 0;
+    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // 删除Chunk
-    virtual int chunk_remove(uint64_t chk_id, csds_async_cb_t cb, void* arg) = 0;
-    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list, csds_async_cb_t cb, void* arg) = 0;
+    virtual int chunk_remove(uint64_t chk_id, callback_t cb) = 0;
+    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // 选主结果通告
-    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list, csds_async_cb_t cb, void* arg) = 0;
+    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // Chunk迁移通告
-    virtual int chunk_move(const chunk_move_attr_t& attr, csds_async_cb_t cb, void* arg) = 0;
+    virtual int chunk_move(const chunk_move_attr_t& attr, callback_t cb) = 0;
 
 protected:
     explicit CsdsAsyncChannel(FlameContext* fct) : fct_(fct) {}

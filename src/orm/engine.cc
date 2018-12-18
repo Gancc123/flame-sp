@@ -23,7 +23,7 @@ std::shared_ptr<DBEngine> DBEngine::create_engine(FlameContext* fct, const std::
     assert(fct != nullptr);
     DBUrlParser parser(url);
     if (!parser.matched()) {
-        fct->log()->error("orm", "Engine ERR: DB url format error!");
+        fct->log()->lerror("orm", "Engine ERR: DB url format error!");
         return nullptr;
     }
 
@@ -40,7 +40,7 @@ std::shared_ptr<DBEngine> DBEngine::create_engine(FlameContext* fct, const std::
         }
         driver = new MysqlDriver(fct, addr, parser.db(), parser.user(), parser.passwd());
     } else {
-        fct->log()->error("orm", "Engine ERR: DB Driver is not found!");
+        fct->log()->lerror("orm", "Engine ERR: DB Driver is not found!");
         return nullptr;
     }
 
@@ -49,7 +49,7 @@ std::shared_ptr<DBEngine> DBEngine::create_engine(FlameContext* fct, const std::
     
     size_t created = engine->create_stub(stub_num);
     if (created < stub_num) {
-        fct->log()->error("orm", "Engine ERR: create stub faild, check url and your db server!");
+        fct->log()->lerror("orm", "Engine ERR: create stub faild, check url and your db server!");
         return nullptr;
     }
     
@@ -127,7 +127,7 @@ size_t DBEngine::create_stub(size_t count) {
     for (size_t i = 0; i < count; i++) {
         std::shared_ptr<Stub> stub = driver_->create_stub();
         if (!stub) {
-            fct_->log()->error("orm", "create stub faild.");
+            fct_->log()->lerror("orm", "create stub faild.");
             break;
         }
         stub_pool_.push(stub);
