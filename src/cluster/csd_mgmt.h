@@ -23,7 +23,9 @@ public:
         const std::shared_ptr<ClusterMgmt>& clt_mgmt) 
     : fct_(fct), ms_(ms), clt_mgmt_(clt_mgmt) {}
     
-    ~CsdManager() {}
+    ~CsdManager() {
+        destroy__();
+    }
 
     int init();
 
@@ -48,18 +50,36 @@ private:
      */
     std::map<uint64_t, CsdHandle*> csd_map_;
     RWLock csd_map_lock_;
+    std::atomic<uint64_t> next_csd_id_;
 
-    int create_csd_handle__(uint64_t csd_id);
+    CsdHandle* create_csd_handle__(uint64_t csd_id);
+    void destroy__() {
+        for (auto it = csd_map_.begin(); it != csd_map_.end(); ++it) {
+            delete it->second;
+        }
+    }
 }; // class CsdManager
 
 class CsdHandle final {
 public:
     CsdHandle(const std::shared_ptr<MetaStore>& ms, uint64_t csd_id) 
-    : csd_id_(csd_id), stat_(CSD_OBJ_STAT_LOAD), ms_(ms) {}
+    : csd_id_(csd_id), stat_(CSD_OBJ_STAT_LOAD), ms_(ms) {
+        obj_ = new CsdObject();
+    }
 
-    ~CsdHandle() {}
+    ~CsdHandle() {
+        delete obj_;
+    }
 
     int stat() const { return stat_.load(); }
+    void set_as_new() { stat_ = CSD_OBJ_STAT_NEW; }
+    void set_as_save() { stat_ = CSD_OBJ_STAT_SVAE; }
+    void set_as_dirty() { stat_ = CSD_OBJ_STAT_DIRT; }
+    void set_as_trim() { stat_ = CSD_OBJ_STAT_TRIM; }
+    bool stat_is_new() { 
+        if (stat_.load() == CSD_OBJ_STAT_NEW)return true;
+        else return false;
+    }
 
     CsdObject* get() const;
     CsdObject* read_and_lock();
@@ -75,19 +95,7 @@ public:
      */
     int save();
 
-    /**
-     * @brief 单独持久化元数据部分
-     * 
-     * @return int 
-     */
-    int save_meta();
-
-    /**
-     * @brief 单独持久化健康部分
-     * 
-     * @return int 
-     */
-    int save_health();
+    int load();
 
 private:
     uint64_t csd_id_;
