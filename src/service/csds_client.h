@@ -41,7 +41,7 @@ public:
     virtual int clean(uint64_t csd_id) override;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr) override;
+    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) override;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id) override;
@@ -131,32 +131,32 @@ public:
      * Among CSDs
      */
     // 拉取chunk版本信息
-    virtual int chunk_fetch(std::list<chunk_version_t>& res, const std::list<uint64_t>& chk_id_list, csds_async_cb_t cb, void* arg) override;
+    virtual int chunk_fetch(std::list<chunk_version_t>& res, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // 推送Chunk信号：告知Chunk的行为或状态
-    virtual int chunk_signal(const std::list<chunk_signal_t>& chk_sgn_list, csds_async_cb_t cb, void* arg) override;
+    virtual int chunk_signal(const std::list<chunk_signal_t>& chk_sgn_list, callback_t cb) override;
 
     /**
      * MGR Ctrl
      */
     // 关闭CSD
-    virtual int shutdown(uint64_t csd_id, csds_async_cb_t cb, void* arg) override;
+    virtual int shutdown(uint64_t csd_id, callback_t cb) override;
 
     // 清理CSD
-    virtual int clean(uint64_t csd_id, csds_async_cb_t cb, void* arg) override;
+    virtual int clean(uint64_t csd_id, callback_t cb) override;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr, csds_async_cb_t cb, void* arg) override;
+    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // 删除Chunk
-    virtual int chunk_remove(uint64_t chk_id, csds_async_cb_t cb, void* arg) override;
-    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list, csds_async_cb_t cb, void* arg) override;
+    virtual int chunk_remove(uint64_t chk_id, callback_t cb) override;
+    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // 选主结果通告
-    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list, csds_async_cb_t cb, void* arg) override;
+    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // Chunk迁移通告
-    virtual int chunk_move(const chunk_move_attr_t& attr, csds_async_cb_t cb, void* arg) override;
+    virtual int chunk_move(const chunk_move_attr_t& attr, callback_t cb) override;
 
 private:
     CsdsAsyncChannelImpl(FlameContext* fct, std::shared_ptr<Channel> channel)

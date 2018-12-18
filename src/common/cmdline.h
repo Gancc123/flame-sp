@@ -330,7 +330,7 @@ public:
     ~HelpAction() {}
 
     virtual int run(Cmdline* cmd) override {
-        cmd->print_help();
+        cmd->lprint_help();
         return 0;
     }
 }; // class 

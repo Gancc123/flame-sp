@@ -287,12 +287,12 @@ int Cmdline::run(int argc, char** argv) {
         return cur->def_run();
     } else if (r == CmdRetCode::FORMAT_ERROR) {
         if (cur->act_ && cur->act_->long_name() == "help")
-            cur->print_help();
+            cur->lprint_help();
         else
-            cur->print_error();
+            cur->lprint_error();
         return r;
     } else {
-        cur->print_internal_error();
+        cur->lprint_internal_error();
         return r;
     }
 }

@@ -59,13 +59,13 @@ private:
 int CSD::init(CsdCli* csd_cli) {
     // 初始化ChunkStore
     if (!init_chunkstore(csd_cli)) {
-        cct_->log()->error("init chunkstore faild");
+        cct_->log()->lerror("init chunkstore faild");
         return 1;
     }
 
     // 初始化CsdServer
     if (!init_server(csd_cli)) {
-        cct_->log()->error("init server faild");
+        cct_->log()->lerror("init server faild");
         return 2;
     }
 
@@ -74,7 +74,7 @@ int CSD::init(CsdCli* csd_cli) {
 
 int CSD::run() {
     if (!server_) return -1;
-    cct_->log()->info("start service");
+    cct_->log()->linfo("start service");
     return server_->run();
 }
 
@@ -95,22 +95,22 @@ bool CSD::init_chunkstore(CsdCli* csd_cli) {
     
     auto cs = create_chunkstore(cct_->fct(), cs_url);
     if (!cs) {
-        cct_->log()->error("create metastore with url(%s) faild", cs_url.c_str());
+        cct_->log()->lerror("create metastore with url(%s) faild", cs_url.c_str());
         return false;
     }
 
     int r = cs->dev_check();
     switch (r) {
     case ChunkStore::DevStatus::NONE:
-        cct_->log()->error("device not existed");
+        cct_->log()->lerror("device not existed");
         return false;
     case ChunkStore::DevStatus::UNKNOWN:
-        cct_->log()->warn("unknown device format");
+        cct_->log()->lwarn("unknown device format");
         if (!csd_cli->force_format)
             return false;
         break;
     case ChunkStore::DevStatus::CLT_OUT:
-        cct_->log()->warn("the divice belong to other cluster");
+        cct_->log()->lwarn("the divice belong to other cluster");
         if (!csd_cli->force_format)
             return false;
         break;
@@ -121,13 +121,13 @@ bool CSD::init_chunkstore(CsdCli* csd_cli) {
     if (csd_cli->force_format) {
         r = cs->dev_format();
         if (r != 0) {
-            cct_->log()->error("format device faild");
+            cct_->log()->lerror("format device faild");
             return false;
         }
     }
 
     if ((r = cs->dev_mount()) != 0) {
-        cct_->log()->error("mount device faild (%d)", r);
+        cct_->log()->lerror("mount device faild (%d)", r);
         return false;
     }
 
@@ -155,10 +155,10 @@ int main(int argc, char** argv) {
     CsdCli* csd_cli = new CsdCli();
     int r = csd_cli->parser(argc,  argv);
     if (r != CmdRetCode::SUCCESS) {
-        csd_cli->print_error();
+        csd_cli->lprint_error();
         return r;
     } else if (csd_cli->help.done()) {
-        csd_cli->print_help();
+        csd_cli->lprint_help();
         return 0;
     }
 
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
     FlameContext* fct = FlameContext::get_context();
 
     if (!fct->init_config(csd_cli->config_path)) {
-        fct->log()->error("init config faild");
+        fct->log()->lerror("init config faild");
         exit(-1);
     }
 
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
         csd_cli->log_level, 
         "csd"
     )) {
-        fct->log()->error("init log faild");
+        fct->log()->lerror("init log faild");
         exit(-1);
     }
 

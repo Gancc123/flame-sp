@@ -48,12 +48,11 @@ message CleanRequest {
 // 创建chunk
 // @Reply: CsdsReply
 message ChunkCreateRequest {
-    uint64 chk_id   = 1;
-    uint64 vol_id   = 2;
-    uint32 index    = 3;
+    uint64 vol_id   = 1;
+    uint64 size     = 2;
+    uint32 spolicy  = 3;
     uint32 stat     = 4;
-    uint32 spolicy  = 5;
-	uint64 size     = 6;
+    repeated uint64 chk_id_list = 5;
 }
 
 // 选主副本（通知）

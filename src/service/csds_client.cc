@@ -9,6 +9,10 @@ using grpc::Status;
 
 namespace flame {
 
+CsdsAsyncChannel* CsdsClientImpl::create_async_channel() {
+
+}
+
 int CsdsClientImpl::chunk_fetch(std::list<chunk_version_t>& res, const std::list<uint64_t>& chk_id_list) {
     ChunkFetchRequest req;
     for (auto it = chk_id_list.begin(); it != chk_id_list.end(); it++)
@@ -30,7 +34,7 @@ int CsdsClientImpl::chunk_fetch(std::list<chunk_version_t>& res, const std::list
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -50,7 +54,7 @@ int CsdsClientImpl::chunk_signal(const std::list<chunk_signal_t>& chk_sgn_list) 
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -66,7 +70,7 @@ int CsdsClientImpl::shutdown(uint64_t csd_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -82,12 +86,12 @@ int CsdsClientImpl::clean(uint64_t csd_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
 
-int CsdsClientImpl::chunk_create(const chunk_create_attr_t& attr) {
+int CsdsClientImpl::chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) {
     ChunkCreateRequest req;
     req.set_chk_id(attr.chk_id);
     req.set_vol_id(attr.vol_id);
@@ -95,6 +99,8 @@ int CsdsClientImpl::chunk_create(const chunk_create_attr_t& attr) {
     req.set_stat(attr.stat);
     req.set_spolicy(attr.spolicy);
     req.set_size(attr.size);
+    for (auto it = chk_hlt_list.begin(); it != chk_id_list.end(); it++)
+        req.add_chk_id_list(*it);
 
     CsdsReply reply;
     ClientContext ctx;
@@ -103,7 +109,7 @@ int CsdsClientImpl::chunk_create(const chunk_create_attr_t& attr) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -119,7 +125,7 @@ int CsdsClientImpl::chunk_remove(uint64_t chk_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -136,7 +142,7 @@ int CsdsClientImpl::chunk_remove(const std::list<uint64_t>& chk_id_list) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -153,7 +159,7 @@ int CsdsClientImpl::chunk_chooss(const std::list<uint64_t>& chk_id_list) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -172,7 +178,7 @@ int CsdsClientImpl::chunk_move(const chunk_move_attr_t& attr) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }

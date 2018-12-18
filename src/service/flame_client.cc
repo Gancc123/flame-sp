@@ -21,7 +21,7 @@ int FlameClientImpl::connect(uint64_t gw_id, uint64_t admin_addr) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code(); // 注意负号
     }
 }
@@ -37,7 +37,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -59,7 +59,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
         res.used = reply.used();
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
  }
@@ -75,7 +75,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
  }
@@ -91,7 +91,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
  }
@@ -116,7 +116,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
  }
@@ -144,7 +144,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
  }
@@ -160,7 +160,7 @@ int FlameClientImpl::create_vol_group(const std::string& name) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -176,7 +176,7 @@ int FlameClientImpl::remove_vol_group(const std::string& name) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -193,7 +193,7 @@ int FlameClientImpl::rename_vol_group(const std::string& old_name, const std::st
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -226,7 +226,7 @@ int FlameClientImpl::get_volume_list(std::list<volume_meta_t>& res, const std::s
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -247,7 +247,7 @@ int FlameClientImpl::create_volume(const volume_attr_t& vol_attr) {
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -264,7 +264,7 @@ int FlameClientImpl::remove_volume(const std::string& vg_name, const std::string
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -282,7 +282,7 @@ int FlameClientImpl::rename_volume(const std::string& vg_name, const std::string
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -313,7 +313,7 @@ int FlameClientImpl::get_volume_info(volume_meta_t& res, const std::string& vg_n
         res.chunks = reply.vol().chunks();
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -331,7 +331,7 @@ int FlameClientImpl::resize_volume(const std::string& vg_name, const std::string
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -349,7 +349,7 @@ int FlameClientImpl::open_volume(uint64_t gw_id, const std::string& vg_name, con
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -367,7 +367,7 @@ int FlameClientImpl::close_volume(uint64_t gw_id, const std::string& vg_name, co
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -385,7 +385,7 @@ int FlameClientImpl::lock_volume(uint64_t gw_id, const std::string& vg_name, con
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -403,7 +403,7 @@ int FlameClientImpl::unlock_volume(uint64_t gw_id, const std::string& vg_name, c
     if (stat.ok()) {
         return reply.code();
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -433,7 +433,7 @@ int FlameClientImpl::get_volume_maps(std::list<chunk_attr_t>& res, uint64_t vol_
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
@@ -465,7 +465,7 @@ int FlameClientImpl::get_chunk_maps(std::list<chunk_attr_t>& res, const std::lis
         }
         return 0;
     } else {
-        fct_->log()->error("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
+        fct_->log()->lerror("RPC Failed(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
