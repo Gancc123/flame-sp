@@ -19,7 +19,7 @@ SqlMetaStore* SqlMetaStore::create_sqlms(FlameContext* fct, const std::string& u
     assert(fct != nullptr);
     std::shared_ptr<orm::DBEngine> engine = orm::DBEngine::create_engine(fct, url, conn_num);
     if (!engine) {
-        fct->log()->error("DBEgine create faild.");
+        fct->log()->lerror("DBEgine create faild.");
         return nullptr;
     }
 

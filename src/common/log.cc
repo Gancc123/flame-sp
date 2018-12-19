@@ -61,7 +61,7 @@ bool Logger::write_log_index__(int idx) {
     std::string path = string_concat({dir_, "/", prefix_, LOG_META_FILENAME});
     FILE* fp = fopen(path.c_str(), "w");
     if (fp == nullptr) {
-        error("logger", "open log file(%s) faild", path.c_str());
+        lerror("logger", "open log file(%s) faild", path.c_str());
         return false;
     }
     fprintf(fp, "%d", idx);
@@ -75,7 +75,7 @@ bool Logger::switch_log_file(useconds_t us) {
     std::string path = string_concat({dir_, "/", prefix_, ".", convert2string(idx), ".log"});
     FILE* fp = fopen(path.c_str(), "w");
     if (fp == nullptr) {
-        error("logger",  "open log file(%s) faild", path.c_str());
+        lerror("logger",  "open log file(%s) faild", path.c_str());
         return false;
     }
     switch_file__(fp, us);

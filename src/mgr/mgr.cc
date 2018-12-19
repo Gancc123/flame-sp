@@ -120,10 +120,10 @@ int main(int argc, char** argv) {
     MgrCli* mgr_cli = new MgrCli();
     int r = mgr_cli->parser(argc, argv);
     if (r != CmdRetCode::SUCCESS) {
-        mgr_cli->lprint_error();
+        mgr_cli->print_error();
         return r;
     } else if (mgr_cli->help.done()) {
-        mgr_cli->lprint_help();
+        mgr_cli->print_help();
         return 0;
     }
 

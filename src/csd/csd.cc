@@ -155,10 +155,10 @@ int main(int argc, char** argv) {
     CsdCli* csd_cli = new CsdCli();
     int r = csd_cli->parser(argc,  argv);
     if (r != CmdRetCode::SUCCESS) {
-        csd_cli->lprint_error();
+        csd_cli->print_error();
         return r;
     } else if (csd_cli->help.done()) {
-        csd_cli->lprint_help();
+        csd_cli->print_help();
         return 0;
     }
 
