@@ -104,23 +104,31 @@ enum ChunkFlags {
 /**
  * Chunk Health MetaData
  */
-struct chunk_health_meta_t {
-    uint64_t    chk_id  {0};
-    uint32_t    stat    {0};
-    uint64_t    size    {0};
-    uint64_t    used    {0};
-    uint64_t    csd_used    {0};
-    uint64_t    dst_used    {0};
-    uint64_t    write_count {0};
-    uint64_t    read_count  {0};
+struct com_hlt_meta_t {
     uint64_t    last_time   {0};
     uint64_t    last_write  {0};
     uint64_t    last_read   {0};
     uint64_t    last_latency{0};    // (ns)
     uint64_t    last_alloc  {0};
+}; // struct com_hlt_meta_t
+
+struct com_weight_meta_t {
     double      load_weight {0};
     double      wear_weight {0};
     double      total_weight{0};
+}; // struct com_weight_meta_t
+
+struct chunk_health_meta_t {
+    uint64_t          chk_id      {0};
+    uint32_t          stat        {0};
+    uint64_t          size        {0};
+    uint64_t          used        {0};
+    uint64_t          csd_used    {0};
+    uint64_t          dst_used    {0};
+    uint64_t          write_count {0};
+    uint64_t          read_count  {0};
+    com_hlt_meta_t    hlt_meta;
+    com_weight_meta_t weight_meta;
 }; // struct chunk_health_meta_t
 
 /**
@@ -169,21 +177,15 @@ enum CsdStat {
  * CSD Health MetaData
  */
 struct csd_health_meta_t {
-    uint64_t    csd_id  {0};
-    uint32_t    stat    {0};
-    uint64_t    size    {0};
-    uint64_t    alloced {0};
-    uint64_t    used    {0};
-    uint64_t    write_count {0};
-    uint64_t    read_count  {0};
-    uint64_t    last_time   {0};
-    uint64_t    last_write  {0};
-    uint64_t    last_read   {0};
-    uint64_t    last_latency{0};
-    uint64_t    last_alloc  {0};
-    double      load_weight {0};
-    double      wear_weight {0};
-    double      total_weight{0};
+    uint64_t          csd_id      {0};
+    uint32_t          stat        {0};
+    uint64_t          size        {0};
+    uint64_t          alloced     {0};
+    uint64_t          used        {0};
+    uint64_t          write_count {0};
+    uint64_t          read_count  {0};
+    com_hlt_meta_t    hlt_meta;
+    com_weight_meta_t weight_meta;
 }; // struct csd_health_meta_t
 
 /**
@@ -210,11 +212,7 @@ struct chk_hlt_attr_t {
     uint64_t       used        {0};
     uint64_t       csd_used    {0};
     uint64_t       dst_used    {0};
-    uint64_t       last_time   {0};
-    uint64_t       last_write  {0};
-    uint64_t       last_read   {0};
-    uint64_t       last_latency{0};
-    uint64_t       last_alloc  {0};
+    com_hlt_meta_t hlt_meta;
 };
 
 /**
@@ -246,11 +244,7 @@ struct csd_hlt_sub_t {
     uint64_t    size;
     uint64_t    alloced;
     uint64_t    used;
-    uint64_t    last_time;
-    uint64_t    last_write;
-    uint64_t    last_read;
-    uint64_t    last_latency;
-    uint64_t    last_alloc;
+    com_hlt_meta_t hlt_meta;
 };
 
 } // namespace flame

@@ -88,17 +88,17 @@ const HealthRequest* request, InternalReply* response)
     csd_hlt.write_count = csd_hlt.write_count + request->last_write();
     csd_hlt.read_count = csd_hlt.read_count + request->last_read();
     double u = request->used() / request->size();//存储空间利用率
-    csd_hlt.wear_weight = csd_hlt.wear_weight + (request->last_write() / (1 - u));
+    csd_hlt.weight_meta.wear_weight = csd_hlt.weight_meta.wear_weight + (request->last_write() / (1 - u));
 
     // update csd's others info
     csd_hlt.size = request->size();
     csd_hlt.alloced = request->alloced();
     csd_hlt.used = request->used();
-    csd_hlt.last_time = request->last_time();
-    csd_hlt.last_write = request->last_write();
-    csd_hlt.last_read = request->last_read();
-    csd_hlt.last_latency = request->last_latency();
-    csd_hlt.last_alloc = request->last_alloc();
+    csd_hlt.hlt_meta.last_time = request->last_time();
+    csd_hlt.hlt_meta.last_write = request->last_write();
+    csd_hlt.hlt_meta.last_read = request->last_read();
+    csd_hlt.hlt_meta.last_latency = request->last_latency();
+    csd_hlt.hlt_meta.last_alloc = request->last_alloc();
 
     int r = csd_hlt_ms->update(csd_hlt);
 
@@ -116,11 +116,11 @@ const HealthRequest* request, InternalReply* response)
         hmt.used = item.used();
         hmt.csd_used = item.csd_used();
         hmt.dst_used = item.dst_used();
-        hmt.last_time = item.last_time();
-        hmt.last_write = item.last_write();
-        hmt.last_read = item.last_read();
-        hmt.last_latency = item.last_latency();
-        hmt.last_alloc = item.last_alloc();
+        hmt.hlt_meta.last_time = item.last_time();
+        hmt.hlt_meta.last_write = item.last_write();
+        hmt.hlt_meta.last_read = item.last_read();
+        hmt.hlt_meta.last_latency = item.last_latency();
+        hmt.hlt_meta.last_alloc = item.last_alloc();
 
         r = chk_hlt_ms->update(hmt);
     }
