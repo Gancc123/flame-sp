@@ -583,49 +583,49 @@ int SimStore::st_chunk_blocks__(simstore_chunk_t& chk, const string& value) {
 }
 
 int SimChunk::get_info(chunk_info_t& info) const {
-    info = chk_->linfo;
+    info = chk_->info;
     return ChunkStore::RetCode::SUCCESS;
 }
 
 uint64_t SimChunk::size() const {
-    return chk_->linfo.size;
+    return chk_->info.size;
 }
 
 uint64_t SimChunk::used() const {
-    return chk_->linfo.used;
+    return chk_->info.used;
 }
 
 uint32_t SimChunk::stat() const {
-    return chk_->linfo.stat;
+    return chk_->info.stat;
 }
 
 uint64_t SimChunk::vol_id() const {
-    return chk_->linfo.vol_id;
+    return chk_->info.vol_id;
 }
 
 uint32_t SimChunk::vol_index() const {
-    return chk_->linfo.index;
+    return chk_->info.index;
 }
 
 uint32_t SimChunk::spolicy() const {
-    return chk_->linfo.spolicy;
+    return chk_->info.spolicy;
 }
 
 bool SimChunk::is_preallocated() const {
-    return chk_->linfo.flags & ChunkFlags::PREALLOC;
+    return chk_->info.flags & ChunkFlags::PREALLOC;
 }
 
 int SimChunk::read_sync(void* buff, uint64_t off, uint64_t len) {
     rd_count__(off, len);
     fct_->log()->linfo("simstore: read sync chk_id(%llu), off(%llu), len(%llu)",
-        chk_->linfo.chk_id, off, len);
+        chk_->info.chk_id, off, len);
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::write_sync(void* buff, uint64_t off, uint64_t len) {
     wr_count__(off, len);
     fct_->log()->linfo("simstore: write sync chk_id(%llu), off(%llu), len(%llu)",
-        chk_->linfo.chk_id, off, len);
+        chk_->info.chk_id, off, len);
     return ChunkStore::RetCode::SUCCESS;
 }
 
@@ -635,21 +635,21 @@ int SimChunk::get_xattr(const std::string& name, std::string& value) {
         return ChunkStore::RetCode::OBJ_NOTFOUND;
     value = chk_->xattr[name];
     fct_->log()->linfo("simstore: xattr get chk_id(%llu), name(%s), value(%s)",
-        chk_->linfo.chk_id, name.c_str(), value.c_str());
+        chk_->info.chk_id, name.c_str(), value.c_str());
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::set_xattr(const std::string& name, const std::string& value) {
     chk_->xattr[name] = value;
     fct_->log()->linfo("simstore: xattr set chk_id(%llu), name(%s), value(%s)",
-        chk_->linfo.chk_id, name.c_str(), value.c_str());
+        chk_->info.chk_id, name.c_str(), value.c_str());
     return ChunkStore::RetCode::SUCCESS;
 }
 
 int SimChunk::read_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
     rd_count__(off, len);
     fct_->log()->linfo("simstore: read async chk_id(%llu), off(%llu), len(%llu)",
-        chk_->linfo.chk_id, off, len);
+        chk_->info.chk_id, off, len);
     if (cb != nullptr)
         cb(cb_arg);
     return ChunkStore::RetCode::SUCCESS;
@@ -658,14 +658,14 @@ int SimChunk::read_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t 
 int SimChunk::write_async(void* buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void* cb_arg) {
     wr_count__(off, len);
     fct_->log()->linfo("simstore: write async chk_id(%llu), off(%llu), len(%llu)",
-        chk_->linfo.chk_id, off, len);
+        chk_->info.chk_id, off, len);
     if (cb != nullptr)
         cb(cb_arg);
     return ChunkStore::RetCode::SUCCESS;
 }
 
 void SimChunk::blk_range__(uint32_t& begin, uint32_t& end, uint64_t off, uint64_t len) {
-    int chk_size = chk_->linfo.size;
+    int chk_size = chk_->info.size;
     uint64_t sz;
     end = begin = off / SIMSTORE_BLOCK_SIZE;
     sz = off % SIMSTORE_BLOCK_SIZE;

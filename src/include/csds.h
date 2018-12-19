@@ -86,14 +86,6 @@ protected:
     FlameContext* fct_;
 }; // class CsdsClient
 
-typedef void (*csds_async_cb_t)(int res, void* arg);
-
-struct csds_complete_entry_t {
-    int res;
-    csds_async_cb_t cb;
-    void* arg;
-};
-
 class CsdsAsyncChannel {
 public:
     virtual ~CsdsAsyncChannel() {}
