@@ -118,15 +118,15 @@ int InternalClientImpl::push_status(uint64_t csd_id, uint32_t stat) {
 int InternalClientImpl::push_health(const csd_hlt_attr_t& csd_hlt_attr) {
     HealthRequest req;
     
-    req.set_csd_id(csd_hlt_attr.csd_id);
-    req.set_size(csd_hlt_attr.size);
-    req.set_alloced(csd_hlt_attr.alloced);
-    req.set_used(csd_hlt_attr.used);
-    req.set_last_time(csd_hlt_attr.last_time);
-    req.set_last_write(csd_hlt_attr.last_write);
-    req.set_last_read(csd_hlt_attr.last_read);
-    req.set_last_latency(csd_hlt_attr.last_latency);
-    req.set_last_alloc(csd_hlt_attr.last_alloc);
+    req.set_csd_id(csd_hlt_attr.csd_hlt_sub_t.csd_id);
+    req.set_size(csd_hlt_attr.csd_hlt_sub_t.size);
+    req.set_alloced(csd_hlt_attr.csd_hlt_sub_t.alloced);
+    req.set_used(csd_hlt_attr.csd_hlt_sub_t.used);
+    req.set_last_time(csd_hlt_attr.csd_hlt_sub_t.com_hlt_meta_t.last_time);
+    req.set_last_write(csd_hlt_attr.csd_hlt_sub_t.com_hlt_meta_t.last_write);
+    req.set_last_read(csd_hlt_attr.csd_hlt_sub_t.com_hlt_meta_t.last_read);
+    req.set_last_latency(csd_hlt_attr.csd_hlt_sub_t.com_hlt_meta_t.last_latency);
+    req.set_last_alloc(csd_hlt_attr.csd_hlt_sub_t.com_hlt_meta_t.last_alloc);
     for (auto it = csd_hlt_attr.chk_hlt_list.begin(); it != csd_hlt_attr.chk_hlt_list.end(); ++it) {
         ChunkHealthItem* item = req.add_chunk_health_list();
         item->set_chk_id(it->chk_id);
@@ -135,11 +135,11 @@ int InternalClientImpl::push_health(const csd_hlt_attr_t& csd_hlt_attr) {
         item->set_used(it->used);
         item->set_csd_used(it->csd_used);
         item->set_dst_used(it->dst_used);
-        item->set_last_time(it->last_time);
-        item->set_last_write(it->last_write);
-        item->set_last_read(it->last_read);
-        item->set_last_latency(it->last_latency);
-        item->set_last_alloc(it->last_alloc);
+        item->set_last_time(it->com_hlt_meta_t.last_time);
+        item->set_last_write(it->com_hlt_meta_t.last_write);
+        item->set_last_read(it->com_hlt_meta_t.last_read);
+        item->set_last_latency(it->com_hlt_meta_t.last_latency);
+        item->set_last_alloc(it->com_hlt_meta_t.last_alloc);
     }
 
     InternalReply reply;
