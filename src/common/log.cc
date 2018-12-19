@@ -3,6 +3,7 @@
 #include "util/clog.h"
 #include <cstdio>
 #include <unistd.h>
+#include <sys/stat.h>
 
 namespace flame {
 
@@ -43,6 +44,15 @@ bool Logger::set_level_with_name(const std::string& level_name) {
 bool Logger::reopen(const std::string& dir, const std::string& prefix) {
     dir_ = dir;
     prefix_ = prefix;
+
+    int res = mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if(res){
+        if(errno != EEXIST){
+            lerror("logger", "create log dir(%s) failed", dir.c_str());
+            return false;
+        }
+    }
+
     return switch_log_file();
 }
 
@@ -61,7 +71,7 @@ bool Logger::write_log_index__(int idx) {
     std::string path = string_concat({dir_, "/", prefix_, LOG_META_FILENAME});
     FILE* fp = fopen(path.c_str(), "w");
     if (fp == nullptr) {
-        error("logger", "open log file(%s) faild", path.c_str());
+        lerror("logger", "open log file(%s) faild", path.c_str());
         return false;
     }
     fprintf(fp, "%d", idx);
@@ -75,7 +85,7 @@ bool Logger::switch_log_file(useconds_t us) {
     std::string path = string_concat({dir_, "/", prefix_, ".", convert2string(idx), ".log"});
     FILE* fp = fopen(path.c_str(), "w");
     if (fp == nullptr) {
-        error("logger",  "open log file(%s) faild", path.c_str());
+        lerror("logger",  "open log file(%s) faild", path.c_str());
         return false;
     }
     switch_file__(fp, us);

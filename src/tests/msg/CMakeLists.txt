@@ -1,0 +1,8 @@
+
+add_subdirectory(test_msg)
+add_subdirectory(test_rdma)
+add_subdirectory(rdma_perf)
+
+package_add_test(buddy_allocator_unittest buddy_allocator_unittest.cc)
+
+target_link_libraries(buddy_allocator_unittest common)

@@ -1,0 +1,122 @@
+#ifndef FLAME_MSG_CONNECTION_H
+#define FLAME_MSG_CONNECTION_H
+
+#include <list>
+#include <cstdlib>
+#include <ctime>
+#include <mutex>
+#include <sstream>
+
+#include "msg_common.h"
+#include "Msg.h"
+#include "MsgWorker.h"
+#include "msg/event/event.h"
+
+namespace flame{
+
+class Session;
+
+class Connection : public EventCallBack{
+    conn_id_t conn_id;
+    Session *session;
+    MsgWorker *owner;
+    ConnectionListener *m_listener;
+public:
+    explicit Connection(FlameContext *c)
+    :EventCallBack(c, FLAME_EVENT_READABLE | FLAME_EVENT_WRITABLE),
+     session(nullptr), owner(nullptr), m_listener(nullptr){
+         
+    }
+    ~Connection();
+
+    virtual msg_ttype_t get_ttype() = 0;
+
+    /**
+     * put msg to send_msg_list, and actually send if possible
+     * @param msg: maybe be nullptr.
+     * @return: total bytes actually sended. when < 0, error.
+     */
+    virtual ssize_t send_msg(Msg *msg) = 0;
+    virtual Msg* recv_msg() = 0;
+
+    /**
+     * put msgs to send_msg_list, and actually send if possible
+     * @param msg: maybe be nullptr.
+     * @return: total bytes actually sended. when < 0, error.
+     */
+    virtual ssize_t send_msgs(std::list<Msg *> &msgs){
+        ssize_t total = 0;
+        while(!msgs.empty()){
+            ssize_t r = send_msg(msgs.front());
+            if(r >= 0){
+                total += r;
+                msgs.pop_front();
+            }else{
+                total = -1;
+                break;
+            }
+        }
+        return total;
+    }
+    /**
+     * the number of msgs to be sended. 
+     * @return: the size of send_msg_list
+     */
+    virtual int pending_msg() = 0;
+    virtual bool is_connected() = 0;
+    virtual void close() = 0;
+    virtual void set_fd(int fd) { this->fd = fd; }
+    virtual int get_fd() const { return this->fd; }
+    /**
+     * Some connection may have no fd.
+     * return false, when don't need to add connection to poll loop.
+     */
+    virtual bool has_fd() const { return true; }
+    /**
+     * Some connection may set owner by itself.
+     * return true, when don't need to set owner by msg_manager.
+     */
+    virtual bool is_owner_fixed() const { return false; }
+
+    void set_id(conn_id_t id){
+        this->conn_id = id;
+    }
+
+    conn_id_t get_id() const{
+        return this->conn_id;
+    }
+    
+    void set_session(Session *s);
+    Session *get_session() const;
+
+    void set_owner(MsgWorker *worker){
+        this->owner = worker;
+    }
+
+    MsgWorker *get_owner() const {
+        return this->owner;
+    }
+
+    void set_listener(ConnectionListener *listener){
+        this->m_listener = listener;
+    }
+
+    ConnectionListener* get_listener() const{
+        return this->m_listener;
+    }
+
+    virtual void read_cb() = 0;
+    virtual void write_cb() = 0;
+    virtual void error_cb() = 0;
+
+    std::string to_string() const{
+        std::stringstream ss;
+        ss << "[Conn " << this->conn_id.to_string() << "]";
+        return ss.str();
+    }
+
+};
+
+}
+
+#endif

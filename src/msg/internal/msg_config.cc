@@ -1,0 +1,390 @@
+#include "msg_config.h"
+#include "common/context.h"
+#include "node_addr.h"
+#include "util.h"
+
+#include <cstring>
+#include <string>
+#include <iostream>
+#include <regex>
+#include <utility>
+
+namespace flame{
+
+bool MsgConfig::get_bool(const std::string &v) {
+    const char *true_values[] = {"yes", "enable", "on", "true", nullptr};
+    auto lv = str2lower(v);
+    const char **it = true_values;
+    while(*it){
+        if(lv.compare(*it) == 0){
+            return true;
+        }
+        ++it;
+    }
+    return false;
+}
+
+int MsgConfig::load(){
+    int res = 0;
+    auto cfg = fct->config();
+
+    res = set_msger_id(cfg->get("msger_id", FLAME_MSGER_ID_D));
+    if (res) {
+        perr_arg("msger_id");
+        return 1;
+    }
+
+    // node_listen_ports
+    res = set_node_listen_ports(cfg->get("node_listen_ports", 
+                                            FLAME_NODE_LISTEN_PORTS_D));
+    if (res) {
+        perr_arg("node_listen_ports");
+        return 1;
+    }
+
+    res = set_rdma_enable(cfg->get("rdma_enable", FLAME_RDMA_ENABLE_D));
+    if (res) {
+        perr_arg("rdma_enable");
+        return 1;
+    }
+    
+    if (rdma_enable) {
+
+        res = set_rdma_device_name(cfg->get("rdma_device_name", 
+                                                FLAME_RDMA_DEVICE_NAME_D));
+        if (res) {
+            perr_arg("rdma_device_name");
+            return 1;
+        }
+
+        res = set_rdma_port_num(cfg->get("rdma_port_num", 
+                                            FLAME_RDMA_PORT_NUM_D));
+        if (res) {
+            perr_arg("rdma_port_num");
+            return 1;
+        }
+
+        res = set_rdma_buffer_num(cfg->get("rdma_buffer_num", 
+                                            FLAME_RDMA_BUFFER_NUM_D));
+        if (res) {
+            perr_arg("rdma_buffer_num");
+            return 1;
+        }
+
+        res = set_rdma_buffer_size(cfg->get("rdma_buffer_size", 
+                                            FLAME_RDMA_BUFFER_SIZE_D));
+        if (res) {
+            perr_arg("rdma_buffer_size");
+            return 1;
+        }
+
+        res = set_rdma_send_queue_len(cfg->get("rdma_send_queue_len", 
+                                                FLAME_RDMA_SEND_QUEUE_LEN_D));
+        if (res) {
+            perr_arg("rdma_send_queue_len");
+            return 1;
+        }
+
+        res = set_rdma_recv_queue_len(cfg->get("rdma_recv_queue_len", 
+                                                FLAME_RDMA_RECV_QUEUE_LEN_D));
+        if (res) {
+            perr_arg("rdma_recv_queue_len");
+            return 1;
+        }
+
+        res = set_rdma_enable_hugepage(cfg->get("rdma_enable_hugepage", 
+                                                FLAME_RDMA_ENABLE_HUGEPAGE_D));
+        if (res) {
+            perr_arg("rdma_enable_hugepage");
+            return 1;
+        }
+
+        res = set_rdma_path_mtu(cfg->get("rdma_path_mtu", 
+                                            FLAME_RDMA_PATH_MTU_D));
+        if (res) {
+            perr_arg("rdma_path_mtu");
+            return 1;
+        }
+
+        res = set_rdma_enable_srq(cfg->get("rdma_enable_srq", 
+                                            FLAME_RDMA_ENABLE_SRQ_D));
+        if (res) {
+            perr_arg("rdma_enable_srq");
+            return 1;
+        }
+
+        res = set_rdma_cq_pair_num(cfg->get("rdma_cq_pair_num", 
+                                            FLAME_RDMA_CQ_PAIR_NUM_D));
+        if (res) {
+            perr_arg("rdma_cq_pair_num");
+            return 1;
+        }
+
+        res = set_rdma_traffic_class(cfg->get("rdma_traffic_class", 
+                                                FLAME_RDMA_TRAFFIC_CLASS));
+        if (res) {
+            perr_arg("rdma_traffic_class");
+            return 1;
+        }
+
+        res = set_rdma_mem_min_level(cfg->get("rdma_mem_min_level", 
+                                                FLAME_RDMA_MEM_MIN_LEVEL));
+        if (res) {
+            perr_arg("rdma_mem_min_level");
+            return 1;
+        }
+
+        res = set_rdma_mem_max_level(cfg->get("rdma_mem_max_level", 
+                                                FLAME_RDMA_MEM_MAX_LEVEL));
+        if (res) {
+            perr_arg("rdma_mem_max_level");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int MsgConfig::set_msger_id(const std::string &v){
+    std::regex msger_id_regex("([0-9.]+)/(\\d+)");
+    std::smatch m;
+    if(!regex_match(v, m, msger_id_regex) && !v.empty()){
+        return 1;
+    }
+    if(m.size() != 3){
+        return 1;
+    }
+    NodeAddr addr(nullptr);
+    if(!addr.ip_from_string(m[1].str())){
+        return 1;
+    }
+    int port = std::stoi(m[2].str(), nullptr, 10);
+    if(port > 65535 || port < 0){
+        return 1;
+    }
+    this->msger_id.ip = static_cast<unsigned long>(addr.in4_addr().sin_addr.s_addr);
+    this->msger_id.port = static_cast<unsigned short>(port);
+    return 0;
+}
+
+int MsgConfig::set_node_listen_ports(const std::string &v){
+    std::regex lp_regex("(TCP|RDMA)@([0-9a-fA-F:.]+)/(\\d+)-(\\d+)", 
+                            std::regex_constants::icase);
+    auto lp_begin = std::sregex_iterator(v.begin(), v.end(), lp_regex);
+    auto lp_end = std::sregex_iterator();
+    if(lp_begin == lp_end && !v.empty()){
+        return 1;
+    }
+    NodeAddr addr(nullptr);
+    for(auto i = lp_begin;i != lp_end;++i){
+        auto match = *i;
+        if(match.size() != 5) {
+            goto error;
+        }
+        auto transport = str2upper(match[1].str());
+        auto address = match[2].str();
+        if(!addr.ip_from_string(address)){
+            goto error;
+        }
+        int port_min = std::stoi(match[3].str(), nullptr, 10);
+        int port_max = std::stoi(match[4].str(), nullptr, 10);
+        if(port_min > 65535 || port_min < 0 
+            || port_max > 65535 || port_max < 0
+            || port_max - port_min < 0 ){
+            goto error;
+        }
+        this->node_listen_ports.push_back(
+                std::make_tuple(transport, address, port_min, port_max));
+    }
+    goto ok;
+error:
+    this->node_listen_ports.clear();
+    return 1;
+ok:
+    return 0;
+}
+
+int MsgConfig::set_rdma_enable(const std::string &v){
+    rdma_enable = false;
+    if(v.empty()){
+        return 1;
+    }
+    rdma_enable = MsgConfig::get_bool(v);
+    return 0;
+}
+
+int MsgConfig::set_rdma_device_name(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+    rdma_device_name = v;
+    return 0;
+}
+
+int MsgConfig::set_rdma_port_num(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int port_num = std::stoi(v, nullptr, 0);
+
+    if(port_num >=0 && port_num <= 65535){
+        rdma_port_num = port_num;
+        return 0;
+    }
+
+    // error
+    return 1;
+}
+
+
+int MsgConfig::set_rdma_buffer_num(const std::string &v){
+    rdma_buffer_num = 0;
+    if(v.empty()){
+        return 0;
+    }
+
+    int nbuf = std::stoi(v, nullptr, 0);
+
+    if(nbuf >= 0){
+        rdma_buffer_num = nbuf;
+        return 0;
+    }
+
+    // error
+    return 1;
+}
+
+int MsgConfig::set_rdma_buffer_size(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+    int64_t result = size_str_to_uint64(v);
+    if(result > 0 && result < (1LL << 32)){
+        rdma_buffer_size = result;
+        return 0;
+    }
+    return 1;
+}
+
+int MsgConfig::set_rdma_send_queue_len(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int queue_len = std::stoi(v, nullptr, 0);
+
+    if(queue_len > 0){
+        rdma_send_queue_len = queue_len;
+        return 0;
+    }
+
+    return 1;
+}
+
+int MsgConfig::set_rdma_recv_queue_len(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int queue_len = std::stoi(v, nullptr, 0);
+
+    if(queue_len > 0){
+        rdma_recv_queue_len = queue_len;
+        return 0;
+    }
+
+    return 1;
+}
+
+int MsgConfig::set_rdma_enable_hugepage(const std::string &v){
+    rdma_enable_hugepage = false;
+    if(v.empty()){
+        return 1;
+    }
+    rdma_enable_hugepage = MsgConfig::get_bool(v);
+    return 0;
+}
+
+int MsgConfig::set_rdma_path_mtu(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int path_mtu = std::stoi(v, nullptr, 0);
+
+    if(path_mtu == 256 || path_mtu == 512 || path_mtu == 1024 
+        || path_mtu == 2048 || path_mtu == 4096){
+        rdma_path_mtu = path_mtu;
+        return 0;
+    }
+
+    return 1;
+}
+
+int MsgConfig::set_rdma_enable_srq(const std::string &v){
+    rdma_enable_srq = false;
+    if(v.empty()){
+        return 1;
+    }
+    rdma_enable_srq = MsgConfig::get_bool(v);
+    return 0;
+}
+
+int MsgConfig::set_rdma_cq_pair_num(const std::string &v){
+    rdma_cq_pair_num = 1;
+    if(v.empty()){
+        return 1;
+    }
+    int cq_pair_num = std::stoi(v, nullptr, 0);
+    if(cq_pair_num >= 1){
+        rdma_cq_pair_num = cq_pair_num;
+        return 0;
+    }
+    return 1;
+}
+
+int MsgConfig::set_rdma_traffic_class(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int traffic_class = std::stoi(v, nullptr, 0);
+    if(traffic_class >= 0 && traffic_class < (1U << 8)){
+        rdma_traffic_class = traffic_class;
+        return 0;
+    }
+
+    return 1;
+}
+
+int MsgConfig::set_rdma_mem_min_level(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int min_level = std::stoi(v, nullptr, 0);
+    if(min_level >= 0 && min_level < (1U << 8)){
+        rdma_mem_min_level = min_level;
+        return 0;
+    }
+
+    return 1;
+}
+
+int MsgConfig::set_rdma_mem_max_level(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int max_level = std::stoi(v, nullptr, 0);
+    if(max_level >= 0 && max_level < (1U << 8)){
+        rdma_mem_max_level = max_level;
+        return 0;
+    }
+
+    return 1;
+}
+
+
+} //namespace flame
