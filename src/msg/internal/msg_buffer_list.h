@@ -45,16 +45,6 @@ public:
         return buf.offset();
     }
 
-    int append_nocp(void *buf, int l){
-        if(l < 0) return 0;
-        char *buffer = (char *)buf;
-        MsgBuffer b(buffer, l);
-        b.set_offset(l);
-        m_buffer_list.push_back(std::move(b));
-        this->len += l;
-        return l;
-    }
-
     int append(void *b, int l){
         char *buf = (char *)b;
         int total_len = 0, cb_len = 0;

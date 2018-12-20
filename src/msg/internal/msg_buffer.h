@@ -6,24 +6,19 @@
 
 namespace flame{
 
-typedef void (*msg_buffer_release_cb_t)(void *, size_t);
-
 class MsgBuffer{
     char *m_data;
     size_t m_off;
     size_t m_len;
-    msg_buffer_release_cb_t m_release_cb;
 public:
     explicit MsgBuffer(size_t len) 
-    :m_data(new char[len]), m_len(len), m_off(0), m_release_cb(nullptr){};
+    :m_data(new char[len]), m_len(len), m_off(0){};
 
-    explicit MsgBuffer(char *buffer, size_t len, 
-                                            msg_buffer_release_cb_t cb=nullptr) 
-    :m_data(buffer), m_len(len), m_off(0), m_release_cb(cb){};
+    explicit MsgBuffer(char *buffer, size_t len) 
+    :m_data(buffer), m_len(len), m_off(0){};
 
     explicit MsgBuffer(MsgBuffer &&o) noexcept
-    : m_data(o.m_data), m_len(o.m_len), m_off(o.m_off),
-      m_release_cb(nullptr){
+    : m_data(o.m_data), m_len(o.m_len), m_off(o.m_off){
         o.m_data = nullptr;
         o.m_len = 0;
         o.m_off = 0;
@@ -90,12 +85,7 @@ public:
 
     ~MsgBuffer(){
         if(m_data){
-            if(m_release_cb){
-                m_release_cb(m_data, m_len);
-                m_release_cb = nullptr;
-            }else{
-                delete []m_data;
-            }
+            delete [] m_data;
             m_data = nullptr;
             m_off = 0;
             m_len = 0;

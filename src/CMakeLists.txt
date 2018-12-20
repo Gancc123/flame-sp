@@ -91,7 +91,6 @@ set(libcommon_files
     common/thread/signal.cc
     common/thread/mutex.cc
     common/thread/thread.cc
-    common/logger.cc
     common/log.cc
     common/config.cc
     common/context.cc

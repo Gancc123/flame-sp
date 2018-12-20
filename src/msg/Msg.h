@@ -37,10 +37,6 @@ public:
     ssize_t decode_header(MsgBuffer &buffer);
     ssize_t encode_header(MsgBuffer &buffer);
 
-    void set_data(MsgBufferList &&data){
-        data_bl.swap(data);
-    }
-
     int append_data(MsgBuffer &buf){
         return data_bl.append(buf);
     }
