@@ -23,15 +23,7 @@ struct reg_res_t {
 }; // struct reg_res_t
 
 struct csd_hlt_attr_t {
-    uint64_t       csd_id      {0};
-    uint64_t       size        {0};
-    uint64_t       alloced     {0};
-    uint64_t       used        {0};
-    uint64_t       last_time   {0};
-    uint64_t       last_write  {0};
-    uint64_t       last_read   {0};
-    uint64_t       last_latency{0};
-    uint64_t       last_alloc  {0};
+    csd_hlt_sub_t             csd_hlt_sub;
     std::list<chk_hlt_attr_t> chk_hlt_list;
 }; //struct csd_hlt_attr_t
 

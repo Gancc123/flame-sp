@@ -36,6 +36,10 @@ public:
  
 }; // class CsdsServiceImpl
 
+class CsdsAsyncServiceImpl final {
+
+}; // class CsdsAsyncServiceImpl
+
 } // namespace service
 } // namespace flame
 

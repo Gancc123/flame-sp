@@ -102,7 +102,7 @@ public:
     CsdModel(std::shared_ptr<orm::DBEngine>& engine) 
     : orm::DBTable(engine, "csd") { auto_create(); } 
 
-    orm::BigIntCol  csd_id  {this, "csd_id", orm::ColFlag::PRIMARY_KEY | orm::ColFlag::AUTO_INCREMENT}; // CSD ID
+    orm::BigIntCol  csd_id  {this, "csd_id", orm::ColFlag::PRIMARY_KEY}; // CSD ID
     orm::StringCol  name    {this, "name", 64, orm::ColFlag::UNIQUE};    // 名称
     orm::BigIntCol  size    {this, "size"}; // 可视大小，这里指SSD的容量（B）
     orm::BigIntCol  ctime   {this, "ctime"};    // 创建时间

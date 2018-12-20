@@ -209,15 +209,15 @@ public:
         if(fp.is_open()) {
             uint64_t t1, t2, t3, t4, t5, t6, t7, t8, t9, t10;
             fp >> t1 >> t2 >> t3 >> t4 >> t5 >> t6 >> t7 >> t8 >> t9;
-            att.csd_id = t1;
-            att.size = t2;
-            att.alloced = t3;
-            att.used = t4;
-            att.last_time = t5;
-            att.last_write = t6;
-            att.last_read = t7;
-            att.last_latency = t8;
-            att.last_alloc = t9;
+            att.csd_hlt_sub.csd_id = t1;
+            att.csd_hlt_sub.size = t2;
+            att.csd_hlt_sub.alloced = t3;
+            att.csd_hlt_sub.used = t4;
+            att.csd_hlt_sub.hlt_meta.last_time = t5;
+            att.csd_hlt_sub.hlt_meta.last_write = t6;
+            att.csd_hlt_sub.hlt_meta.last_read = t7;
+            att.csd_hlt_sub.hlt_meta.last_latency = t8;
+            att.csd_hlt_sub.hlt_meta.last_alloc = t9;
             
             string str;
             while (getline(fp, str)) {
@@ -233,11 +233,11 @@ public:
                 item.used = m4;
                 item.csd_used = m5;
                 item.dst_used = m6;
-                item.last_time = m7;
-                item.last_write = m8;
-                item.last_read = m9;
-                item.last_latency = m10;
-                item.last_alloc = m11;
+                item.hlt_meta.last_time = m7;
+                item.hlt_meta.last_write = m8;
+                item.hlt_meta.last_read = m9;
+                item.hlt_meta.last_latency = m10;
+                item.hlt_meta.last_alloc = m11;
 
                 att.chk_hlt_list.push_back(item);
             } 

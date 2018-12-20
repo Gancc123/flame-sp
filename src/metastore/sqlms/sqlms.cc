@@ -19,7 +19,7 @@ SqlMetaStore* SqlMetaStore::create_sqlms(FlameContext* fct, const std::string& u
     assert(fct != nullptr);
     std::shared_ptr<orm::DBEngine> engine = orm::DBEngine::create_engine(fct, url, conn_num);
     if (!engine) {
-        fct->log()->error("DBEgine create faild.");
+        fct->log()->lerror("DBEgine create faild.");
         return nullptr;
     }
 
@@ -603,14 +603,14 @@ static void chunk_health_meta_set__(chunk_health_meta_t& chk_hlt, const ChunkHea
     chk_hlt.dst_used    = it->get(m_chk_health.dst_used);  
     chk_hlt.write_count = it->get(m_chk_health.write_count);
     chk_hlt.read_count  = it->get(m_chk_health.read_count);
-    chk_hlt.last_time   = it->get(m_chk_health.last_time);
-    chk_hlt.last_write  = it->get(m_chk_health.last_write);
-    chk_hlt.last_read   = it->get(m_chk_health.last_read);
-    chk_hlt.last_latency = it->get(m_chk_health.last_latency);
-    chk_hlt.last_alloc  = it->get(m_chk_health.last_alloc);
-    chk_hlt.load_weight = it->get(m_chk_health.load_weight);
-    chk_hlt.wear_weight = it->get(m_chk_health.wear_weight);
-    chk_hlt.total_weight = it->get(m_chk_health.total_weight);
+    chk_hlt.hlt_meta.last_time   = it->get(m_chk_health.last_time);
+    chk_hlt.hlt_meta.last_write  = it->get(m_chk_health.last_write);
+    chk_hlt.hlt_meta.last_read   = it->get(m_chk_health.last_read);
+    chk_hlt.hlt_meta.last_latency = it->get(m_chk_health.last_latency);
+    chk_hlt.hlt_meta.last_alloc  = it->get(m_chk_health.last_alloc);
+    chk_hlt.weight_meta.load_weight = it->get(m_chk_health.load_weight);
+    chk_hlt.weight_meta.wear_weight = it->get(m_chk_health.wear_weight);
+    chk_hlt.weight_meta.total_weight = it->get(m_chk_health.total_weight);
 }
 
 int SqlChunkHealthMS::get(chunk_health_meta_t& chk_hlt, uint64_t chk_id) {
@@ -637,9 +637,9 @@ int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
         }).value({
             chk_hlt.chk_id, chk_hlt.stat, chk_hlt.size, chk_hlt.used, 
             chk_hlt.csd_used, chk_hlt.dst_used, chk_hlt.write_count, 
-            chk_hlt.read_count, chk_hlt.last_time, chk_hlt.last_write, 
-            chk_hlt.last_read, chk_hlt.last_latency, chk_hlt.last_alloc, 
-            chk_hlt.load_weight, chk_hlt.wear_weight, chk_hlt.total_weight
+            chk_hlt.read_count, chk_hlt.hlt_meta.last_time, chk_hlt.hlt_meta.last_write, 
+            chk_hlt.hlt_meta.last_read, chk_hlt.hlt_meta.last_latency, chk_hlt.hlt_meta.last_alloc, 
+            chk_hlt.weight_meta.load_weight, chk_hlt.weight_meta.wear_weight, chk_hlt.weight_meta.total_weight
         }).exec();
     
     if (ret && ret->OK()) {
@@ -662,9 +662,9 @@ int SqlChunkHealthMS::create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_
         handle.value({
             it->chk_id, it->stat, it->size, it->used, 
             it->csd_used, it->dst_used, it->write_count, 
-            it->read_count, it->last_time, it->last_write, 
-            it->last_read, it->last_latency, it->last_alloc, 
-            it->load_weight, it->wear_weight, it->total_weight
+            it->read_count, it->hlt_meta.last_time, it->hlt_meta.last_write, 
+            it->hlt_meta.last_read, it->hlt_meta.last_latency, it->hlt_meta.last_alloc, 
+            it->weight_meta.load_weight, it->weight_meta.wear_weight, it->weight_meta.total_weight
         });
     }
 
@@ -695,14 +695,14 @@ int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
             set_(m_chk_health.dst_used, chk_hlt.dst_used),
             set_(m_chk_health.write_count, chk_hlt.write_count), 
             set_(m_chk_health.read_count, chk_hlt.read_count), 
-            set_(m_chk_health.last_time, chk_hlt.last_time), 
-            set_(m_chk_health.last_write, chk_hlt.last_write), 
-            set_(m_chk_health.last_read, chk_hlt.last_read), 
-            set_(m_chk_health.last_latency, chk_hlt.last_latency),
-            set_(m_chk_health.last_alloc, chk_hlt.last_alloc), 
-            set_(m_chk_health.load_weight, chk_hlt.load_weight), 
-            set_(m_chk_health.wear_weight, chk_hlt.wear_weight), 
-            set_(m_chk_health.total_weight, chk_hlt.total_weight)
+            set_(m_chk_health.last_time, chk_hlt.hlt_meta.last_time), 
+            set_(m_chk_health.last_write, chk_hlt.hlt_meta.last_write), 
+            set_(m_chk_health.last_read, chk_hlt.hlt_meta.last_read), 
+            set_(m_chk_health.last_latency, chk_hlt.hlt_meta.last_latency),
+            set_(m_chk_health.last_alloc, chk_hlt.hlt_meta.last_alloc), 
+            set_(m_chk_health.load_weight, chk_hlt.weight_meta.load_weight), 
+            set_(m_chk_health.wear_weight, chk_hlt.weight_meta.wear_weight), 
+            set_(m_chk_health.total_weight, chk_hlt.weight_meta.total_weight)
         }).where(m_chk_health.chk_id == chk_hlt.chk_id).exec();
     
     if (ret && ret->OK()) {
@@ -741,6 +741,21 @@ int SqlCsdMS::list(std::list<csd_meta_t>& res_list, const std::list<uint64_t>& c
     return MSRetCode::FAILD;
 }
 
+int SqlCsdMS::list_all(std::list<csd_meta_t>& res_list) {
+    shared_ptr<Result> ret = m_csd.query().exec();
+    
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            csd_meta_t item;
+            csd_meta_set__(item, m_csd, it);
+            res_list.push_back(item);
+        }
+        return MSRetCode::SUCCESS;
+    }
+    return MSRetCode::FAILD;
+}
+
 int SqlCsdMS::get(csd_meta_t& res_csd, uint64_t csd_id) {
     shared_ptr<Result> ret = m_csd.query().where(m_csd.csd_id == csd_id).exec();
 
@@ -759,11 +774,11 @@ int SqlCsdMS::create(const csd_meta_t& new_csd) {
         .column({
             m_csd.name, m_csd.size, m_csd.ctime, 
             m_csd.io_addr,m_csd.admin_addr, m_csd.stat, 
-            m_csd.latime
+            m_csd.latime, m_csd.csd_id
         }).value({
             new_csd.name, new_csd.size, new_csd.ctime, 
             new_csd.io_addr, new_csd.admin_addr, new_csd.stat, 
-            new_csd.latime
+            new_csd.latime, new_csd.csd_id
         }).exec();
 
     if (ret && ret->OK()) {
@@ -871,19 +886,34 @@ static void csd_health_meta_set__(csd_health_meta_t& csd_hlt, const CsdHealthMod
     csd_hlt.used        = it->get(m_csd_health.used);
     csd_hlt.write_count = it->get(m_csd_health.write_count);
     csd_hlt.read_count  = it->get(m_csd_health.read_count);
-    csd_hlt.last_time   = it->get(m_csd_health.last_time);
-    csd_hlt.last_write  = it->get(m_csd_health.last_write);
-    csd_hlt.last_read   = it->get(m_csd_health.last_read);
-    csd_hlt.last_latency = it->get(m_csd_health.last_latency);
-    csd_hlt.last_alloc  = it->get(m_csd_health.last_alloc);
-    csd_hlt.load_weight = it->get(m_csd_health.load_weight);
-    csd_hlt.wear_weight = it->get(m_csd_health.wear_weight);
-    csd_hlt.total_weight = it->get(m_csd_health.total_weight);
+    csd_hlt.hlt_meta.last_time   = it->get(m_csd_health.last_time);
+    csd_hlt.hlt_meta.last_write  = it->get(m_csd_health.last_write);
+    csd_hlt.hlt_meta.last_read   = it->get(m_csd_health.last_read);
+    csd_hlt.hlt_meta.last_latency = it->get(m_csd_health.last_latency);
+    csd_hlt.hlt_meta.last_alloc  = it->get(m_csd_health.last_alloc);
+    csd_hlt.weight_meta.load_weight = it->get(m_csd_health.load_weight);
+    csd_hlt.weight_meta.wear_weight = it->get(m_csd_health.wear_weight);
+    csd_hlt.weight_meta.total_weight = it->get(m_csd_health.total_weight);
 }
 
 int SqlCsdHealthMS::list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint32_t limit) {
     shared_ptr<Result> ret = m_csd_health.query()
         .order_by(m_csd_health.total_weight, Order::DESC).limit(limit).exec();
+
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            csd_health_meta_t csd_hlt;
+            csd_health_meta_set__(csd_hlt, m_csd_health, it);
+            res_list.push_back(csd_hlt);
+        }
+        return MSRetCode::SUCCESS;
+    }
+    return MSRetCode::FAILD;
+}
+
+int SqlCsdHealthMS::list_all(std::list<csd_health_meta_t>& res_list) {
+    shared_ptr<Result> ret = m_csd_health.query().exec();
 
     if (ret && ret->OK()) {
         shared_ptr<DataSet> ds = ret->data_set();
@@ -922,9 +952,9 @@ int SqlCsdHealthMS::create(const csd_health_meta_t& new_csd) {
         }).value({
             new_csd.csd_id, new_csd.stat, new_csd.size, new_csd.alloced, 
             new_csd.used, new_csd.write_count, new_csd.read_count,
-            new_csd.last_time, new_csd.last_write, new_csd.last_read, 
-            new_csd.last_latency, new_csd.last_alloc, new_csd.load_weight, 
-            new_csd.wear_weight, new_csd.total_weight
+            new_csd.hlt_meta.last_time, new_csd.hlt_meta.last_write, new_csd.hlt_meta.last_read, 
+            new_csd.hlt_meta.last_latency, new_csd.hlt_meta.last_alloc, new_csd.weight_meta.load_weight, 
+            new_csd.weight_meta.wear_weight, new_csd.weight_meta.total_weight
         }).exec();
 
     if (ret && ret->OK()) {
@@ -951,14 +981,14 @@ int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
             set_(m_csd_health.used, csd_hlt.used),
             set_(m_csd_health.write_count, csd_hlt.write_count), 
             set_(m_csd_health.read_count, csd_hlt.read_count), 
-            set_(m_csd_health.last_time, csd_hlt.last_time),
-            set_(m_csd_health.last_write, csd_hlt.last_write), 
-            set_(m_csd_health.last_read, csd_hlt.last_read), 
-            set_(m_csd_health.last_latency, csd_hlt.last_latency),
-            set_(m_csd_health.last_alloc, csd_hlt.last_alloc), 
-            set_(m_csd_health.load_weight, csd_hlt.load_weight), 
-            set_(m_csd_health.wear_weight, csd_hlt.wear_weight),
-            set_(m_csd_health.total_weight, csd_hlt.total_weight)
+            set_(m_csd_health.last_time, csd_hlt.hlt_meta.last_time),
+            set_(m_csd_health.last_write, csd_hlt.hlt_meta.last_write), 
+            set_(m_csd_health.last_read, csd_hlt.hlt_meta.last_read), 
+            set_(m_csd_health.last_latency, csd_hlt.hlt_meta.last_latency),
+            set_(m_csd_health.last_alloc, csd_hlt.hlt_meta.last_alloc), 
+            set_(m_csd_health.load_weight, csd_hlt.weight_meta.load_weight), 
+            set_(m_csd_health.wear_weight, csd_hlt.weight_meta.wear_weight),
+            set_(m_csd_health.total_weight, csd_hlt.weight_meta.total_weight)
         }).where(m_csd_health.csd_id == csd_hlt.csd_id).exec();
 
     if (ret && ret->OK()) {

@@ -16,10 +16,10 @@ protected:
     ObjectBase() {}
 }; // class ObjectBase
 
-class VolumnGroupObject {
+class VolumeGroupObject {
 public:
-    VolumnGroupObject() {}
-    ~VolumnGroupObject() {}
+    VolumeGroupObject() {}
+    ~VolumeGroupObject() {}
 
     void set_vg_id(uint64_t v) { meta_.vg_id = v; }
     uint64_t get_vg_id() const { return meta_.vg_id; }
@@ -44,10 +44,10 @@ public:
     void set_used(uint64_t v) { meta_.used = v; }
     uint64_t get_used() const {return meta_.used; }
 
-    VolumnGroupObject(const VolumnGroupObject&) = default;
-    VolumnGroupObject(VolumnGroupObject&&) = default;
-    VolumnGroupObject& operator = (const VolumnGroupObject&) = default;
-    VolumnGroupObject& operator = (VolumnGroupObject&&) = default;
+    VolumeGroupObject(const VolumeGroupObject&) = default;
+    VolumeGroupObject(VolumeGroupObject&&) = default;
+    VolumeGroupObject& operator = (const VolumeGroupObject&) = default;
+    VolumeGroupObject& operator = (VolumeGroupObject&&) = default;
 
 protected:
     volume_group_meta_t meta_;
@@ -182,29 +182,29 @@ public:
 
     void set_last_time(uint64_t v) { hlt_.last_time = v; }
     uint64_t get_last_time() const { return hlt_.last_time; }
-    void set_last_time_ut(const utime_t& ut) { hlt_.last_time = ut.to_msec(); }
-    utime_t get_last_time_ut() const { return utime_t::get_by_msec(hlt_.last_time); }
+    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_msec(); }
+    utime_t get_last_time_ut() const { return utime_t::get_by_msec(hlt_.hlt_meta.last_time); }
 
-    void set_last_write(uint64_t v) { hlt_.last_write = v; }
-    uint64_t get_last_write() const { return hlt_.last_write; }
+    void set_last_write(uint64_t v) { hlt_.hlt_meta.last_write = v; }
+    uint64_t get_last_write() const { return hlt_.hlt_meta.last_write; }
 
-    void set_last_read(uint64_t v) { hlt_.last_read = v; }
-    uint64_t get_last_read() const { return hlt_.last_read; }
+    void set_last_read(uint64_t v) { hlt_.hlt_meta.last_read = v; }
+    uint64_t get_last_read() const { return hlt_.hlt_meta.last_read; }
 
-    void set_last_latency(uint64_t v) { hlt_.last_latency = v; }
-    uint64_t get_last_latency() const { return hlt_.last_latency; }
+    void set_last_latency(uint64_t v) { hlt_.hlt_meta.last_latency = v; }
+    uint64_t get_last_latency() const { return hlt_.hlt_meta.last_latency; }
 
-    void set_last_alloc(uint64_t v) { hlt_.last_alloc = v; }
-    uint64_t get_last_alloc() const { return hlt_.last_alloc; }
+    void set_last_alloc(uint64_t v) { hlt_.hlt_meta.last_alloc = v; }
+    uint64_t get_last_alloc() const { return hlt_.hlt_meta.last_alloc; }
 
-    void set_load_weight(double v) { hlt_.load_weight = v; }
-    double get_load_weight() const { return hlt_.load_weight; }
+    void set_load_weight(double v) { hlt_.weight_meta.load_weight = v; }
+    double get_load_weight() const { return hlt_.weight_meta.load_weight; }
 
-    void set_wear_weight(double v) { hlt_.wear_weight = v; }
-    double get_wear_weight() const { return hlt_.wear_weight; }
+    void set_wear_weight(double v) { hlt_.weight_meta.wear_weight = v; }
+    double get_wear_weight() const { return hlt_.weight_meta.wear_weight; }
 
-    void set_total_weight(double v) { hlt_.total_weight = v; }
-    double get_total_weight() const { return hlt_.total_weight; }
+    void set_total_weight(double v) { hlt_.weight_meta.total_weight = v; }
+    double get_total_weight() const { return hlt_.weight_meta.total_weight; }
 
     ChunkObject(const ChunkObject&) = default;
     ChunkObject(ChunkObject&&) = default;
@@ -305,31 +305,34 @@ public:
     void set_read_count(uint64_t v) { hlt_.read_count = v; } 
     uint64_t get_read_count() const { return hlt_.read_count; }
 
-    void set_last_time(uint64_t v) { hlt_.last_time = v; } 
-    uint64_t get_last_time() const { return hlt_.last_time; }
-    void set_last_time_ut(const utime_t& ut) { hlt_.last_time = ut.to_msec(); }
-    utime_t get_last_time_ut() const { return utime_t::get_by_msec(hlt_.last_time); }
+    void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; } 
+    uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
+    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_msec(); }
+    utime_t get_last_time_ut() const { return utime_t::get_by_msec(hlt_.hlt_meta.last_time); }
 
-    void set_last_write(uint64_t v) { hlt_.last_write = v; } 
-    uint64_t get_last_write() const { return hlt_.last_write; }
+    void set_last_write(uint64_t v) { hlt_.hlt_meta.last_write = v; } 
+    uint64_t get_last_write() const { return hlt_.hlt_meta.last_write; }
 
-    void set_last_read(uint64_t v) { hlt_.last_read = v; } 
-    uint64_t get_last_read() const { return hlt_.last_read; }
+    void set_last_read(uint64_t v) { hlt_.hlt_meta.last_read = v; } 
+    uint64_t get_last_read() const { return hlt_.hlt_meta.last_read; }
 
-    void set_last_latency(uint64_t v) { hlt_.last_latency = v; } 
-    uint64_t get_last_latency() const { return hlt_.last_latency; }
+    void set_last_latency(uint64_t v) { hlt_.hlt_meta.last_latency = v; } 
+    uint64_t get_last_latency() const { return hlt_.hlt_meta.last_latency; }
 
-    void set_last_alloc(uint64_t v) { hlt_.last_alloc = v; } 
-    uint64_t get_last_alloc() const { return hlt_.last_alloc; }
+    void set_last_alloc(uint64_t v) { hlt_.hlt_meta.last_alloc = v; } 
+    uint64_t get_last_alloc() const { return hlt_.hlt_meta.last_alloc; }
 
-    void set_load_weight(double v) { hlt_.load_weight = v;}
-    double get_load_weight() const { return hlt_.load_weight; }
+    void set_load_weight(double v) { hlt_.weight_meta.load_weight = v;}
+    double get_load_weight() const { return hlt_.weight_meta.load_weight; }
 
-    void set_wear_weight(double v) { hlt_.wear_weight = v;}
-    double get_wear_weight() const { return hlt_.wear_weight; }
+    void set_wear_weight(double v) { hlt_.weight_meta.wear_weight = v;}
+    double get_wear_weight() const { return hlt_.weight_meta.wear_weight; }
 
-    void set_total_weight(double v) { hlt_.total_weight = v;}
-    double get_total_weight() const { return hlt_.total_weight; }
+    void set_total_weight(double v) { hlt_.weight_meta.total_weight = v;}
+    double get_total_weight() const { return hlt_.weight_meta.total_weight; }
+
+    csd_meta_t& get_meta() const { return meta_; }
+    csd_health_meta_t& get_hlt() const { return hlt_; }
 
     CsdObject(const CsdObject&) = default;
     CsdObject(CsdObject&&) = default;

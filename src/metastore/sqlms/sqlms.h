@@ -270,6 +270,7 @@ public:
      * Get CSDs for given csd_ids
      */
     virtual int list(std::list<csd_meta_t>& res_list, const std::list<uint64_t>& csd_ids) override;
+    virtual int list_all(std::list<csd_meta_t>& res_list) override;
 
     /**
      * Get a single CSD
@@ -311,6 +312,7 @@ public:
      * @Note: 'ob' == 'order by'; 'tweight' == 'total_weight'
      */
     virtual int list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint32_t limit) override;
+    virtual int list_all(std::list<csd_health_meta_t>& res_list) override;
 
     /**
      * Get a single CSD Health
