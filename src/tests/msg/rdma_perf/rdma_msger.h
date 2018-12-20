@@ -114,10 +114,10 @@ optparse::OptionParser init_parser(){
 
 struct msg_incre_d : public MsgData{
     int num;
-    virtual int encode(BufferList &bl) override{
+    virtual int encode(MsgBufferList &bl) override{
         return M_ENCODE(bl, num);
     }
-    virtual int decode(BufferList::iterator &it) override{
+    virtual int decode(MsgBufferList::iterator &it) override{
         return M_DECODE(it, num);
     }
 };

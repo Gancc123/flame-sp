@@ -13,25 +13,25 @@
 
 namespace flame{
 
-class BufferList{
+class MsgBufferList{
     std::list<MsgBuffer> m_buffer_list;
     uint64_t len;
 public:
-    explicit BufferList() 
+    explicit MsgBufferList() 
     :len(0){}
 
-    explicit BufferList(BufferList &&o) noexcept
+    explicit MsgBufferList(MsgBufferList &&o) noexcept
     :m_buffer_list(std::move(o.m_buffer_list)) {
         len = o.len;
         o.len = 0;
     }
 
-    void swap(BufferList &other) noexcept{
+    void swap(MsgBufferList &other) noexcept{
         m_buffer_list.swap(other.m_buffer_list);
         std::swap(len, other.len);
     }
 
-    uint64_t splice(BufferList &other){
+    uint64_t splice(MsgBufferList &other){
         this->len += other.len;
         m_buffer_list.splice(m_buffer_list.end(), other.m_buffer_list);
         auto tmp_len = other.len;
@@ -127,7 +127,7 @@ public:
     }
 
     class iterator : public std::iterator< std::forward_iterator_tag, char>{
-        BufferList *m_bl;
+        MsgBufferList *m_bl;
         std::_List_iterator<MsgBuffer> m_it;
         size_t m_cur_off;
     public:
@@ -135,7 +135,7 @@ public:
         :m_bl(nullptr), m_cur_off(0){
 
         }
-        explicit iterator(BufferList *bl, bool is_end)
+        explicit iterator(MsgBufferList *bl, bool is_end)
         :m_bl(bl){
             m_cur_off = 0;
             if(!is_end){
@@ -292,7 +292,7 @@ public:
 
 };
 
-class FixedBufferList{
+class FixedMsgBufferList{
     std::list<MsgBuffer> m_buffer_list;
     std::_List_iterator<MsgBuffer> end_it;
     int off;
@@ -336,14 +336,14 @@ class FixedBufferList{
     }
 
 public:
-    explicit FixedBufferList(int unit_size) 
+    explicit FixedMsgBufferList(int unit_size) 
     :unit_size(unit_size), off(0), len(0){
         end_it = m_buffer_list.begin();
     };
 
-    explicit FixedBufferList() : FixedBufferList(FLAME_BUFFER_LIST_UNIT_SIZE){};
+    explicit FixedMsgBufferList() : FixedMsgBufferList(FLAME_BUFFER_LIST_UNIT_SIZE){};
 
-    explicit FixedBufferList(FixedBufferList &&o) noexcept{
+    explicit FixedMsgBufferList(FixedMsgBufferList &&o) noexcept{
         m_buffer_list.swap(o.m_buffer_list);
         o.m_buffer_list.clear();
         off = o.off;
@@ -355,7 +355,7 @@ public:
         o.end_it = o.m_buffer_list.begin();
     }
 
-    void swap(FixedBufferList &other) noexcept{
+    void swap(FixedMsgBufferList &other) noexcept{
         m_buffer_list.swap(other.m_buffer_list);
         std::swap(end_it, other.end_it);
         std::swap(off, other.off);
@@ -437,7 +437,7 @@ public:
     }
 
     class iterator : public std::iterator< std::forward_iterator_tag, char>{
-        FixedBufferList *m_bl;
+        FixedMsgBufferList *m_bl;
         std::_List_iterator<MsgBuffer> m_it;
         int m_cur_off;
         bool m_is_end;
@@ -453,7 +453,7 @@ public:
             m_is_end = true;
         }
 
-        explicit iterator(FixedBufferList *bl, bool is_end){
+        explicit iterator(FixedMsgBufferList *bl, bool is_end){
             m_bl = bl;
             m_it = m_bl->m_buffer_list.begin();
             m_cur_off = 0;

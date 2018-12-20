@@ -3,7 +3,7 @@
 
 #include "acconfig.h"
 #include "internal/types.h"
-#include "internal/buffer_list.h"
+#include "internal/msg_buffer_list.h"
 #include "internal/node_addr.h"
 #include "internal/msg_config.h"
 #include "internal/util.h"

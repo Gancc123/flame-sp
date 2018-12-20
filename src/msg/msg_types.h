@@ -2,7 +2,7 @@
 #define FLAME_MSG_MSG_TYPES_H
 
 #include "internal/types.h"
-#include "internal/buffer_list.h"
+#include "internal/msg_buffer_list.h"
 #include "internal/ref_counted_obj.h"
 #include "internal/node_addr.h"
 
@@ -79,8 +79,8 @@ public:
 };
 
 struct MsgData{
-    virtual int encode(BufferList &bl) = 0;
-    virtual int decode(BufferList::iterator &it) = 0;
+    virtual int encode(MsgBufferList &bl) = 0;
+    virtual int decode(MsgBufferList::iterator &it) = 0;
     virtual size_t size() { return 0; }
     virtual ~MsgData() {};
 };

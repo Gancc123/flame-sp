@@ -164,8 +164,8 @@ public:
     //     bytes_reverse_32(header_.len);
     // }
 
-    //BufferList buff_header() const { return BufferList(BufferPtr(&header_, sizeof(header_))); }
-    //virtual BufferList buff_content() { return BufferList(); }
+    //MsgBufferList buff_header() const { return MsgBufferList(BufferPtr(&header_, sizeof(header_))); }
+    //virtual MsgBufferList buff_content() { return MsgBufferList(); }
 
     message_header_t &get_header() { return header_; }
 

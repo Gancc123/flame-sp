@@ -15,7 +15,7 @@
 namespace flame{
 
 class Msg : public RefCountedObject{
-    BufferList data_bl;
+    MsgBufferList data_bl;
 
 public:
     static Msg* alloc_msg(FlameContext *fct, 
@@ -32,12 +32,12 @@ public:
         priority = FLAME_MSG_PRIO_DEFAULT;
     };
 
-    ~Msg();
+    ~Msg() {};
 
     ssize_t decode_header(MsgBuffer &buffer);
     ssize_t encode_header(MsgBuffer &buffer);
 
-    void set_data(BufferList &&data){
+    void set_data(MsgBufferList &&data){
         data_bl.swap(data);
     }
 
@@ -53,11 +53,11 @@ public:
         return d.encode(data_bl);
     }
 
-    BufferList::iterator data_iter(){
+    MsgBufferList::iterator data_iter(){
         return data_bl.begin();
     }
 
-    BufferList& data_buffer_list(){
+    MsgBufferList& data_buffer_list(){
         return data_bl;
     }
 

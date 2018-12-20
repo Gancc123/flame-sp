@@ -19,7 +19,7 @@ class TcpConnection : public Connection{
     std::_List_iterator<Msg *> cur_msg;
     MsgBuffer cur_msg_header_buffer;
     size_t cur_msg_offset;
-    BufferList::iterator msg_data_iter;
+    MsgBufferList::iterator msg_data_iter;
 
     MsgBuffer recv_header_buffer;
     Msg *cur_recv_msg;

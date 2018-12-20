@@ -6,10 +6,6 @@
 
 namespace flame{
 
-Msg::~Msg(){
-    
-}
-
 ssize_t Msg::decode_header(MsgBuffer &buffer){
     if(buffer.offset() < FLAME_MSG_HEADER_LEN){
         return -1;

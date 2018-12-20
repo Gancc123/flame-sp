@@ -5,7 +5,7 @@
 #include "internal/int_types.h"
 #include "internal/types.h"
 #include "internal/byteorder.h"
-#include "internal/buffer_list.h"
+#include "internal/msg_buffer_list.h"
 #include "msg_types.h"
 
 #include <vector>
@@ -38,7 +38,7 @@ struct msg_rdma_header_d : public MsgData{
         return sizeof(flame_msg_rdma_mr_t) * cnt;
     }
 
-    virtual int encode(BufferList& bl) override{
+    virtual int encode(MsgBufferList& bl) override{
         int total = 0;
         flame_msg_rdma_mr_t mr;
         for(int i = 0;i < rdma_bufs.size();++i){
@@ -50,7 +50,7 @@ struct msg_rdma_header_d : public MsgData{
         return total;
     }
 
-    virtual int decode(BufferList::iterator& it) override{
+    virtual int decode(MsgBufferList::iterator& it) override{
         flame_msg_rdma_mr_t mr;
         int total = 0;
         for(int i = 0;i < cnt;++i){
@@ -78,7 +78,7 @@ struct msg_declare_id_d : public MsgData{
         return sizeof(msger_id_t) + sizeof(bool) * 2 + sizeof(node_addr_t) * 2;
     }
 
-    virtual int encode(BufferList& bl) override{
+    virtual int encode(MsgBufferList& bl) override{
         int write_len = 0;
         write_len += M_ENCODE(bl, msger_id);
         write_len += M_ENCODE(bl, has_tcp_lp);
@@ -92,7 +92,7 @@ struct msg_declare_id_d : public MsgData{
         return write_len;
     }
 
-    virtual int decode(BufferList::iterator& it) override{
+    virtual int decode(MsgBufferList::iterator& it) override{
         int read_len = 0;
         
         read_len += M_DECODE(it, msger_id);
