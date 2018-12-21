@@ -37,7 +37,7 @@ extern msg_log_level_t g_msg_log_level;
     #define ML(pfct, level, fmt_, ...)\
             do{\
                 using flame::g_msg_log_level;\
-                if(pfct && g_msg_log_level >= msg_log_level_t::level)\
+                if((pfct) && g_msg_log_level >= msg_log_level_t::level)\
                     (pfct)->log()->MSG_LOG_COMMON(level, \
                                     fmt::format(fmt_, ## __VA_ARGS__).c_str());\
             }while(0)
@@ -45,7 +45,7 @@ extern msg_log_level_t g_msg_log_level;
     #define MLI(pfct, level, fmt_, ...)\
             do{\
                 using flame::g_msg_log_level;\
-                if(pfct && g_msg_log_level >= msg_log_level_t::level)\
+                if((pfct) && g_msg_log_level >= msg_log_level_t::level)\
                     (pfct)->log()->MSG_LOG_COMMON(level, \
                                 fmt::format("{:p} " fmt_, (void *)this, \
                                                 ## __VA_ARGS__).c_str());\
@@ -54,7 +54,7 @@ extern msg_log_level_t g_msg_log_level;
     #define MKL(pfct, level, fmt_, ...)\
             do{\
                 using flame::g_msg_log_level;\
-                if(pfct && g_msg_log_level >= msg_log_level_t::level)\
+                if((pfct) && g_msg_log_level >= msg_log_level_t::level)\
                     (pfct)->log()->MSG_KLOG_COMMON(level, \
                                     fmt::format(fmt_, ## __VA_ARGS__).c_str());\
             }while(0)
@@ -62,7 +62,7 @@ extern msg_log_level_t g_msg_log_level;
     #define MKLI(pfct, level, fmt_, ...)\
             do{\
                 using flame::g_msg_log_level;\
-                if(pfct && flame::g_msg_log_level >= msg_log_level_t::level)\
+                if((pfct) && flame::g_msg_log_level >= msg_log_level_t::level)\
                     (pfct)->log()->MSG_KLOG_COMMON(level, \
                                 fmt::format("{:p} " fmt_, (void *)this, \
                                                 ## __VA_ARGS__).c_str());\
