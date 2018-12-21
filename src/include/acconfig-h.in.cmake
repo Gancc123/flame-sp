@@ -62,9 +62,6 @@
 /* Define to 1 if strerror_r returns char *. */
 #cmakedefine STRERROR_R_CHAR_P 1
 
-/* Define if use no log for msg module*/
-#cmakedefine MSG_NO_LOG
-
 /* Define if build for sw_64 */
 #cmakedefine ON_SW_64
 

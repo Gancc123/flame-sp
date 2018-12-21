@@ -44,8 +44,11 @@ int main(int argc, char *argv[]){
 
     auto rdma_msger = new RdmaMsger(fct, &global_config);
 
+    auto msg_config = MsgConfig::load_config(fct);
+    msg_config->set_msg_log_level(std::string(options.get("log_level")));
+
     ML(fct, info, "before msg module init");
-    msg_module_init(fct, rdma_msger);
+    msg_module_init(fct, rdma_msger, msg_config);
     ML(fct, info, "after msg module init");
 
     ML(fct, info, "msger_id {:x} {:x} ", fct->msg()->config->msger_id.ip,

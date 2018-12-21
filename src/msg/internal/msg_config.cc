@@ -28,6 +28,12 @@ int MsgConfig::load(){
     int res = 0;
     auto cfg = fct->config();
 
+    res = set_msg_log_level(cfg->get("msg_log_level", FLAME_MSG_LOG_LEVEL_D));
+    if (res) {
+        perr_arg("msg_log_level");
+        return 1;
+    }
+
     res = set_msger_id(cfg->get("msger_id", FLAME_MSGER_ID_D));
     if (res) {
         perr_arg("msger_id");
@@ -143,6 +149,23 @@ int MsgConfig::load(){
     }
 
     return 0;
+}
+
+int MsgConfig::set_msg_log_level(const std::string &v){
+    static const char *msg_log_level_strs[] = {
+        "dead", "critical", "wrong",
+        "error", "warn", "info",
+        "debug", "trace", "print"
+    };
+    auto level_lower = str2lower(v);
+    uint8_t end = static_cast<uint8_t>(msg_log_level_t::print);
+    for(uint8_t i = 0;i <= end; i++){
+        if(level_lower == msg_log_level_strs[i]){
+            this->msg_log_level = static_cast<msg_log_level_t>(i);
+            return 0;
+        }
+    }
+    return 1;
 }
 
 int MsgConfig::set_msger_id(const std::string &v){

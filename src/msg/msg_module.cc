@@ -16,6 +16,8 @@
 
 namespace flame{
 
+msg_log_level_t g_msg_log_level = msg_log_level_t::info;
+
 int msg_module_init(FlameContext *fct, MsgerCallback *msger_cb,
                                                             MsgConfig *config){
     rand_init_helper::init();
@@ -29,6 +31,8 @@ int msg_module_init(FlameContext *fct, MsgerCallback *msger_cb,
         }
     }
     msg_module->config = config;
+
+    g_msg_log_level = config->msg_log_level;
 
     MsgManager *msg_manager = new MsgManager(fct);
     msg_manager->set_msger_cb(msger_cb);
