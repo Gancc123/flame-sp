@@ -3,18 +3,13 @@
 
 #include "common/context.h"
 #include "work/work_base.h"
+#include "mgr/csdm/csd_mgmt.h"
 
 #include <cstdint>
 
 namespace flame {
 
 class CsdManager;
-
-/**
- * @brief 状态变更回调函数类型
- * 当有节点状态发生改变时调用该回调函数
- */
-typedef void (*clt_cb_t)(FlameContext* fct, uint64_t node_id, uint32_t stat);
 
 class ClusterMgmt {
 public:
@@ -37,27 +32,11 @@ public:
     virtual int update_stat(uint64_t node_id, uint32_t stat) = 0;
 
 protected:
-    ClusterMgmt(FlameContext* fct, clt_cb_t cb) : fct_(fct), cb_(cb) {}
+    ClusterMgmt(FlameContext* fct, CsdManager* csdm) : fct_(fct), csdm_(csdm) {}
 
     FlameContext* fct_;
-    clt_cb_t cb_;
+    CsdManager* csdm_;
 }; // class ClusterMgmt
-
-class ClusterEvent : public WorkEntry {
-public:
-    ClusterEvent(FlameContext* fct, clt_cb_t cb, uint64_t node_id, uint32_t stat)
-    : fct_(fct), cb_(cb), node_id_(node_id), stat_(stat) {}
-
-    virtual void entry() override {
-        cb_(fct_, node_id_, stat_);
-    }
-
-private:
-    FlameContext* fct_;
-    clt_cb_t cb_;
-    uint64_t node_id_;
-    uint32_t stat_;
-}; // class ClusterEvent
 
 } // namespace flame
 

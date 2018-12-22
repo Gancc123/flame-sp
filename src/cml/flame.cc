@@ -77,7 +77,7 @@ public:
                 it->name.c_str(),
                 it->volumes,
                 it->size,
-                utime_t::get_by_msec(it->ctime).to_str().c_str()
+                utime_t::get_by_usec(it->ctime).to_str().c_str()
             );
         }
         return 0;
@@ -181,7 +181,7 @@ public:
                 it->vg_id,
                 it->name.c_str(),
                 it->size,
-                utime_t::get_by_msec(it->ctime).to_str().c_str()
+                utime_t::get_by_usec(it->ctime).to_str().c_str()
             );
         }
         return 0;
@@ -285,7 +285,7 @@ public:
             res.vg_id,
             res.name.c_str(),
             res.size,
-            utime_t::get_by_msec(res.ctime).to_str().c_str()
+            utime_t::get_by_usec(res.ctime).to_str().c_str()
         );
         return 0;
     }

@@ -18,10 +18,7 @@ struct chunk_version_t {
 };
 
 struct chunk_create_attr_t {
-    uint64_t    chk_id;
-    uint64_t    vol_id;
-    uint32_t    index;
-    uint32_t    stat;
+    uint32_t    flags;
     uint32_t    spolicy;
     uint64_t    size;
 };
@@ -38,16 +35,16 @@ struct chunk_signal_t {
     uint32_t    signal;
 };
 
+struct chunk_bulk_res_t {
+    uint64_t    chk_id;
+    uint32_t    res;
+};
+
 class CsdsAsyncChannel;
 
 class CsdsClient {
 public:
     virtual ~CsdsClient() {}
-
-    /**
-     * 创建一个异步处理Channel
-     */
-    virtual CsdsAsyncChannel* create_async_channel() const = 0;
 
     /**
      * Among CSDs
@@ -68,23 +65,41 @@ public:
     virtual int clean(uint64_t csd_id) = 0;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) = 0;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) = 0;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id) = 0;
-    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list) = 0;
+    virtual int chunk_remove(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list) = 0;
 
     // 选主结果通告
-    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list) = 0;
+    virtual int chunk_chooss(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list) = 0;
 
     // Chunk迁移通告
-    virtual int chunk_move(const chunk_move_attr_t& attr) = 0;
+    virtual int chunk_move(std::list<chunk_bulk_res_t>& res, const std::list<chunk_move_attr_t>& attr_list) = 0;
 
 protected:
     explicit CsdsClient(FlameContext* fct) : fct_(fct) {}
 
     FlameContext* fct_;
 }; // class CsdsClient
+
+class CsdsClientFoctory {
+public:
+    virtual ~CsdsClientFoctory() {}
+
+    virtual std::shared_ptr<CsdsClient> make_csds_client(node_addr_t addr) = 0;
+
+protected:
+    CsdsClientFoctory(FlameContext* fct) : fct_(fct) {};
+
+    FlameContext* fct_;
+};
+
+struct csds_complete_entry_t {
+    int res;
+    callback_t cb;
+    void* arg;
+};
 
 class CsdsAsyncChannel {
 public:
@@ -151,17 +166,17 @@ public:
     virtual int clean(uint64_t csd_id, callback_t cb) = 0;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id, callback_t cb) = 0;
-    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
+    virtual int chunk_remove(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // 选主结果通告
-    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
+    virtual int chunk_chooss(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // Chunk迁移通告
-    virtual int chunk_move(const chunk_move_attr_t& attr, callback_t cb) = 0;
+    virtual int chunk_move(std::list<chunk_bulk_res_t>& res, const std::list<chunk_move_attr_t>& attr_list, callback_t cb) = 0;
 
 protected:
     explicit CsdsAsyncChannel(FlameContext* fct) : fct_(fct) {}

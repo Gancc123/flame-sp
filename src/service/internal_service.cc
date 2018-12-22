@@ -19,8 +19,8 @@ const RegisterRequest* request, RegisterReply* response)
     mt.io_addr = request->io_addr();
     mt.admin_addr = request->admin_addr();
     mt.stat = request->stat();
-    mt.ctime = utime_t::now().to_msec();
-    mt.latime = utime_t::now().to_msec();
+    mt.ctime = utime_t::now().to_usec();
+    mt.latime = utime_t::now().to_usec();
 
     int r = csd_ms->create_and_get(mt);
     
@@ -62,7 +62,7 @@ const SignOutRequest* request, InternalReply* response)
 Status InternalServiceImpl::pushHeartBeat(ServerContext* context,
 const HeartBeatRequest* request, InternalReply* response)
 {
-    uint64_t latime = utime_t::now().to_msec();
+    uint64_t latime = utime_t::now().to_usec();
     int r = csd_ms->update_at(request->csd_id(), latime);
     response->set_code(r);
     return Status::OK;

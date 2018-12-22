@@ -212,7 +212,7 @@ int SimStore::info_init__() {
     info_.name = fct_->node_name();
     info_.size = size_;
     info_.used = 0;
-    info_.ftime = utime_t::now().to_msec();
+    info_.ftime = utime_t::now().to_usec();
     info_.chk_num = 0;
     return RetCode::SUCCESS;
 }
@@ -612,7 +612,7 @@ uint32_t SimChunk::spolicy() const {
 }
 
 bool SimChunk::is_preallocated() const {
-    return chk_->info.flags & ChunkFlags::PREALLOC;
+    return chk_->info.flags & CHK_FLG_PREALLOC;
 }
 
 int SimChunk::read_sync(void* buff, uint64_t off, uint64_t len) {

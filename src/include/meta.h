@@ -2,6 +2,7 @@
 #define FLAME_INCLUDE_META_H
 
 #include <cstdint>
+#include <string>
 
 namespace flame {
 
@@ -24,7 +25,7 @@ struct cluster_meta_t {
 struct volume_group_meta_t {
     uint64_t    vg_id   {0};
     std::string name    {};
-    uint64_t    ctime   {0};    // (ms)
+    uint64_t    ctime   {0};    // (us)
     uint32_t    volumes {0};
     uint64_t    size    {0};    // total visible size
     uint64_t    alloced {0};    // total logical size
@@ -38,11 +39,12 @@ struct volume_meta_t {
     uint64_t    vol_id  {0};
     uint64_t    vg_id   {0};
     std::string name    {};
-    uint64_t    ctime   {0};    // (ms)
+    uint64_t    ctime   {0};    // (us)
     uint64_t    chk_sz  {0};    // chunk size
     uint64_t    size    {0};
     uint64_t    alloced {0};
     uint64_t    used    {0};
+    uint32_t    stat    {0};
     uint32_t    flags   {0};
     uint32_t    spolicy {0};    // store policy
     uint32_t    chunks  {0};    // chunk number
@@ -50,6 +52,12 @@ struct volume_meta_t {
 
 enum VolumeFlags {
     VOL_FLG_PREALLOC = 0x1
+};
+
+enum VolumeStat {
+    VOL_STAT_CREATING = 0,
+    VOL_STAT_CREATED = 1,
+    VOL_STAT_DELETING = 2
 };
 
 /**
@@ -61,6 +69,7 @@ enum VolumeFlags {
 struct chunk_id_t {
     uint64_t val;
 
+    chunk_id_t() : val(0) {}
     chunk_id_t(uint64_t v) : val(v) {}
     chunk_id_t(uint64_t vol_id, uint64_t index, uint64_t sub_id) {
         val = (vol_id << 20) | ((index & 0xFFFFULL) << 4) | (sub_id & 0xFULL);
@@ -131,19 +140,35 @@ struct chunk_health_meta_t {
     com_weight_meta_t weight_meta;
 }; // struct chunk_health_meta_t
 
+enum ChunkStat {
+    CHK_STAT_CREATING = 0,
+    CHK_STAT_CREATED = 1,
+    CHK_STAT_MOVING = 2,
+    CHK_STAT_DELETING = 3
+};
+
 /**
  * Node Addr 
  */
 struct node_addr_t {
     uint64_t val;
 
+    node_addr_t() : val(0) {}
     node_addr_t(uint64_t v) : val(v) {}
     node_addr_t(uint32_t ip, uint16_t port) {
         val = ((uint64_t)ip << 16) | (uint64_t)port;
     }
+    node_addr_t(uint8_t ip0, uint8_t ip1, uint8_t ip2, uint8_t ip3, uint16_t port) {
+        set_ip(ip0, ip1, ip2, ip3);
+        set_port(port);
+    } 
 
     uint32_t get_ip() const { return val >> 16; }
     void set_ip(uint32_t v) { val = ((uint64_t)v << 16) | (val & 0xFFFFULL); }
+    void set_ip(uint8_t ip0, uint8_t ip1, uint8_t ip2, uint8_t ip3) {
+        uint32_t v = (uint32_t)ip0 | ((uint32_t)ip1 << 8) | ((uint32_t)ip2 << 16) | ((uint32_t)ip3 << 24);
+        set_ip(v);
+    }
 
     uint16_t get_port() const { return val & 0xFFFFULL; }
     void set_port(uint16_t v) { val  = (val & ~0XFFFFULL) | (uint64_t)v; }
@@ -159,7 +184,7 @@ struct csd_meta_t {
     uint64_t    csd_id  {0};
     std::string name    {0};
     uint64_t    size    {0};
-    uint64_t    ctime   {0};    // (ms)
+    uint64_t    ctime   {0};    // (us)
     uint64_t    io_addr {0};
     uint64_t    admin_addr {0}; 
     uint32_t    stat    {0};
@@ -194,8 +219,8 @@ struct csd_health_meta_t {
 struct gateway_meta_t {
     uint64_t    gw_id   {0};
     uint64_t    admin_addr  {0};
-    uint64_t    ltime   {0};    // connect time (ms)
-    uint64_t    atime   {0};    // active time (ms)
+    uint64_t    ltime   {0};    // connect time (us)
+    uint64_t    atime   {0};    // active time (us)
 }; // struct gateway_meta_t
 
 /***************************************************

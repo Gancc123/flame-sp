@@ -79,6 +79,20 @@ protected:
     FlameContext* fct_;
 }; // class InternalClient
 
+class InternalClientFoctory {
+public:
+    virtual ~InternalClientFoctory() {}
+
+    virtual std::shared_ptr<InternalClient> make_internal_client(node_addr_t addr) = 0;
+
+    virtual std::shared_ptr<InternalClient> make_internal_client(const std::string& addr) = 0;
+
+protected:
+    InternalClientFoctory(FlameContext* fct) : fct_(fct) {}
+
+    FlameContext* fct_;
+}; // class InternalClientFoctory
+
 class InternalClientContext {
 public:
     InternalClientContext(FlameContext* fct, InternalClient* client) 
