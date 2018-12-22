@@ -50,6 +50,16 @@ private:
     std::unique_ptr<InternalService::Stub> stub_;
 }; // class FlameClientImpl
 
+class InternalClientFoctoryImpl : public InternalClientFoctory {
+public:
+    InternalClientFoctoryImpl(FlameContext* fct) 
+    : InternalClientFoctory(fct) {}
+
+    virtual std::shared_ptr<InternalClient> make_internal_client(node_addr_t addr) override;
+
+    virtual std::shared_ptr<InternalClient> make_internal_client(const std::string& addr) override;
+}; // class InternalClientFoctory
+
 } // namespace flame
 
 #endif // FLAME_SERVICE_INTERNAL_CLIENT_H

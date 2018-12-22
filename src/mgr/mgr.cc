@@ -2,13 +2,15 @@
 #include "common/cmdline.h"
 #include "metastore/ms.h"
 
-#include "mgr_context.h"
-#include "mgr_server.h"
-#include "config_mgr.h"
+#include "mgr/mgr_context.h"
+#include "mgr/mgr_server.h"
+#include "mgr/config_mgr.h"
+#include "mgr/csdm/csd_mgmt.h"
 
 #include <grpcpp/grpcpp.h>
 #include "service/flame_service.h"
 #include "service/internal_service.h"
+#include "service/csds_client.h"
 
 #include "mgr/log_mgr.h"
 
@@ -57,6 +59,7 @@ private:
 
     bool init_metastore(MgrCli* mgr_cli);
     bool init_server(MgrCli* mgr_cli);
+    bool init_csdm(MgrCli* mgr_cli);
 };
 
 int Manager::init(MgrCli* mgr_cli) {
@@ -70,6 +73,12 @@ int Manager::init(MgrCli* mgr_cli) {
     if (!init_server(mgr_cli)) {
         mct_->log()->lerror("init server faild");
         return 2;
+    }
+
+    // 初始化CsdManager
+    if (!init_csdm(mgr_cli)) {
+        mct_->log()->lerror("init csd manager faild");
+        return 3;
     }
 
     return 0;
@@ -111,6 +120,19 @@ bool Manager::init_server(MgrCli* mgr_cli) {
         return false;
     
     server_ = new MgrServer(mct_, addr);
+    return true;
+}
+
+bool Manager::init_csdm(MgrCli* mgr_cli) {
+    shared_ptr<CsdsClientFoctory> csd_client_foctory(new CsdsClientFoctoryImpl(mct_->fct()));
+
+    shared_ptr<CsdManager> csdm(new CsdManager(
+        mct_->fct(),    // Flame上下文文
+        mct_->ms(),     // MetaStore
+        csd_client_foctory
+    ));
+
+    mct_->csdm(csdm);
     return true;
 }
 

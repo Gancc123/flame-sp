@@ -45,6 +45,7 @@ public:
 
     virtual ~SimStore() {}
 
+    virtual int set_info(const cs_info_t& info) override { info_ = info; return 0; }
     virtual int get_info(cs_info_t& info) const override;
     virtual std::string get_driver_name() const override;
     virtual std::string get_config_info() const override;

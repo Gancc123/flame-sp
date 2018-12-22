@@ -97,7 +97,7 @@ int SqlClusterMS::create(const cluster_meta_t& cluster) {
             m_cluster.size, m_cluster.alloced, m_cluster.used,
             m_cluster.ctime
         }).value({
-            utime_t::now().to_msec(),
+            utime_t::now().to_usec(),
             cluster.name, cluster.mgrs, cluster.csds, 
             cluster.size, cluster.alloced, cluster.used,
             cluster.ctime

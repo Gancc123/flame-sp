@@ -1,11 +1,15 @@
 #include "internal_client.h"
 #include "proto/internal.pb.h"
 
+#include <sstream>
+
 #include "log_service.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
+
+using namespace std;
 
 namespace flame {
 
@@ -201,6 +205,29 @@ int InternalClientImpl::push_chunk_status(const std::list<chk_push_attr_t>& chk_
         fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
+}
+
+std::shared_ptr<InternalClient> InternalClientFoctoryImpl::make_internal_client(node_addr_t addr) {
+    uint32_t ip = addr.get_ip();
+    uint8_t* part = (uint8_t*)&ip;
+
+    ostringstream oss;
+    oss << *part << "." << *(part + 1) << "." << *(part + 2) << "." << *(part + 3);
+    oss << ":" << addr.get_port();
+
+    InternalClient* client = new InternalClientImpl(fct_, grpc::CreateChannel(
+        oss.str(), grpc::InsecureChannelCredentials()
+    ));
+
+    return std::shared_ptr<InternalClient>(client);
+}
+
+std::shared_ptr<InternalClient> InternalClientFoctoryImpl::make_internal_client(const std::string& addr) {
+    InternalClient* client = new InternalClientImpl(fct_, grpc::CreateChannel(
+        addr, grpc::InsecureChannelCredentials()
+    ));
+
+    return std::shared_ptr<InternalClient>(client);
 }
 
 } // namespace flame

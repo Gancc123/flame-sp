@@ -29,8 +29,8 @@ public:
 
     void set_ctime(uint64_t v) { meta_.ctime = v; }
     uint64_t get_ctime() const { return meta_.ctime; }
-    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_msec(); }
-    utime_t get_ctime_ut() const { return utime_t::get_by_msec(meta_.ctime); }
+    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_usec(); }
+    utime_t get_ctime_ut() const { return utime_t::get_by_usec(meta_.ctime); }
 
     void set_volumes(uint32_t v) { meta_.volumes = v; }
     uint32_t get_volumes() const { return meta_.volumes; }
@@ -94,8 +94,8 @@ public:
     void set_chunks(uint32_t v) { meta_.chunks = v; }
     uint32_t get_chunks() const { return meta_.chunks; }
 
-    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_msec(); }
-    utime_t get_ctime_ut() const { return utime_t::get_by_msec(meta_.ctime); }
+    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_usec(); }
+    utime_t get_ctime_ut() const { return utime_t::get_by_usec(meta_.ctime); }
 
     VolumeObject(const VolumeObject&) = default;
     VolumeObject(VolumeObject&&) = default;
@@ -118,7 +118,7 @@ public:
     uint64_t get_id() const { return id_.val; }
 
     void set_vol_id(uint64_t v) { id_.set_vol_id(v); sync_id__(); }
-    uint64_t get_vol_id() const { return id_.get_vol_id; }
+    uint64_t get_vol_id() const { return id_.get_vol_id(); }
 
     void set_index(uint32_t v) { id_.set_index(v); sync_id__(); }
     uint32_t get_index() const { return id_.get_index(); }
@@ -137,8 +137,8 @@ public:
 
     void set_ctime(uint64_t v) { meta_.ctime = v; }
     uint64_t get_ctime() const { return meta_.ctime; }
-    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_msec(); }
-    utime_t get_ctime_ut() const { return utime_t::get_by_msec(meta_.ctime); }
+    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_usec(); }
+    utime_t get_ctime_ut() const { return utime_t::get_by_usec(meta_.ctime); }
 
     void set_primary(uint64_t v) { meta_.primary = v; }
     uint64_t get_primary() const { return meta_.primary; }
@@ -151,16 +151,16 @@ public:
 
     void set_csd_mtime(uint64_t v) { meta_.csd_mtime = v; }
     uint64_t get_csd_mtime() const { return meta_.csd_mtime; }
-    void set_csd_mtime_ut(const utime_t& ut) { meta_.csd_mtime = ut.to_msec(); }
-    utime_t get_csd_mtime() const { return utime_t::get_by_msec(meta_.csd_mtime); }
+    void set_csd_mtime_ut(const utime_t& ut) { meta_.csd_mtime = ut.to_usec(); }
+    utime_t get_csd_mtime_ut() const { return utime_t::get_by_usec(meta_.csd_mtime); }
 
     void set_dst_id(uint64_t v) { meta_.dst_id = v; }
     uint64_t get_dst_id() const { return meta_.dst_id; }
 
     void set_dst_ctime(uint64_t v) { meta_.dst_ctime = v; }
     uint64_t get_dst_ctime() const { return meta_.dst_ctime; }
-    void set_dst_ctime_ut(const utime_t& ut) { meta_.dst_ctime = ut.to_msec(); }
-    utime_t get_dst_ctime_ut() const { return utime_t::get_by_msec(meta_.dst_ctime); }
+    void set_dst_ctime_ut(const utime_t& ut) { meta_.dst_ctime = ut.to_usec(); }
+    utime_t get_dst_ctime_ut() const { return utime_t::get_by_usec(meta_.dst_ctime); }
 
     /**
      * Chunk Health
@@ -180,10 +180,10 @@ public:
     void set_read_count(uint64_t v) { hlt_.read_count = v; }
     uint64_t get_read_count() const { return hlt_.read_count; }
 
-    void set_last_time(uint64_t v) { hlt_.last_time = v; }
-    uint64_t get_last_time() const { return hlt_.last_time; }
-    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_msec(); }
-    utime_t get_last_time_ut() const { return utime_t::get_by_msec(hlt_.hlt_meta.last_time); }
+    void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; }
+    uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
+    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_usec(); }
+    utime_t get_last_time_ut() const { return utime_t::get_by_usec(hlt_.hlt_meta.last_time); }
 
     void set_last_write(uint64_t v) { hlt_.hlt_meta.last_write = v; }
     uint64_t get_last_write() const { return hlt_.hlt_meta.last_write; }
@@ -215,9 +215,6 @@ protected:
     chunk_id_t id_;
     chunk_meta_t meta_;
     chunk_health_meta_t hlt_;
-
-    VolumeObject* vol_;
-    CsdObject* csd_;
 
 private:
     void sync_id__() {
@@ -253,8 +250,8 @@ public:
 
     void set_ctime(uint64_t v) { meta_.ctime = v; } 
     uint64_t get_ctime() const { return meta_.ctime; }
-    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_msec(); }
-    utime_t get_ctime_ut() const { return utime_t::get_by_msec(meta_.ctime); }
+    void set_ctime_ut(const utime_t& ut) { meta_.ctime = ut.to_usec(); }
+    utime_t get_ctime_ut() const { return utime_t::get_by_usec(meta_.ctime); }
 
     void set_io_addr(uint64_t v) { meta_.io_addr = v; } 
     uint64_t get_io_addr() const { return meta_.io_addr; }
@@ -287,8 +284,8 @@ public:
 
     void set_latime(uint64_t v) { meta_.latime = v; } 
     uint64_t get_latime() const { return meta_.latime; }
-    void set_latime_ut(const utime_t& ut) { meta_.latime = ut.to_msec(); }
-    utime_t get_latime_ut() const { return utime_t::get_by_msec(meta_.latime); }
+    void set_latime_ut(const utime_t& ut) { meta_.latime = ut.to_usec(); }
+    utime_t get_latime_ut() const { return utime_t::get_by_usec(meta_.latime); }
 
     /**
      * CSD Health
@@ -307,8 +304,8 @@ public:
 
     void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; } 
     uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
-    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_msec(); }
-    utime_t get_last_time_ut() const { return utime_t::get_by_msec(hlt_.hlt_meta.last_time); }
+    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_usec(); }
+    utime_t get_last_time_ut() const { return utime_t::get_by_usec(hlt_.hlt_meta.last_time); }
 
     void set_last_write(uint64_t v) { hlt_.hlt_meta.last_write = v; } 
     uint64_t get_last_write() const { return hlt_.hlt_meta.last_write; }
@@ -331,8 +328,11 @@ public:
     void set_total_weight(double v) { hlt_.weight_meta.total_weight = v;}
     double get_total_weight() const { return hlt_.weight_meta.total_weight; }
 
-    csd_meta_t& get_meta() const { return meta_; }
-    csd_health_meta_t& get_hlt() const { return hlt_; }
+    uint64_t get_left() const { return meta_.size - hlt_.alloced; }
+    double get_space_usage() const { return (double)hlt_.used / meta_.size; }
+
+    csd_meta_t& meta() { return meta_; }
+    csd_health_meta_t& health() { return hlt_; }
 
     CsdObject(const CsdObject&) = default;
     CsdObject(CsdObject&&) = default;
@@ -369,13 +369,13 @@ public:
 
     void set_ltime(uint64_t v) { meta_.ltime = v; }
     uint64_t get_ltime() const { return meta_.ltime; }
-    void set_ltime_ut(const utime_t& ut) { meta_.ltime = ut.to_msec(); }
-    utime_t get_ltime_ut() const { return utime_t::get_by_msec(meta_.ltime); }
+    void set_ltime_ut(const utime_t& ut) { meta_.ltime = ut.to_usec(); }
+    utime_t get_ltime_ut() const { return utime_t::get_by_usec(meta_.ltime); }
 
     void set_atime(uint64_t v) { meta_.atime = v; }
     uint64_t get_atime() const { return meta_.atime; }
-    void set_atime_ut(const utime_t& ut) { meta_.atime = ut.to_msec(); }
-    utime_t get_atime_ut() const { return utime_t::get_by_msec(meta_.atime); }
+    void set_atime_ut(const utime_t& ut) { meta_.atime = ut.to_usec(); }
+    utime_t get_atime_ut() const { return utime_t::get_by_usec(meta_.atime); }
 
     GatewayObject(const GatewayObject&) = default;
     GatewayObject(GatewayObject&&) = default;

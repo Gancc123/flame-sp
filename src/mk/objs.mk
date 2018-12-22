@@ -13,6 +13,7 @@ $(DCOMMON)/context.o \
 $(DCOMMON)/log.o \
 $(DCOMMON)/config.o \
 $(DCOMMON)/cmdline.o \
+$(DCOMMON)/convert.o \
 $(DCOMMON)/thread/mutex.o \
 $(DCOMMON)/thread/thread.o \
 $(DCOMMON)/thread/signal.o \
@@ -33,7 +34,8 @@ $(DSERVICE)/flame_service.o \
 $(DSERVICE)/flame_client.o \
 $(DSERVICE)/internal_service.o \
 $(DSERVICE)/internal_client.o \
-$(DSERVICE)/csds_service.o
+$(DSERVICE)/csds_service.o \
+$(DSERVICE)/csds_client.o
 
 # /orm
 OBJ_ORM = \
@@ -50,3 +52,7 @@ $(DMETASTORE)/ms.o
 OBJ_CHUNKSTORE = \
 $(DCHUNKSTORE)/simstore/simstore.o \
 $(DCHUNKSTORE)/cs.o
+
+# /work
+OBJ_WORK = \
+$(DWORK)/timer_work.o

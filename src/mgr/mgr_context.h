@@ -3,6 +3,7 @@
 
 #include "common/context.h"
 #include "metastore/ms.h"
+#include "mgr/csdm/csd_mgmt.h"
 
 #include <memory>
 
@@ -19,9 +20,13 @@ public:
     std::shared_ptr<MetaStore> ms() const { return ms_; }
     void ms(std::shared_ptr<MetaStore>& msv) { ms_ = msv; }
 
+    std::shared_ptr<CsdManager> csdm() const { return csdm_; }
+    void csdm(std::shared_ptr<CsdManager>& csdm) { csdm_ = csdm; }
+
 private:
     FlameContext* fct_;
     std::shared_ptr<MetaStore> ms_;
+    std::shared_ptr<CsdManager> csdm_;
 }; // class MgrContext
 
 } // namespace flame
