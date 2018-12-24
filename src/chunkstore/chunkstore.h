@@ -2,6 +2,7 @@
 #define FLAME_CHUNKSTORE_H
 
 #include "common/context.h"
+#include "include/meta.h"
 
 #include <cstdint>
 #include <string>
@@ -18,13 +19,9 @@ struct cs_info_t {
     std::string name;
     uint64_t    size;
     uint64_t    used;
-    uint64_t    ftime;    // format time (ms)
+    uint64_t    ftime;    // format time (us)
     uint32_t    chk_num;
 }; // cs_info_t
-
-enum ChunkFlags {
-    PREALLOC = 0x1
-};
 
 /**
  * Chunk Information
@@ -51,12 +48,12 @@ struct chunk_create_opts_t {
     uint64_t    size        {1ULL << 32}; // 默认4GB
 
     bool is_prealloc() const {
-        return flags & ChunkFlags::PREALLOC;
+        return flags & CHK_FLG_PREALLOC;
     }
 
     void set_prealloc(bool v) {
-        if (v) flags |= ChunkFlags::PREALLOC;
-        else flags &= ~ChunkFlags::PREALLOC;
+        if (v) flags |= CHK_FLG_PREALLOC;
+        else flags &= ~CHK_FLG_PREALLOC;
     }
 }; // chunk_create_opts_t
 
@@ -192,6 +189,18 @@ public:
     /**
      * 基础信息部分
      */
+
+    /**
+     * @brief 设置ChunkStore基础信息
+     * 新CSD注册时，需要更新并持久化基础信息，包括ID，即CSD_ID
+     * 注：
+     *  - 通过获取info，判断ID是否为0，来验证是否已经注册
+     *  - 此外还会验证集群信息
+     *  - 部分信息可以被忽略，如size, used等，主要设置cluster_name, id, name
+     * @param info 
+     * @return int 
+     */
+    virtual int set_info(const cs_info_t& info) = 0;
 
     /**
      * get_info()

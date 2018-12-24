@@ -1,5 +1,7 @@
 #include "csds_service.h"
 
+#include "include/meta.h"
+
 using grpc::ServerContext;
 using grpc::Status;
 
@@ -37,28 +39,50 @@ const CleanRequest* request, CsdsReply* response)
 
 // 创建Chunk
 Status CsdsServiceImpl::createChunk(ServerContext* context,
-const ChunkCreateRequest* request, CsdsReply* response)
+const ChunkCreateRequest* request, ChunkBulkReply* response)
 {
+    int r;
+    for (int i = 0; i < request->chk_id_list_size(); i++) {
+        chunk_id_t chk_id = request->chk_id_list(i);
+        chunk_create_opts_t opts;
+        opts.vol_id = chk_id.get_vol_id();
+        opts.index = chk_id.get_index();
+        opts.spolicy = request->spolicy();
+        opts.flags = request->flags();
+        opts.size = request->size();
+        r = cs_->chunk_create(chk_id, opts);
+        auto chkr = response->add_res_list();
+        chkr->set_chk_id(chk_id);
+        chkr->set_res(r);
+    }
     return Status::OK;
 }
 
 // 删除Chunk
 Status CsdsServiceImpl::removeChunk(ServerContext* context,
-const ChunkRemoveRequest* request, CsdsReply* response)
+const ChunkRemoveRequest* request, ChunkBulkReply* response)
 {
+    int r;
+    for (int i = 0; i < request->chk_id_list_size(); i++) {
+        uint64_t chk_id = request->chk_id_list(i);
+        r = cs_->chunk_remove(chk_id);
+        auto chkr = response->add_res_list();
+        chkr->set_chk_id(chk_id);
+        chkr->set_res(r);
+    }
     return Status::OK;
 }
 
 // 告知选主信息
 Status CsdsServiceImpl::chooseChunk(ServerContext* context,
-const ChunkChooseRequest* request, CsdsReply* response)
+const ChunkChooseRequest* request, ChunkBulkReply* response)
 {
     return Status::OK;
 }
 
 // 迁移Chunk
 Status CsdsServiceImpl::moveChunk(ServerContext* context,
-const ChunkMoveRequest* request, CsdsReply* response)
+const ChunkMoveRequest* request, ChunkBulkReply* response)
 {
     return Status::OK;
 }

@@ -20,7 +20,7 @@ public:
     /**
      * 创建一个异步处理Channel
      */
-    virtual CsdsAsyncChannel* create_async_channel() const override;
+    // virtual CsdsAsyncChannel* create_async_channel() const override;
 
     /**
      * Among CSDs
@@ -41,21 +41,30 @@ public:
     virtual int clean(uint64_t csd_id) override;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) override;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) override;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id) override;
-    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list) override;
+    virtual int chunk_remove(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list) override;
 
     // 选主结果通告
-    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list) override;
+    virtual int chunk_chooss(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list) override;
 
     // Chunk迁移通告
-    virtual int chunk_move(const chunk_move_attr_t& attr) override;
+    virtual int chunk_move(std::list<chunk_bulk_res_t>& res, const std::list<chunk_move_attr_t>& attr_list) override;
 
 private:
     std::unique_ptr<CsdsService::Stub> stub_;
 }; // class CsdsClient
+
+class CsdsClientFoctoryImpl : public CsdsClientFoctory {
+public:
+    CsdsClientFoctoryImpl(FlameContext* fct)
+    : CsdsClientFoctory(fct) {}
+
+    virtual std::shared_ptr<CsdsClient> make_csds_client(node_addr_t addr) override;
+
+}; // class CsdsClientFoctoryImpl
 
 enum CsdsRqn {
     RQN_CHUNK_FETCH = 1,
@@ -79,8 +88,6 @@ struct csds_req_entry_t {
     int rpt         {0};    // reply type
     void* reply     {nullptr};
     csds_complete_entry_t ce;
-
-    ~csds_req_entry_t() { delete reply; }
 };
 
 class CsdsAsyncChannelImpl final : public CsdsAsyncChannel {
@@ -146,20 +153,20 @@ public:
     virtual int clean(uint64_t csd_id, callback_t cb) override;
 
     // 创建Chunk
-    virtual int chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id, callback_t cb) override;
-    virtual int chunk_remove(const std::list<uint64_t>& chk_id_list, callback_t cb) override;
+    virtual int chunk_remove(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // 选主结果通告
-    virtual int chunk_chooss(const std::list<uint64_t>& chk_id_list, callback_t cb) override;
+    virtual int chunk_chooss(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // Chunk迁移通告
-    virtual int chunk_move(const chunk_move_attr_t& attr, callback_t cb) override;
+    virtual int chunk_move(std::list<chunk_bulk_res_t>& res, const std::list<chunk_move_attr_t>& attr_list, callback_t cb) override;
 
 private:
-    CsdsAsyncChannelImpl(FlameContext* fct, std::shared_ptr<Channel> channel)
+    CsdsAsyncChannelImpl(FlameContext* fct, std::shared_ptr<grpc::Channel> channel)
     : CsdsAsyncChannel(fct), stub_(CsdsService::NewStub(channel)) {}
 
     std::unique_ptr<CsdsService::Stub> stub_;

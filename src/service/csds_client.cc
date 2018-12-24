@@ -1,17 +1,17 @@
 #include "csds_client.h"
 #include "proto/csds.pb.h"
 
+#include <sstream>
+
 #include "log_service.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
+using namespace std;
+
 namespace flame {
-
-CsdsAsyncChannel* CsdsClientImpl::create_async_channel() {
-
-}
 
 int CsdsClientImpl::chunk_fetch(std::list<chunk_version_t>& res, const std::list<uint64_t>& chk_id_list) {
     ChunkFetchRequest req;
@@ -24,12 +24,12 @@ int CsdsClientImpl::chunk_fetch(std::list<chunk_version_t>& res, const std::list
 
     if (stat.ok()) {
         for (int i = 0; i < reply.chk_ver_list_size(); i++) {
-            ChunkVersionItem& chk_ver = reply.chk_ver_list(i);
+            ChunkVersionItem* chk_ver = reply.add_chk_ver_list();
             chunk_version_t ver;
-            ver.chk_id  = chk_ver.chk_id();
-            ver.epoch   = chk_ver.epoch();
-            ver.version = chk_ver.version();
-            ver.used    = chk_ver.used();
+            ver.chk_id  = chk_ver->chk_id();
+            ver.epoch   = chk_ver->epoch();
+            ver.version = chk_ver->version();
+            ver.used    = chk_ver->used();
             res.push_back(ver);
         }
         return 0;
@@ -91,23 +91,27 @@ int CsdsClientImpl::clean(uint64_t csd_id) {
     }
 }
 
-int CsdsClientImpl::chunk_create(const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) {
+int CsdsClientImpl::chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) {
     ChunkCreateRequest req;
-    req.set_chk_id(attr.chk_id);
-    req.set_vol_id(attr.vol_id);
-    req.set_index(attr.index);
-    req.set_stat(attr.stat);
+    req.set_flags(attr.flags);
     req.set_spolicy(attr.spolicy);
     req.set_size(attr.size);
-    for (auto it = chk_hlt_list.begin(); it != chk_id_list.end(); it++)
+    for (auto it = chk_id_list.begin(); it != chk_id_list.end(); it++)
         req.add_chk_id_list(*it);
 
-    CsdsReply reply;
+    ChunkBulkReply reply;
     ClientContext ctx;
     Status stat = stub_->createChunk(&ctx, req, &reply);
 
     if (stat.ok()) {
-        return reply.code();
+        for (int i = 0; i < reply.res_list_size(); i++) {
+            auto chk = reply.res_list(i);
+            chunk_bulk_res_t chkr;
+            chkr.chk_id = chk.chk_id();
+            chkr.res = chk.res();
+            res.push_back(chkr);
+        }
+        return 0;
     } else {
         fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
@@ -118,69 +122,114 @@ int CsdsClientImpl::chunk_remove(uint64_t chk_id) {
     ChunkRemoveRequest req;
     req.add_chk_id_list(chk_id);
 
-    CsdsReply reply;
+    ChunkBulkReply reply;
     ClientContext ctx;
     Status stat = stub_->removeChunk(&ctx, req, &reply);
 
     if (stat.ok()) {
-        return reply.code();
+        if (reply.res_list_size() == 0) return 1;
+        for (int i = 0; i < reply.res_list_size(); i++) {
+            auto res = reply.res_list(i);
+            if (res.chk_id() == chk_id)
+                return res.res();
+        }
+        return 2;
     } else {
         fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
 
-int CsdsClientImpl::chunk_remove(const std::list<uint64_t>& chk_id_list) {
+int CsdsClientImpl::chunk_remove(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list) {
     ChunkRemoveRequest req;
     for (auto it = chk_id_list.begin(); it != chk_id_list.end(); it++)
         req.add_chk_id_list(*it);
 
-    CsdsReply reply;
+    ChunkBulkReply reply;
     ClientContext ctx;
     Status stat = stub_->removeChunk(&ctx, req, &reply);
 
     if (stat.ok()) {
-        return reply.code();
+        for (int i = 0; i < reply.res_list_size(); i++) {
+            auto chk = reply.res_list(i);
+            chunk_bulk_res_t chkr;
+            chkr.chk_id = chk.chk_id();
+            chkr.res = chk.res();
+            res.push_back(chkr);
+        }
+        return 0;
     } else {
         fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
 
-int CsdsClientImpl::chunk_chooss(const std::list<uint64_t>& chk_id_list) {
+int CsdsClientImpl::chunk_chooss(std::list<chunk_bulk_res_t>& res, const std::list<uint64_t>& chk_id_list) {
     ChunkChooseRequest req;
     for (auto it = chk_id_list.begin(); it != chk_id_list.end(); it++)
         req.add_chk_id_list(*it);
 
-    CsdsReply reply;
+    ChunkBulkReply reply;
     ClientContext ctx;
     Status stat = stub_->chooseChunk(&ctx, req, &reply);
 
     if (stat.ok()) {
-        return reply.code();
+        for (int i = 0; i < reply.res_list_size(); i++) {
+            auto chk = reply.res_list(i);
+            chunk_bulk_res_t chkr;
+            chkr.chk_id = chk.chk_id();
+            chkr.res = chk.res();
+            res.push_back(chkr);
+        }
+        return 0;
     } else {
         fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
 }
 
-int CsdsClientImpl::chunk_move(const chunk_move_attr_t& attr) {
+int CsdsClientImpl::chunk_move(std::list<chunk_bulk_res_t>& res, const std::list<chunk_move_attr_t>& attr_list) {
     ChunkMoveRequest req;
-    req.set_chk_id(attr.chk_id);
-    req.set_src_id(attr.src_id);
-    req.set_dst_id(attr.dst_id);
-    req.set_signal(attr.signal);
+    for (auto it = attr_list.begin(); it != attr_list.end(); it++) {
+        auto attr = req.add_chk_list();
+        attr->set_chk_id(it->chk_id);
+        attr->set_src_id(it->src_id);
+        attr->set_dst_id(it->dst_id);
+        attr->set_signal(it->signal);
+    }
 
-    CsdsReply reply;
+    ChunkBulkReply reply;
     ClientContext ctx;
     Status stat = stub_->moveChunk(&ctx, req, &reply);
 
     if (stat.ok()) {
-        return reply.code();
+        for (int i = 0; i < reply.res_list_size(); i++) {
+            auto chk = reply.res_list(i);
+            chunk_bulk_res_t chkr;
+            chkr.chk_id = chk.chk_id();
+            chkr.res = chk.res();
+            res.push_back(chkr);
+        }
+        return 0;
     } else {
         fct_->log()->lerror("RPC Faild(%d): %s", stat.error_code(), stat.error_message().c_str());
         return -stat.error_code();
     }
+}
+
+std::shared_ptr<CsdsClient> CsdsClientFoctoryImpl::make_csds_client(node_addr_t addr) {
+    uint32_t ip = addr.get_ip();
+    uint8_t* part = (uint8_t*)&ip;
+
+    ostringstream oss;
+    oss << *part << "." << *(part + 1) << "." << *(part + 2) << "." << *(part + 3);
+    oss << ":" << addr.get_port();
+
+    CsdsClientImpl* client = new CsdsClientImpl(fct_, grpc::CreateChannel(
+        oss.str(), grpc::InsecureChannelCredentials()
+    ));
+
+    return std::shared_ptr<CsdsClient>(client);
 }
 
 } // namespace flame

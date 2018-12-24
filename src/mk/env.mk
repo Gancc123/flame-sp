@@ -11,6 +11,7 @@ DORM = $(ROOT)/orm
 DPROTO = $(ROOT)/proto
 DSERVICE = $(ROOT)/service
 DUTIL = $(ROOT)/util
+DWORK = $(ROOT)/work
 
 CC = gcc
 CXX = g++

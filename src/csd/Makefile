@@ -11,7 +11,7 @@ OBJ_CSD = csd.o csd_admin.o
 
 all: csd
 
-csd: $(OBJ_CSD) $(OBJ_COMMON) $(OBJ_CHUNKSTORE) $(OBJ_PROTO) $(OBJ_SERVICE) $(OBJ_UTIL)
+csd: $(OBJ_CSD) $(OBJ_COMMON) $(OBJ_CHUNKSTORE) $(OBJ_PROTO) $(OBJ_SERVICE) $(OBJ_UTIL) $(OBJ_WORK)
 	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(GRPC_LDFLAGS)  
 
 %.o: %.cc

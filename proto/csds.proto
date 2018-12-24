@@ -46,34 +46,46 @@ message CleanRequest {
 }
 
 // 创建chunk
-// @Reply: CsdsReply
+// @Reply: ChunkCreateReply
 message ChunkCreateRequest {
-    uint64 vol_id   = 1;
-    uint64 size     = 2;
-    uint32 spolicy  = 3;
-    uint32 stat     = 4;
-    repeated uint64 chk_id_list = 5;
+    uint64 size     = 1;
+    uint32 spolicy  = 2;
+    uint32 flags    = 3;
+    repeated uint64 chk_id_list = 4;
+}
+
+message ChunkBulkResult {
+    uint64 chk_id   = 1;
+    uint32 res      = 2;
+}
+
+message ChunkBulkReply {
+    repeated ChunkBulkResult res_list = 1;
 }
 
 // 选主副本（通知）
-// @Reply: CsdsReply
+// @Reply: ChunkBulkReply
 message ChunkChooseRequest {
     repeated uint64 chk_id_list = 1;
 }
 
 // 删除chunk
-// @Reply: CsdsReply
+// @Reply: ChunkBulkReply
 message ChunkRemoveRequest {
     repeated uint64 chk_id_list = 1;    // Chunk ID
 }
 
 // 迁移Chunk
-// @Reply: CsdReply
-message ChunkMoveRequest {
+// @Reply: ChunkBulkReply
+message ChunkMoveItem {
     uint64 chk_id = 1;
     uint64 src_id = 2;
     uint64 dst_id = 3;
     uint32 signal = 4;  // 1表示通知迁移，2表示强制迁移
+}
+
+message ChunkMoveRequest {
+    repeated ChunkMoveItem chk_list = 1;
 }
 
 /**
@@ -99,14 +111,14 @@ service CsdsService {
     rpc clean(CleanRequest) returns (CsdsReply) {}
 
     // 创建Chunk
-    rpc createChunk(ChunkCreateRequest) returns (CsdsReply) {}
+    rpc createChunk(ChunkCreateRequest) returns (ChunkBulkReply) {}
 
     // 删除Chunk
-    rpc removeChunk(ChunkRemoveRequest) returns (CsdsReply) {}
+    rpc removeChunk(ChunkRemoveRequest) returns (ChunkBulkReply) {}
 
     // 告知选主信息
-    rpc chooseChunk(ChunkChooseRequest) returns (CsdsReply) {}
+    rpc chooseChunk(ChunkChooseRequest) returns (ChunkBulkReply) {}
 
     // 迁移Chunk
-    rpc moveChunk(ChunkMoveRequest) returns (CsdsReply) {}
+    rpc moveChunk(ChunkMoveRequest) returns (ChunkBulkReply) {}
 }

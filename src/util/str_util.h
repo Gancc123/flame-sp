@@ -49,5 +49,11 @@ inline std::string string_concat(const std::initializer_list<std::string>& strs)
 std::string string_encode_ez(const std::string& src, char spc);
 std::string string_encode_box(const std::string& src, char spc);
 
+template<typename T>
+bool string_parse(T& dst, const std::string& str) {
+    std::istringstream iss(str);
+    iss >> dst;
+    return true;
+}
 
 #endif // FLAME_UTIL_STR_UTIL_H

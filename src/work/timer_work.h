@@ -13,7 +13,7 @@ namespace flame {
 
 class TimerWorker : public WorkerBase {
 public:
-    TimerWorker(const utime_t& cycle) 
+    TimerWorker(const utime_t& cycle = utime_t::get_by_msec(500)) 
     : WorkerBase("timer_worker"), check_cycle_(cycle) {}
 
     ~TimerWorker() {}

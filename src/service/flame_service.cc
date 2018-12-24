@@ -25,8 +25,8 @@ const ConnectRequest* request, FlameReply* response)
     gateway_meta_t gw;
     gw.gw_id = request->gw_id();
     gw.admin_addr = request->admin_addr();
-    gw.ltime = utime_t::now().to_msec();
-    gw.atime = utime_t::now().to_msec();
+    gw.ltime = utime_t::now().to_usec();
+    gw.atime = utime_t::now().to_usec();
     int r = gw_ms->create(gw);
     response->set_code(r);
     return Status::OK;
@@ -122,7 +122,7 @@ const VGCreateRequest* request, FlameReply* response)
 {
     volume_group_meta_t vg;
     vg.name = request->vg_name();
-    vg.ctime = utime_t::now().to_msec();
+    vg.ctime = utime_t::now().to_usec();
     int r = vg_ms->create(vg);
     response->set_code(r);
     return Status::OK;
@@ -190,7 +190,7 @@ const VolCreateRequest* request, FlameReply* response)
     volume_meta_t vol;
     vol.vg_id = vg_id;
     vol.name = request->vol_name();
-    vol.ctime = utime_t::now().to_msec();
+    vol.ctime = utime_t::now().to_usec();
     vol.chk_sz = request->chk_sz();
     vol.size = request->size();
     vol.flags = request->flags();

@@ -13,7 +13,8 @@ namespace service {
 
 class CsdsServiceImpl final : public CsdsService::Service, public CsdService {
 public:
-    CsdsServiceImpl(CsdContext* cct) : CsdsService::Service(), CsdService(cct) {}
+    CsdsServiceImpl(CsdContext* cct) 
+    : CsdsService::Service(), CsdService(cct), cs_(cct->cs()) {}
 
     // 拉取Chunk版本信息
     virtual ::grpc::Status fetchChunk(::grpc::ServerContext* context, const ::ChunkFetchRequest* request, ::ChunkFetchReply* response);
@@ -26,19 +27,17 @@ public:
     // 清理CSD
     virtual ::grpc::Status clean(::grpc::ServerContext* context, const ::CleanRequest* request, ::CsdsReply* response);
     // 创建Chunk
-    virtual ::grpc::Status createChunk(::grpc::ServerContext* context, const ::ChunkCreateRequest* request, ::CsdsReply* response);
+    virtual ::grpc::Status createChunk(::grpc::ServerContext* context, const ::ChunkCreateRequest* request, ::ChunkBulkReply* response);
     // 删除Chunk
-    virtual ::grpc::Status removeChunk(::grpc::ServerContext* context, const ::ChunkRemoveRequest* request, ::CsdsReply* response);
+    virtual ::grpc::Status removeChunk(::grpc::ServerContext* context, const ::ChunkRemoveRequest* request, ::ChunkBulkReply* response);
     // 告知选主信息
-    virtual ::grpc::Status chooseChunk(::grpc::ServerContext* context, const ::ChunkChooseRequest* request, ::CsdsReply* response);
+    virtual ::grpc::Status chooseChunk(::grpc::ServerContext* context, const ::ChunkChooseRequest* request, ::ChunkBulkReply* response);
     // 迁移Chunk
-    virtual ::grpc::Status moveChunk(::grpc::ServerContext* context, const ::ChunkMoveRequest* request, ::CsdsReply* response);
+    virtual ::grpc::Status moveChunk(::grpc::ServerContext* context, const ::ChunkMoveRequest* request, ::ChunkBulkReply* response);
  
+private:
+    std::shared_ptr<ChunkStore> cs_;
 }; // class CsdsServiceImpl
-
-class CsdsAsyncServiceImpl final {
-
-}; // class CsdsAsyncServiceImpl
 
 } // namespace service
 } // namespace flame
