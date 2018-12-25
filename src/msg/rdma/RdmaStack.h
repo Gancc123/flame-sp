@@ -108,8 +108,12 @@ public:
     int on_buffer_reclaimed();
     int arm_notify(MsgWorker *worker);
     int remove_notify();
-    int process_tx_cq();
-    int process_rx_cq();
+    void reap_dead_conns();
+    int process_cq_dry_run();
+    int process_tx_cq(ibv_wc *wc, int max_cqes);
+    int process_tx_cq_dry_run();
+    int process_rx_cq(ibv_wc *wc, int max_cqes);
+    int process_rx_cq_dry_run();
     int reg_rdma_conn(uint32_t qpn, RdmaConnection *conn);
     RdmaConnection *get_rdma_conn(uint32_t qpn);
     void make_conn_dead(RdmaConnection *conn);

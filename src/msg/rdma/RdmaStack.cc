@@ -12,11 +12,11 @@
 namespace flame{
 
 void RdmaTxCqNotifier::read_cb() {
-    worker->process_tx_cq();
+    worker->process_cq_dry_run();
 }
 
 void RdmaRxCqNotifier::read_cb() {
-    worker->process_rx_cq();
+    worker->process_cq_dry_run();
 }
 
 void RdmaAsyncEventHandler::read_cb() {
@@ -113,6 +113,49 @@ void RdmaWorker::fin_clean_signal(){
     MutexLocker l(fin_clean_mutex);
     is_fin_clean = true;
     fin_clean_cond.signal();
+}
+
+int RdmaWorker::process_cq_dry_run(){
+    static int MAX_COMPLETIONS = 32;
+    ibv_wc wc[MAX_COMPLETIONS];
+    int total_proc = 0;
+    bool has_cq_event = false;
+    int tx_ret = 0;
+    int rx_ret = 0;
+
+    has_cq_event = false;
+    while(true){
+        //drain channel fd
+        if(!rx_cc->get_cq_event()){
+            break;
+        }
+        has_cq_event = true;
+    }
+    if(has_cq_event){
+        rx_cq->rearm_notify();
+    }
+    
+    has_cq_event = false;
+    while(true){
+        //drain channel fd
+        if(!tx_cc->get_cq_event()){
+            break;
+        }
+        has_cq_event = true;
+    }
+    if(has_cq_event){
+        tx_cq->rearm_notify();
+    }
+
+    do{
+        rx_ret = process_rx_cq(wc, MAX_COMPLETIONS);
+        tx_ret = process_tx_cq(wc, MAX_COMPLETIONS);
+        total_proc += (rx_ret + tx_ret);
+    }while(rx_ret + tx_ret > 0);
+
+    reap_dead_conns();
+
+    return total_proc;
 }
 
 void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
@@ -220,11 +263,11 @@ void RdmaWorker::handle_rdma_rw_cqe(ibv_wc &wc, RdmaConnection *conn){
 
 }
 
-int RdmaWorker::process_tx_cq(){
+int RdmaWorker::process_tx_cq_dry_run(){
     static int MAX_COMPLETIONS = 32;
     ibv_wc wc[MAX_COMPLETIONS];
-    bool rearmed = false;
     int total_proc = 0;
+    int tx_ret = 0;
 
     while(true){
         //drain channel fd
@@ -234,17 +277,28 @@ int RdmaWorker::process_tx_cq(){
     }
     tx_cq->rearm_notify();
 
-    while(true){
-        int tx_ret = tx_cq->poll_cq(MAX_COMPLETIONS, wc);
-        if(tx_ret > 0){
-            ML(fct, info, "tx completion queue got {} responses.", tx_ret);
-            handle_tx_cqe(wc, tx_ret);
-            total_proc += tx_ret;
-        }else{
-            break;
-        }
-    }
+    do{
+        tx_ret = process_tx_cq(wc, MAX_COMPLETIONS);
+        total_proc += tx_ret;
+    }while(tx_ret > 0);
 
+    reap_dead_conns();
+
+    return total_proc;
+}
+
+int RdmaWorker::process_tx_cq(ibv_wc *wc, int max_cqes){
+    int tx_ret = tx_cq->poll_cq(max_cqes, wc);
+    if(tx_ret > 0){
+        ML(fct, info, "tx completion queue got {} responses.", tx_ret);
+        handle_tx_cqe(wc, tx_ret);
+        return tx_ret;
+    }
+    //here may be error or poll no cqe.
+    return 0;
+}
+
+void RdmaWorker::reap_dead_conns(){
     auto dead_it = dead_conns.begin();
     while(dead_it != dead_conns.end()){
         auto dead_conn = *dead_it;
@@ -258,10 +312,6 @@ int RdmaWorker::process_tx_cq(){
             dead_it = dead_conns.erase(dead_it);
         }
     }
-
-
-
-    return total_proc;
 }
 
 void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
@@ -306,11 +356,11 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
 
 }
 
-int RdmaWorker::process_rx_cq(){
+int RdmaWorker::process_rx_cq_dry_run(){
     static int MAX_COMPLETIONS = 32;
     ibv_wc wc[MAX_COMPLETIONS];
-    bool rearmed = false;
     int total_proc = 0;
+    int rx_ret = 0;
 
     while(true){
         //drain channel fd
@@ -318,25 +368,32 @@ int RdmaWorker::process_rx_cq(){
             break;
         }
     }
+
     rx_cq->rearm_notify();
 
-    while(true){
-        int rx_ret = rx_cq->poll_cq(MAX_COMPLETIONS, wc);
-        if(rx_ret > 0){
-            ML(fct, info, "rx completion queue got {} responses.", rx_ret);
-            if(srq){
-                srq_buffer_backlog = srq_buffer_backlog + rx_ret - 
-                            post_chunks_to_rq(srq_buffer_backlog + rx_ret);
-            }
-            //if don't have srq, reuse rx buffers after RdmaConn recv_data().
+    do{
+        rx_ret = process_rx_cq(wc, MAX_COMPLETIONS);
+        total_proc += rx_ret;
+    }while(rx_ret > 0);
 
-            handle_rx_cqe(wc, rx_ret);
-            total_proc += rx_ret;
-        }else{
-            break;
-        }
-    }
     return total_proc;
+}
+
+int RdmaWorker::process_rx_cq(ibv_wc *wc, int max_cqes){
+    int rx_ret = rx_cq->poll_cq(max_cqes, wc);
+    if(rx_ret > 0){
+        ML(fct, info, "rx completion queue got {} responses.", rx_ret);
+        if(srq){
+            srq_buffer_backlog = srq_buffer_backlog + rx_ret - 
+                        post_chunks_to_rq(srq_buffer_backlog + rx_ret);
+        }
+        //if don't have srq, reuse rx buffers after RdmaConn recv_data().
+        handle_rx_cqe(wc, rx_ret);
+        return rx_ret;
+    }
+
+    //here may be error or poll no cqe.
+    return 0;
 }
 
 int RdmaWorker::reg_rdma_conn(uint32_t qpn, RdmaConnection *conn){
