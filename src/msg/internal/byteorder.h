@@ -3,6 +3,7 @@
 #include <type_traits>
 #include "acconfig.h"
 #include "int_types.h"
+#include <arpa/inet.h>
 
 
 #ifdef __GNUC__

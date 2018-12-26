@@ -13,13 +13,13 @@ using namespace flame;
 
 perf_config_t global_config;
 
-void send_first_msg(FlameContext *fct){
-    NodeAddr *addr = new NodeAddr(fct);
+void send_first_msg(MsgContext *mct){
+    NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(6666);
     msger_id_t msger_id = msger_id_from_node_addr(addr);
-    auto session = fct->msg()->manager->get_session(msger_id);
-    NodeAddr *rdma_addr = new NodeAddr(fct);
+    auto session = mct->manager->get_session(msger_id);
+    NodeAddr *rdma_addr = new NodeAddr(mct);
     rdma_addr->set_ttype(NODE_ADDR_TTYPE_RDMA);
     rdma_addr->ip_from_string(global_config.target_rdma_ip);
     rdma_addr->set_port(global_config.target_rdma_port);
@@ -27,12 +27,12 @@ void send_first_msg(FlameContext *fct){
     session->set_listen_addr(rdma_addr, msg_ttype_t::RDMA);
     auto conn = session->get_conn(msg_ttype_t::RDMA);
     if(global_config.perf_type == perf_type_t::MEM_PUSH){
-        ML(fct, info, "send first msg (mem_push)");
+        ML(mct, info, "send first msg (mem_push)");
         auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
         
         auto buf = allocator->alloc(global_config.size); //4MB
         assert(buf);
-        msg_rdma_header_d rdma_header;
+        msg_rdma_header_d rdma_header(1, false);
         rdma_header.rdma_bufs.push_back(buf);
         buf->buffer()[0] = 'A';
         buf->buffer()[buf->size() - 1] = 'Z';
@@ -41,7 +41,7 @@ void send_first_msg(FlameContext *fct){
 
         global_config.tposted[0] = get_cycles();
 
-        auto req_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
         req_msg->flag |= FLAME_MSG_FLAG_RDMA;
         req_msg->set_rdma_cnt(1);
         req_msg->append_data(rdma_header);
@@ -53,9 +53,9 @@ void send_first_msg(FlameContext *fct){
         conn->send_msg(req_msg);
         req_msg->put();
     }else if(global_config.perf_type == perf_type_t::SEND){
-        ML(fct, info, "send first msg (send)");
+        ML(mct, info, "send first msg (send)");
         global_config.tposted[0] = get_cycles();
-        auto req_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
 
         msg_incre_d incre_data;
         incre_data.num = 0;
@@ -64,7 +64,7 @@ void send_first_msg(FlameContext *fct){
         conn->send_msg(req_msg);
         req_msg->put();
     }else if(global_config.perf_type == perf_type_t::SEND_DATA){
-        ML(fct, info, "send first msg (send)");
+        ML(mct, info, "send first msg (send)");
 
         auto buf = new MsgBuffer(global_config.size);
         assert(buf);
@@ -74,7 +74,7 @@ void send_first_msg(FlameContext *fct){
         global_config.data_buffer = buf;
 
         global_config.tposted[0] = get_cycles();
-        auto req_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
 
         msg_incre_d incre_data;
         incre_data.num = 0;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]){
         clog("init config failed.");
         return -1;
     }
-    if(!fct->init_log("log", str2upper(std::string(options.get("log_level"))), 
+    if(!fct->init_log("", str2upper(std::string(options.get("log_level"))), 
                 fmt::format("client{}",  std::string(options.get("index"))))){
          clog("init log failed.");
         return -1;
@@ -116,34 +116,38 @@ int main(int argc, char *argv[]){
     global_config.target_rdma_ip = std::string(options.get("address"));
     global_config.target_rdma_port = (int)options.get("port");
 
-    ML(fct, info, "init complete.");
-    ML(fct, info, "load cfg: " CFG_PATH);
+    auto mct = new MsgContext(fct);
+
+    ML(mct, info, "init complete.");
+    ML(mct, info, "load cfg: " CFG_PATH);
 
     init_resource(global_config);
 
-    auto msger = new RdmaMsger(fct, &global_config);
+    auto msger = new RdmaMsger(mct, &global_config);
 
-    auto msg_config = MsgConfig::load_config(fct);
-    msg_config->set_msg_log_level(std::string(options.get("log_level")));
+    mct->load_config();
+    mct->config->set_msg_log_level(std::string(options.get("log_level")));
 
-    ML(fct, info, "before msg module init");
-    msg_module_init(fct, msger, msg_config);
-    ML(fct, info, "after msg module init");
+    ML(mct, info, "before msg module init");
+    mct->init(msger);
+    ML(mct, info, "after msg module init");
 
-    ML(fct, info, "msger_id {:x} {:x} ", fct->msg()->config->msger_id.ip,
-                                         fct->msg()->config->msger_id.port);
+    ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
+                                         mct->config->msger_id.port);
 
-    send_first_msg(fct);
+    send_first_msg(mct);
 
     std::getchar();
 
-    ML(fct, info, "before msg module fin");
-    msg_module_finilize(fct);
-    ML(fct, info, "after msg module fin");
+    ML(mct, info, "before msg module fin");
+    mct->fin();
+    ML(mct, info, "after msg module fin");
 
     delete msger;
 
     fin_resource(global_config);
+
+    delete mct;
 
     return 0;
 }

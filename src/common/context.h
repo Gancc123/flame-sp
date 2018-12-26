@@ -3,7 +3,6 @@
 
 #include "common/log.h"
 #include "common/config.h"
-#include "msg/msg_module.h"
 
 #include <string>
 
@@ -35,9 +34,6 @@ public:
     const std::string& node_name() const { return node_name_; }
     void set_node_name(const std::string& name) { node_name_ = name; } 
 
-    MsgModule* msg() { return msg_module_; }
-    void set_msg(MsgModule *m) { msg_module_ = m; }
-
 private:
     FlameContext(const FlameContext&) = delete;
     FlameContext& operator = (const FlameContext&) = delete;
@@ -48,7 +44,6 @@ private:
     FlameConfig* config_;
     std::string cluster_name_;
     std::string node_name_;
-    MsgModule *msg_module_;
 }; // class FlameContext
 
 } // namespace flame

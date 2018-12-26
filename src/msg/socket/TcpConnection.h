@@ -33,12 +33,12 @@ class TcpConnection : public Connection{
     ssize_t submit_cur_msg(bool more);
     static ssize_t do_sendmsg(int fd, struct msghdr &msg, unsigned len, 
                                                                     bool more);
-    static int connect(FlameContext *fct, NodeAddr *addr);
-    TcpConnection(FlameContext *fct);
+    static int connect(MsgContext *mct, NodeAddr *addr);
+    TcpConnection(MsgContext *mct);
 public:
     friend class TcpConnEventCallBack;
-    static TcpConnection* create(FlameContext *fct, int fd);
-    static TcpConnection* create(FlameContext *fct, NodeAddr *addr);
+    static TcpConnection* create(MsgContext *mct, int fd);
+    static TcpConnection* create(MsgContext *mct, NodeAddr *addr);
     ~TcpConnection();
 
     virtual msg_ttype_t get_ttype() override { return msg_ttype_t::TCP; }

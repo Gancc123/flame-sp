@@ -5,7 +5,7 @@
 #include <boost/pool/pool.hpp>
 #include <map>
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "common/thread/mutex.h"
 #include "Infiniband.h"
 #include "msg/msg_common.h"
@@ -77,7 +77,7 @@ public:
  * modify boost pool so that it is possible to
  * have a thread safe 'context' when allocating/freeing
  * the memory. It is needed to allow a different pool
- * configurations and bookkeeping per FlameContext and
+ * configurations and bookkeeping per MsgContext and
  * also to be able to use same allocator to deal with
  * RX and TX pool.
  */
@@ -105,7 +105,7 @@ class RdmaBufferAllocator;
 
 class MemoryManager{
 public:
-    MemoryManager(FlameContext *c, ProtectionDomain *p);
+    MemoryManager(MsgContext *c, ProtectionDomain *p);
     ~MemoryManager();
 
     void* malloc(size_t size);
@@ -147,12 +147,12 @@ public:
     }
 
     bool can_alloc(unsigned nbufs){
-        auto msg_cfg = fct->msg()->config;
+        auto msg_cfg = mct->config;
         if(msg_cfg->rdma_buffer_num <= 0){
             return true;
         } 
         if(msg_cfg->rdma_buffer_num < (n_bufs_allocated + nbufs)){
-            ML(fct, error, 
+            ML(mct, error, 
                 "rdma buffer number reach limit: {}, need: {}, allocted: {}", 
                 msg_cfg->rdma_buffer_num, nbufs, n_bufs_allocated);
             return false;
@@ -164,7 +164,7 @@ public:
         return rdma_buffer_allocator; 
     }
 
-    FlameContext  *fct;
+    MsgContext  *mct;
 private:
     Mutex lock;
     ProtectionDomain *pd;
@@ -179,7 +179,7 @@ private:
     void* huge_pages_malloc(size_t size);
     void  huge_pages_free(void *ptr);
 
-    static uint64_t calcu_init_space(FlameContext *c);
+    static uint64_t calcu_init_space(MsgContext *c);
 
     RdmaBufferAllocator *rdma_buffer_allocator;
 };

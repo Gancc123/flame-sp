@@ -25,28 +25,35 @@ class RdmaBufferTest : public testing::Test{
     using RdmaBuffer = ib::RdmaBuffer;
 protected:
     static void SetUpTestCase(){
-        fct = FlameContext::get_context();
+        auto fct = FlameContext::get_context();
         fct->init_config("flame_mgr.cfg");
-        fct->init_log("log", "TRACE", "client");
+        fct->init_log("", "TRACE", "client");
 
-        auto config = MsgConfig::load_config(fct);
+        mct = new MsgContext(fct);
+
+        if(mct->load_config()){
+            return ;
+        }
 
         //config BuddyAllocator
-        config->rdma_mem_min_level = 10; // 1KB
-        config->rdma_mem_max_level = RDMA_MEM_MAX_LEVEL; 
+        mct->config->rdma_mem_min_level = 10; // 1KB
+        mct->config->rdma_mem_max_level = RDMA_MEM_MAX_LEVEL; 
 
-        msg_module_init(fct, nullptr, config);
+        if(mct->init(nullptr)){
+            return ;
+        }
 
         allocator = Stack::get_rdma_stack()->get_rdma_allocator();
 
     }
 
     static void TearDownTestCase(){
-        msg_module_finilize(fct);
+        mct->fin();
+        delete mct;
     }
 
     static ib::RdmaBufferAllocator *allocator;
-    static FlameContext *fct;
+    static MsgContext *mct;
 
     static pthread_barrier_t barrier;
 
@@ -87,7 +94,7 @@ protected:
 };
 
 ib::RdmaBufferAllocator *RdmaBufferTest::allocator = nullptr;
-FlameContext *RdmaBufferTest::fct = nullptr;
+MsgContext *RdmaBufferTest::mct = nullptr;
 pthread_barrier_t RdmaBufferTest::barrier;
 
 TEST_F(RdmaBufferTest, alloc_and_free){

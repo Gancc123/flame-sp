@@ -26,15 +26,16 @@ int main(int argc, char *argv[]){
         clog("init config failed.");
         return -1;
     }
-    if(!fct->init_log("log", str2upper(std::string(options.get("log_level"))), 
+    if(!fct->init_log("", str2upper(std::string(options.get("log_level"))), 
                     fmt::format("mgr{}",  std::string(options.get("index"))))){
          clog("init log failed.");
         return -1;
     }
 
-    ML(fct, info, "init complete.");
-    ML(fct, info, "load cfg: " CFG_PATH);
+    auto mct = new MsgContext(fct);
 
+    ML(mct, info, "init complete.");
+    ML(mct, info, "load cfg: " CFG_PATH);
 
     global_config.num = (int)options.get("num");
     global_config.perf_type = perf_type_from_str(
@@ -42,27 +43,29 @@ int main(int argc, char *argv[]){
 
     init_resource(global_config);
 
-    auto rdma_msger = new RdmaMsger(fct, &global_config);
+    auto rdma_msger = new RdmaMsger(mct, &global_config);
 
-    auto msg_config = MsgConfig::load_config(fct);
-    msg_config->set_msg_log_level(std::string(options.get("log_level")));
+    mct->load_config();
+    mct->config->set_msg_log_level(std::string(options.get("log_level")));
 
-    ML(fct, info, "before msg module init");
-    msg_module_init(fct, rdma_msger, msg_config);
-    ML(fct, info, "after msg module init");
+    ML(mct, info, "before msg module init");
+    mct->init(rdma_msger);
+    ML(mct, info, "after msg module init");
 
-    ML(fct, info, "msger_id {:x} {:x} ", fct->msg()->config->msger_id.ip,
-                                         fct->msg()->config->msger_id.port);
+    ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
+                                         mct->config->msger_id.port);
 
     std::getchar();
 
-    ML(fct, info, "before msg module fin");
-    msg_module_finilize(fct);
-    ML(fct, info, "after msg module fin");
+    ML(mct, info, "before msg module fin");
+    mct->fin();
+    ML(mct, info, "after msg module fin");
 
     delete rdma_msger;
 
     fin_resource(global_config);
+
+    delete mct;
 
     return 0;
 }

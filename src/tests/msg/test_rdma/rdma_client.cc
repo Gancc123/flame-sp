@@ -9,17 +9,17 @@
 
 using namespace flame;
 
-void send_first_incre_msg(FlameContext *fct){
+void send_first_incre_msg(MsgContext *mct){
     msg_incre_d data;
     data.num = 0;
-    auto req_msg = Msg::alloc_msg(fct);
+    auto req_msg = Msg::alloc_msg(mct);
     req_msg->append_data(data);
-    NodeAddr *addr = new NodeAddr(fct);
+    NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(6666);
     msger_id_t msger_id = msger_id_from_node_addr(addr);
-    auto session = fct->msg()->manager->get_session(msger_id);
-    NodeAddr *rdma_addr = new NodeAddr(fct);
+    auto session = mct->manager->get_session(msger_id);
+    NodeAddr *rdma_addr = new NodeAddr(mct);
     rdma_addr->set_ttype(NODE_ADDR_TTYPE_RDMA);
     rdma_addr->ip_from_string("127.0.0.1");
     rdma_addr->set_port(7777);
@@ -35,37 +35,41 @@ void send_first_incre_msg(FlameContext *fct){
 #define CFG_PATH "flame_clinet.cfg"
 
 int main(){
-    FlameContext *fct = FlameContext::get_context();
+    auto fct = FlameContext::get_context();
     if(!fct->init_config(CFG_PATH)){
         clog("init config failed.");
         return -1;
     }
-    if(!fct->init_log("log", "TRACE", "client")){
-         clog("init log failed.");
+    if(!fct->init_log("", "TRACE", "client")){
+        clog("init log failed.");
         return -1;
     }
 
-    ML(fct, info, "init complete.");
-    ML(fct, info, "load cfg: " CFG_PATH);
+    auto mct = new MsgContext(fct);
 
-    auto incre_msger = new IncreMsger(fct);
+    ML(mct, info, "init complete.");
+    ML(mct, info, "load cfg: " CFG_PATH);
+
+    auto incre_msger = new IncreMsger(mct);
     
-    ML(fct, info, "before msg module init");
-    msg_module_init(fct, incre_msger);
-    ML(fct, info, "after msg module init");
+    ML(mct, info, "before msg module init");
+    mct->init(incre_msger);
+    ML(mct, info, "after msg module init");
 
-    ML(fct, info, "msger_id {:x} {:x} ", fct->msg()->config->msger_id.ip,
-                                         fct->msg()->config->msger_id.port);
+    ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
+                                         mct->config->msger_id.port);
 
-    send_first_incre_msg(fct);
+    send_first_incre_msg(mct);
 
     std::getchar();
 
-    ML(fct, info, "before msg module fin");
-    msg_module_finilize(fct);
-    ML(fct, info, "after msg module fin");
+    ML(mct, info, "before msg module fin");
+    mct->fin();
+    ML(mct, info, "after msg module fin");
 
     delete incre_msger;
+
+    delete mct;
 
     return 0;
 }

@@ -14,7 +14,7 @@
 namespace flame{
 
 class MsgManager : public ListenPortListener, public ConnectionListener{
-    FlameContext *fct;
+    MsgContext *mct;
     std::map<NodeAddr *, ListenPort *> listen_map;
     std::map<msger_id_t, Session *, msger_id_comparator> session_map;
     std::vector<MsgWorker *> workers;
@@ -27,11 +27,11 @@ class MsgManager : public ListenPortListener, public ConnectionListener{
     Mutex m_mutex;
 
 public:
-    explicit MsgManager(FlameContext *c, int worker_num=4)
-    :fct(c), is_running(false), m_mutex(MUTEX_TYPE_ADAPTIVE_NP){
+    explicit MsgManager(MsgContext *c, int worker_num=4)
+    :mct(c), is_running(false), m_mutex(MUTEX_TYPE_ADAPTIVE_NP){
         workers.reserve(worker_num);
         for(int i = 0;i < worker_num; ++i){
-            workers.push_back(new MsgWorker(fct, i));
+            workers.push_back(new MsgWorker(mct, i));
         }
     }
 

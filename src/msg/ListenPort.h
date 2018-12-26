@@ -13,8 +13,8 @@ class ListenPort : public EventCallBack{
     NodeAddr *m_listen_addr;
 
 public:
-    explicit ListenPort(FlameContext *fct, NodeAddr *listen_addr)
-    :EventCallBack(fct, FLAME_EVENT_READABLE){
+    explicit ListenPort(MsgContext *mct, NodeAddr *listen_addr)
+    :EventCallBack(mct, FLAME_EVENT_READABLE){
         listen_addr->get();
         m_listen_addr = listen_addr;
     }

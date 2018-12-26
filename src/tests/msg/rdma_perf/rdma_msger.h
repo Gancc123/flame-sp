@@ -123,7 +123,7 @@ struct msg_incre_d : public MsgData{
 };
 
 class RdmaMsger : public MsgerCallback{
-    FlameContext *fct;
+    MsgContext *mct;
     perf_config_t *config;
     ib::RdmaBuffer *rx_buffer = nullptr;
     void on_mem_push_req(Connection *conn, Msg *msg);
@@ -131,15 +131,15 @@ class RdmaMsger : public MsgerCallback{
     void on_send_req(Connection *conn, Msg *msg);
     void on_send_resp(Connection *conn, Msg *msg);
 public:
-    explicit RdmaMsger(FlameContext *c, perf_config_t *cfg=nullptr) 
-    : fct(c), config(cfg) {};
+    explicit RdmaMsger(MsgContext *c, perf_config_t *cfg=nullptr) 
+    : mct(c), config(cfg) {};
     virtual void on_conn_recv(Connection *conn, Msg *msg) override;
 };
 
 void RdmaMsger::on_mem_push_req(Connection *conn, Msg *msg){
     assert(msg->has_rdma());
 
-    msg_rdma_header_d rdma_header(msg->get_rdma_cnt());
+    msg_rdma_header_d rdma_header(msg->get_rdma_cnt(), msg->with_imm());
     msg_incre_d incre_data;
 
     auto it = msg->data_buffer_list().begin();
@@ -147,7 +147,7 @@ void RdmaMsger::on_mem_push_req(Connection *conn, Msg *msg){
     incre_data.decode(it);
     
     auto msger_id = conn->get_session()->peer_msger_id;
-    ML(fct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
+    ML(mct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
 
     auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
 
@@ -163,11 +163,11 @@ void RdmaMsger::on_mem_push_req(Connection *conn, Msg *msg){
     rdma_cb->target_func = 
             [this, allocator, incre_data](RdmaRwWork *w, RdmaConnection *conn){
         auto lbuf = w->lbufs[0];
-        ML(fct, info, "rdma read done. buf: {}...{} {}B",
+        ML(mct, info, "rdma read done. buf: {}...{} {}B",
             lbuf->buffer()[0], lbuf->buffer()[lbuf->data_len - 1],
             lbuf->data_len);
         
-        auto resp_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+        auto resp_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
         resp_msg->flag |= FLAME_MSG_FLAG_RESP;
 
         msg_incre_d new_incre_data;
@@ -202,17 +202,17 @@ void RdmaMsger::on_mem_push_resp(Connection *conn, Msg *msg){
 
     if(incre_data.num >= this->config->num){
         dump_result(*(this->config));
-        ML(fct, info, "iter {} times, done.", incre_data.num);
+        ML(mct, info, "iter {} times, done.", incre_data.num);
         return;
     }
 
     auto buf = this->config->tx_buffer;
-    msg_rdma_header_d rdma_header;
+    msg_rdma_header_d rdma_header(1, false);
     rdma_header.rdma_bufs.push_back(buf);
     buf->buffer()[0] = 'A' + (incre_data.num % 26);
     buf->buffer()[buf->size() - 1] = 'Z' - (incre_data.num % 26);
 
-    auto req_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+    auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
     req_msg->flag |= FLAME_MSG_FLAG_RDMA;
     req_msg->set_rdma_cnt(1);
     req_msg->append_data(rdma_header);
@@ -230,9 +230,9 @@ void RdmaMsger::on_send_req(Connection *conn, Msg *msg){
     incre_data.decode(it);
     
     auto msger_id = conn->get_session()->peer_msger_id;
-    ML(fct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
+    ML(mct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
 
-    auto resp_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+    auto resp_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
     resp_msg->flag |= FLAME_MSG_FLAG_RESP;
 
     ++incre_data.num;
@@ -252,11 +252,11 @@ void RdmaMsger::on_send_resp(Connection *conn, Msg *msg){
 
     if(incre_data.num >= this->config->num){
         dump_result(*(this->config));
-        ML(fct, info, "iter {} times, done.", incre_data.num);
+        ML(mct, info, "iter {} times, done.", incre_data.num);
         return;
     }
 
-    auto req_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+    auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
     req_msg->append_data(incre_data);
 
     if(config->perf_type == perf_type_t::SEND_DATA){

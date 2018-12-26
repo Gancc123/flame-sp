@@ -9,14 +9,14 @@
 
 namespace flame{
 
-EventPoller::EventPoller(FlameContext *c, int nevent)
-:fct(c), events(new struct epoll_event[nevent]), size(nevent), ecb_map(),
+EventPoller::EventPoller(MsgContext *c, int nevent)
+:mct(c), events(new struct epoll_event[nevent]), size(nevent), ecb_map(),
  ecb_mutex(MUTEX_TYPE_ADAPTIVE_NP), event_num(0){
     memset(events, 0, sizeof(struct epoll_event)*nevent);
     
     epfd = epoll_create(1024); /* 1024 is just an hint for the kernel */
     if(epfd == -1){
-        ML(fct, error, "unable to do epoll_create: {}", cpp_strerror(errno));
+        ML(mct, error, "unable to do epoll_create: {}", cpp_strerror(errno));
     }
 }
 
@@ -28,7 +28,7 @@ EventPoller::~EventPoller(){
         e.second->put();
     }
     ecb_mutex.unlock();
-    fct = nullptr;
+    mct = nullptr;
 }
 
 int EventPoller::set_event(int fd, EventCallBack *ecb){
@@ -62,7 +62,7 @@ int EventPoller::set_event(int fd, EventCallBack *ecb){
              ecb_map[fd] = old_ecb;
         }
         ecb_mutex.unlock();
-        ML(fct, error, "epoll_ctl: set fd={} failed. {}", 
+        ML(mct, error, "epoll_ctl: set fd={} failed. {}", 
                                                     fd, cpp_strerror(errno));
         return -errno;
     }
@@ -77,7 +77,7 @@ int EventPoller::del_event(int fd){
     int r = 0;
     struct epoll_event ee; //* ee没有任何作用，也不会返回删除的event
     if(epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &ee) < 0){
-        ML(fct, error, "epoll_ctl: delete fd={} failed. {}", fd, 
+        ML(mct, error, "epoll_ctl: delete fd={} failed. {}", fd, 
                                                         cpp_strerror(errno));
         return -errno;
     }

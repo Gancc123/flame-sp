@@ -1,7 +1,7 @@
 #ifndef FLAME_MSG_SESSION_H
 #define FLAME_MSG_SESSION_H
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "common/thread/mutex.h"
 
 #include "internal/types.h"
@@ -30,7 +30,7 @@ class Session : public RefCountedObject{
 
 
 public:
-    explicit Session(FlameContext *c, msger_id_t peer)
+    explicit Session(MsgContext *c, msger_id_t peer)
     : RefCountedObject(c), peer_msger_id(peer), 
      conns_mutex(MUTEX_TYPE_ADAPTIVE_NP),
      lp_mutex(MUTEX_TYPE_ADAPTIVE_NP){

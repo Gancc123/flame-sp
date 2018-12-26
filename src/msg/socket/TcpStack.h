@@ -45,9 +45,9 @@ struct sigpipe_stopper {
 };
 
 class TcpStack: public Stack{
-    FlameContext *fct;
+    MsgContext *mct;
 public:
-    explicit TcpStack(FlameContext *c):fct(c){};
+    explicit TcpStack(MsgContext *c):mct(c){};
     virtual ListenPort* create_listen_port(NodeAddr *addr) override;
 
     virtual Connection* connect(NodeAddr *addr) override;

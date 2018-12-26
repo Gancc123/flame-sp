@@ -82,7 +82,7 @@ bool NodeAddr::ip_from_string(const std::string str){
 
 ssize_t NodeAddr::decode(const void *buf, size_t len){
     if(len < sizeof(struct node_addr_t)){
-        ML(fct, error, "buffer length must > sizeof struct node_addr_t");
+        ML(mct, error, "buffer length must > sizeof struct node_addr_t");
         return -1;
     }
     char *buffer = (char *)buf;
@@ -103,7 +103,7 @@ ssize_t NodeAddr::decode(const void *buf, size_t len){
                         sizeof(addr->addr.ipv6));
         break;
     default:
-        ML(fct, error, "Invalid addr_type.");
+        ML(mct, error, "Invalid addr_type.");
         return -1;
     }
     return sizeof(struct node_addr_t);
@@ -111,7 +111,7 @@ ssize_t NodeAddr::decode(const void *buf, size_t len){
 
 ssize_t NodeAddr::encode(void *buf, size_t len) const {
     if(len < sizeof(struct node_addr_t)){
-        ML(fct, error, "buffer length must > sizeof struct node_addr_t");
+        ML(mct, error, "buffer length must > sizeof struct node_addr_t");
         return -1;
     }
     char *buffer = (char *)buf;
@@ -130,7 +130,7 @@ ssize_t NodeAddr::encode(void *buf, size_t len) const {
                         sizeof(addr->addr.ipv6));
         break;
     default:
-        ML(fct, error, "Invalid addr_type.");
+        ML(mct, error, "Invalid addr_type.");
         return -1;
     }
     return sizeof(struct node_addr_t);

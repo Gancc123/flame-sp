@@ -32,12 +32,12 @@ private:
     int my_msg_buffer_offset = 0;
     MsgBuffer peer_msg_buffer;
     int peer_msg_buffer_offset = 0;
-    static int connect(FlameContext *fct, NodeAddr *addr);
+    static int connect(MsgContext *mct, NodeAddr *addr);
     void close_rdma_conn_if_need();
-    RdmaPrepConn(FlameContext *fct);
+    RdmaPrepConn(MsgContext *mct);
 public:
-    static RdmaPrepConn *create(FlameContext *fct, int cfd);
-    static RdmaPrepConn *create(FlameContext *fct, NodeAddr *addr, 
+    static RdmaPrepConn *create(MsgContext *mct, int cfd);
+    static RdmaPrepConn *create(MsgContext *mct, NodeAddr *addr, 
                                                                 uint8_t sl=0);
     ~RdmaPrepConn();
 

@@ -31,7 +31,7 @@ protected:
 };
 
 struct HandleNotifyCallBack : public EventCallBack{
-    HandleNotifyCallBack(FlameContext *c)
+    HandleNotifyCallBack(MsgContext *c)
     : EventCallBack(c, FLAME_EVENT_READABLE){}
     virtual void read_cb() override;
 };
@@ -40,7 +40,7 @@ struct HandleNotifyCallBack : public EventCallBack{
 class MsgWorker{
     using time_point = std::chrono::steady_clock::time_point;
     using clock_type = std::chrono::steady_clock;
-    FlameContext *fct;
+    MsgContext *mct;
     int index;
     std::string name;
 
@@ -72,7 +72,7 @@ class MsgWorker{
 public:
     friend class MsgWorkerThread;
 
-    explicit MsgWorker(FlameContext *c, int i);
+    explicit MsgWorker(MsgContext *c, int i);
     ~MsgWorker();
 
     int get_job_num();

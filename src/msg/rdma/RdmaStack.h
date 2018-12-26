@@ -6,7 +6,7 @@
 #include "msg/MsgWorker.h"
 #include "common/thread/mutex.h"
 #include "common/thread/cond.h"
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "RdmaConnection.h"
 #include "Infiniband.h"
 #include "RdmaMem.h"
@@ -29,6 +29,7 @@ struct RdmaRwWork{
     std::vector<RdmaBuffer *> rbufs;
     std::vector<RdmaBuffer *> lbufs; //must be same num as rbufs.
     bool is_write;
+    uint32_t imm_data = 0; // 0 means no imm data.
     int cnt;
     std::vector<int> failed_indexes;
     rdma_rw_work_func_t target_func = nullptr;
@@ -45,31 +46,31 @@ struct RdmaRwWork{
 class RdmaTxCqNotifier : public EventCallBack{
     RdmaWorker *worker;
 public:
-    explicit RdmaTxCqNotifier(FlameContext *fct, RdmaWorker *w)
-    :EventCallBack(fct, FLAME_EVENT_READABLE), worker(w){}
+    explicit RdmaTxCqNotifier(MsgContext *mct, RdmaWorker *w)
+    :EventCallBack(mct, FLAME_EVENT_READABLE), worker(w){}
     virtual void read_cb() override;
 };
 
 class RdmaRxCqNotifier : public EventCallBack{
     RdmaWorker *worker;
 public:
-    explicit RdmaRxCqNotifier(FlameContext *fct, RdmaWorker *w)
-    :EventCallBack(fct, FLAME_EVENT_READABLE), worker(w){}
+    explicit RdmaRxCqNotifier(MsgContext *mct, RdmaWorker *w)
+    :EventCallBack(mct, FLAME_EVENT_READABLE), worker(w){}
     virtual void read_cb() override;
 };
 
 class RdmaAsyncEventHandler : public EventCallBack{
     RdmaManager *manager;
 public:
-    explicit RdmaAsyncEventHandler(FlameContext *fct, RdmaManager *m)
-    :EventCallBack(fct, FLAME_EVENT_READABLE), manager(m){}
+    explicit RdmaAsyncEventHandler(MsgContext *mct, RdmaManager *m)
+    :EventCallBack(mct, FLAME_EVENT_READABLE), manager(m){}
     virtual void read_cb() override;
 };
 
 
 class RdmaWorker{
     using Chunk = ib::Chunk; 
-    FlameContext *fct;
+    MsgContext *mct;
     MsgWorker *owner = nullptr;
     RdmaManager *manager;
     ib::MemoryManager *memory_manager = nullptr;
@@ -96,8 +97,8 @@ class RdmaWorker{
     void handle_rdma_rw_cqe(ibv_wc &wc, RdmaConnection *conn);
     void handle_rx_cqe(ibv_wc *cqe, int n);
 public:
-    explicit RdmaWorker(FlameContext *c, RdmaManager *m)
-    :fct(c), manager(m), fin_clean_mutex(MUTEX_TYPE_ADAPTIVE_NP), 
+    explicit RdmaWorker(MsgContext *c, RdmaManager *m)
+    :mct(c), manager(m), fin_clean_mutex(MUTEX_TYPE_ADAPTIVE_NP), 
      fin_clean_cond(fin_clean_mutex), is_fin(false) {}
     ~RdmaWorker();
     int init();
@@ -132,15 +133,15 @@ public:
 
 class RdmaManager{
     using Chunk = ib::Chunk; 
-    FlameContext *fct;
+    MsgContext *mct;
     ib::Infiniband m_ib;
     MsgWorker *owner = nullptr;
     RdmaAsyncEventHandler *async_event_handler = nullptr;
 
     std::vector<RdmaWorker *> workers;
 public:
-    explicit RdmaManager(FlameContext *c, uint32_t max_cc_num)
-    :fct(c), m_ib(c), max_concurrent_num(max_cc_num) {};
+    explicit RdmaManager(MsgContext *c, uint32_t max_cc_num)
+    :mct(c), m_ib(c), max_concurrent_num(max_cc_num) {};
     ~RdmaManager();
     int init();
     int clear_before_stop();
@@ -157,10 +158,10 @@ public:
 
 
 class RdmaStack : public Stack{
-    FlameContext *fct;
+    MsgContext *mct;
     RdmaManager *manager;
 public:
-    explicit RdmaStack(FlameContext *c);
+    explicit RdmaStack(MsgContext *c);
     virtual int init() override;
     virtual int clear_before_stop() override;
     virtual int fin() override;

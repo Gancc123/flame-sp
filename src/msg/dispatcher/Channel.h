@@ -1,8 +1,6 @@
 #ifndef FLAME_MSG_DISPATCHER_CHANNEL_H
 #define FLAME_MSG_DISPATCHER_CHANNEL_H
 
-#include "common/context.h"
-
 namespace flame{
 
 class NodeAddr;

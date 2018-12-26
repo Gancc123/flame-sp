@@ -1,7 +1,7 @@
 #ifndef FLAME_MSG_SIMPLE_ADDR_MANAGER_ADDR_MSG_H
 #define FLAME_MSG_SIMPLE_ADDR_MANAGER_ADDR_MSG_H
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "internal/int_types.h"
 #include "internal/types.h"
 #include "internal/byteorder.h"
@@ -23,11 +23,14 @@ namespace flame{
 struct msg_rdma_header_d : public MsgData{
     using RdmaBuffer = ib::RdmaBuffer;
     uint8_t cnt;
+    uint32_t imm_data;
     std::vector<RdmaBuffer *> rdma_bufs;
-    explicit msg_rdma_header_d(uint8_t c=0) : cnt(c) {};
+    explicit msg_rdma_header_d(uint8_t c, bool with_imm) 
+    : cnt(c), imm_data(with_imm?1:0) {};
     
     void clear(){
         cnt = 0;
+        imm_data = 0;
         for(auto buffer : rdma_bufs){
             delete buffer;
         }
@@ -35,11 +38,18 @@ struct msg_rdma_header_d : public MsgData{
     }
 
     virtual size_t size() override {
-        return sizeof(flame_msg_rdma_mr_t) * cnt;
+        return  (imm_data?sizeof(flame_msg_imm_data_t):0) 
+                    + sizeof(flame_msg_rdma_mr_t) * cnt;
     }
 
     virtual int encode(MsgBufferList& bl) override{
         int total = 0;
+        flame_msg_imm_data_t imm;
+        if(imm_data){
+            imm.imm_data = imm_data;
+            total += M_ENCODE(bl, imm);
+        }
+
         flame_msg_rdma_mr_t mr;
         for(int i = 0;i < rdma_bufs.size();++i){
             mr.addr = rdma_bufs[i]->addr();
@@ -51,8 +61,16 @@ struct msg_rdma_header_d : public MsgData{
     }
 
     virtual int decode(MsgBufferList::iterator& it) override{
-        flame_msg_rdma_mr_t mr;
         int total = 0;
+        flame_msg_imm_data_t imm;
+        if(imm_data){
+            int len = M_DECODE(it, imm);
+            assert(len == sizeof(imm));
+            total += len;
+            imm_data = imm.imm_data;
+        }
+
+        flame_msg_rdma_mr_t mr;
         for(int i = 0;i < cnt;++i){
             int len = M_DECODE(it, mr);
             assert(len == sizeof(mr));

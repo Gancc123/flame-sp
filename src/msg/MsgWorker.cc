@@ -24,7 +24,7 @@ void HandleNotifyCallBack::read_cb(){
         r = read(fd, c, sizeof(c));
         if (r < 0) {
             if (errno != EAGAIN){
-                ML(fct, error, "read notify pipe failed: {}",
+                ML(mct, error, "read notify pipe failed: {}",
                                                         cpp_strerror(errno));
             }
         }
@@ -41,13 +41,13 @@ int MsgWorker::set_nonblock(int sd){
     * interrupted by a signal. */
     if ((flags = fcntl(sd, F_GETFL)) < 0 ) {
         r = errno;
-        ML(fct, error, "{} fcntl(F_GETFL) failed: {}", this->name, 
+        ML(mct, error, "{} fcntl(F_GETFL) failed: {}", this->name, 
                                                         cpp_strerror(r));
         return -r;
     }
     if (fcntl(sd, F_SETFL, flags | O_NONBLOCK) < 0) {
         r = errno;
-        ML(fct,  error, "{} cntl(F_SETFL,O_NONBLOCK): {}", this->name,
+        ML(mct,  error, "{} cntl(F_SETFL,O_NONBLOCK): {}", this->name,
                                                         cpp_strerror(r));
         return -r;
     }
@@ -55,8 +55,8 @@ int MsgWorker::set_nonblock(int sd){
     return 0;
 }
 
-MsgWorker::MsgWorker(FlameContext *c, int i)
-: fct(c), index(i), event_poller(c, 128), worker_thread(this), 
+MsgWorker::MsgWorker(MsgContext *c, int i)
+: mct(c), index(i), event_poller(c, 128), worker_thread(this), 
     is_running(false), extra_job_num(0), external_mutex(), external_num(0),
     time_work_next_id(1){
     int r;
@@ -64,7 +64,7 @@ MsgWorker::MsgWorker(FlameContext *c, int i)
 
     int fds[2];
     if (pipe(fds) < 0) {
-        ML(fct, error, "{} can't create notify pipe: {}", this->name,
+        ML(mct, error, "{} can't create notify pipe: {}", this->name,
                                                         cpp_strerror(errno));
         throw ErrnoException(errno);
     }
@@ -80,7 +80,7 @@ MsgWorker::MsgWorker(FlameContext *c, int i)
         throw ErrnoException(-r);
     }
 
-    auto notify_cb = new HandleNotifyCallBack(fct);
+    auto notify_cb = new HandleNotifyCallBack(mct);
     notify_cb->fd = notify_receive_fd;
     add_event(notify_cb);
     notify_cb->put();
@@ -122,7 +122,7 @@ void MsgWorker::wakeup(){
     int n = write(notify_send_fd, &buf, sizeof(buf));
     if (n < 0) {
         if (errno != EAGAIN) {
-            ML(fct, error, "{} write notify pipe failed: {}", this->name,
+            ML(mct, error, "{} write notify pipe failed: {}", this->name,
                                                         cpp_strerror(errno));
         }
     }
@@ -139,10 +139,10 @@ void MsgWorker::add_time_work(time_point expire, work_fn_t work_fn,
 
 void MsgWorker::del_time_work(uint64_t time_work_id){
     assert(worker_thread.am_self());
-    ML(fct, trace, "id={}", time_work_id);
+    ML(mct, trace, "id={}", time_work_id);
     auto it = tw_map.find(time_work_id);
     if(it == tw_map.end()){
-        ML(fct, debug, "id={} not found", time_work_id);
+        ML(mct, debug, "id={} not found", time_work_id);
         return;
     }
     time_works.erase(it->second);
@@ -152,7 +152,7 @@ void MsgWorker::del_time_work(uint64_t time_work_id){
 uint64_t MsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
     uint64_t id = time_work_next_id++;
     auto now = clock_type::now();
-    ML(fct, trace, "id={} trigger after {} us", id, microseconds);
+    ML(mct, trace, "id={} trigger after {} us", id, microseconds);
     time_point expire = now + std::chrono::microseconds(microseconds);
     if(worker_thread.am_self()){
         add_time_work(expire, work_fn, id);
@@ -185,13 +185,13 @@ void MsgWorker::post_work(work_fn_t work_fn){
     }
     if (!worker_thread.am_self() && wake)
         wakeup();
-    ML(fct, debug, "{} pending {}", this->name, num);
+    ML(mct, debug, "{} pending {}", this->name, num);
 }
 
 void MsgWorker::start(){
     is_running = true;
     worker_thread.create(name.c_str());
-    ML(fct, debug, "{} worker thread created", this->name);
+    ML(mct, debug, "{} worker thread created", this->name);
 }
 
 void MsgWorker::stop(){
@@ -207,7 +207,7 @@ void MsgWorker::stop(){
 int MsgWorker::process_time_works(){
     int processed = 0;
     time_point now = clock_type::now();
-    // ML(fct, trace, "cur time is {} us", 
+    // ML(mct, trace, "cur time is {} us", 
     //         std::chrono::duration_cast
     //         <std::chrono::microseconds>(now.time_since_epoch()).count());
 
@@ -219,7 +219,7 @@ int MsgWorker::process_time_works(){
             work_fn_t work_fn = pair.second;
             time_works.erase(it);
             tw_map.erase(id);
-            ML(fct, trace, "process time work: id={}", id);
+            ML(mct, trace, "process time work: id={}", id);
             ++processed;
             work_fn();
         }else{
@@ -231,7 +231,7 @@ int MsgWorker::process_time_works(){
 }
 
 void MsgWorker::process(){
-    ML(fct, debug, "{} start", this->name);
+    ML(mct, debug, "{} start", this->name);
     std::vector<FiredEvent> fevents;
     struct timeval timeout;
     int numevents;
@@ -273,7 +273,7 @@ void MsgWorker::process(){
 
         for(int i = 0;i < numevents;++i){
             //* 确保ecb不会被释放，直到该ecb处理完成
-            ML(fct, trace, "{} process fd:{}, mask:{}", this->name,
+            ML(mct, trace, "{} process fd:{}, mask:{}", this->name,
                                         fevents[i].ecb->fd, fevents[i].mask);
             fevents[i].ecb->get();
             if(FLAME_EVENT_ERROR & fevents[i].mask){
@@ -304,7 +304,7 @@ void MsgWorker::process(){
             numevents += cur_process.size();
             while (!cur_process.empty()) {
                 work_fn_t cb = cur_process.front();
-                ML(fct, trace, "{} do func {:p}", this->name,
+                ML(mct, trace, "{} do func {:p}", this->name,
                                             (void *)cb.target<void(void)>());
                 cb();
                 cur_process.pop_front();
@@ -312,12 +312,12 @@ void MsgWorker::process(){
         }
 
         if(numevents > 0){
-            ML(fct, trace, "{} process {} event and work", this->name, 
+            ML(mct, trace, "{} process {} event and work", this->name, 
                                                                 numevents);
         }
     }
 
-    ML(fct, debug, "{} exit", this->name);
+    ML(mct, debug, "{} exit", this->name);
 
 }
 
@@ -325,7 +325,7 @@ void MsgWorker::drain(){
     // only executed when stop.
     if(is_running) return;
     int total = 0;
-    ML(fct, trace, "{} drain start", this->name);
+    ML(mct, trace, "{} drain start", this->name);
     while(external_num.load() > 0){
         std::deque<work_fn_t> cur_process;
         {
@@ -336,7 +336,7 @@ void MsgWorker::drain(){
         total += cur_process.size();
         while (!cur_process.empty()) {
             work_fn_t cb = cur_process.front();
-            ML(fct, trace, "{} do func {:p}", this->name,
+            ML(mct, trace, "{} do func {:p}", this->name,
                                         (void *)cb.target<void()>());
             cb();
             cur_process.pop_front();
@@ -345,11 +345,11 @@ void MsgWorker::drain(){
 
     total += this->process_time_works();
     if(time_works.size() > 0){
-        ML(fct, trace, "{}: {} time_works not done", 
+        ML(mct, trace, "{}: {} time_works not done", 
                                     this->name, time_works.size());
     }
 
-    ML(fct, trace, "{} drain done. total: {}", this->name, total);
+    ML(mct, trace, "{} drain done. total: {}", this->name, total);
 }
 
 

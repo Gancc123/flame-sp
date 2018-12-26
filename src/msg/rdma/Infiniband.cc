@@ -17,8 +17,8 @@ static const uint32_t TCP_MSG_LEN =
  sizeof("0000:00000000:00000000:00000000:00:00000000000000000000000000000000");
 static const uint32_t CQ_DEPTH = 30000;
 
-Port::Port(FlameContext *c, struct ibv_context* ictxt, uint8_t ipn)
-:fct(c), ctxt(ictxt), port_num(ipn), port_attr(new ibv_port_attr), gid_idx(0){
+Port::Port(MsgContext *c, struct ibv_context* ictxt, uint8_t ipn)
+:mct(c), ctxt(ictxt), port_num(ipn), port_attr(new ibv_port_attr), gid_idx(0){
 
 }
 
@@ -32,7 +32,7 @@ Port::~Port(){
 int Port::reload_info(){
     int r = ibv_query_port(ctxt, port_num, port_attr);
     if(r == -1){
-        ML(fct, error, "query port failed {}", cpp_strerror(errno));
+        ML(mct, error, "query port failed {}", cpp_strerror(errno));
         return -1;
     }
 
@@ -40,18 +40,18 @@ int Port::reload_info(){
 
     r = ibv_query_gid(ctxt, port_num, 0, &gid);
     if(r){
-        ML(fct, error, "query gid failed {}", cpp_strerror(errno));
+        ML(mct, error, "query gid failed {}", cpp_strerror(errno));
         return -1;
     }
     return 0;
 }
 
-Port* Port::create(FlameContext *fct, struct ibv_context* ictxt, 
+Port* Port::create(MsgContext *mct, struct ibv_context* ictxt, 
                                                                 uint8_t ipn){
-    auto p = new Port(fct, ictxt, ipn);
+    auto p = new Port(mct, ictxt, ipn);
     int r = ibv_query_port(ictxt, p->port_num, p->port_attr);
     if(r == -1){
-        ML(fct, error, "query port failed {}", cpp_strerror(errno));
+        ML(mct, error, "query port failed {}", cpp_strerror(errno));
         delete p;
         return nullptr;
     }
@@ -60,7 +60,7 @@ Port* Port::create(FlameContext *fct, struct ibv_context* ictxt,
 
     r = ibv_query_gid(ictxt, p->port_num, 0, &p->gid);
     if(r){
-        ML(fct, error, "query gid failed {}", cpp_strerror(errno));
+        ML(mct, error, "query gid failed {}", cpp_strerror(errno));
         delete p;
         return nullptr;
     }
@@ -68,28 +68,28 @@ Port* Port::create(FlameContext *fct, struct ibv_context* ictxt,
     return p;
 }
 
-Device::Device(FlameContext *c, ibv_device* d)
-:fct(c), device(d), device_attr(new ibv_device_attr), active_port(nullptr){
+Device::Device(MsgContext *c, ibv_device* d)
+:mct(c), device(d), device_attr(new ibv_device_attr), active_port(nullptr){
 
 }
 
-Device* Device::create(FlameContext *fct, ibv_device *device){
-    auto d = new Device(fct, device);
+Device* Device::create(MsgContext *mct, ibv_device *device){
+    auto d = new Device(mct, device);
     if(device == nullptr){
-        ML(fct, error, "device == nullptr {}", cpp_strerror(errno));
+        ML(mct, error, "device == nullptr {}", cpp_strerror(errno));
         delete d;
         return nullptr;
     }
     d->name = ibv_get_device_name(device);
     d->ctxt = ibv_open_device(device);
     if(d->ctxt == NULL){
-        ML(fct, error, "open rdma device failed. {}", cpp_strerror(errno));
+        ML(mct, error, "open rdma device failed. {}", cpp_strerror(errno));
         delete d;
         return nullptr;
     }
     int r = ibv_query_device(d->ctxt, d->device_attr);
     if(r == -1){
-        ML(fct, error, "failed to query rdma device. {}", cpp_strerror(errno));
+        ML(mct, error, "failed to query rdma device. {}", cpp_strerror(errno));
         delete d;
         return nullptr;
     }
@@ -99,27 +99,27 @@ Device* Device::create(FlameContext *fct, ibv_device *device){
 void Device::binding_port(int port_num){
     port_cnt = device_attr->phys_port_cnt;
     for(uint8_t i = 0;i < port_cnt; ++i){
-        Port *port = Port::create(fct, ctxt, i+1);
+        Port *port = Port::create(mct, ctxt, i+1);
         if(i+1 == port_num && port->get_port_attr()->state == IBV_PORT_ACTIVE){
             active_port = port;
-            ML(fct, info, "found active port {}", i+1);
+            ML(mct, info, "found active port {}", i+1);
             break;
         } else {
-            ML(fct, info, "port {} is not what we want. state: {}", i+1,
+            ML(mct, info, "port {} is not what we want. state: {}", i+1,
                                                 port->get_port_attr()->state );
         }
         delete port;
     }
     if( nullptr == active_port){
-        ML(fct, error, "port not found");
+        ML(mct, error, "port not found");
         assert(active_port);
     }
 }
 
 int Device::set_async_fd_nonblock(){
-    int rc = NetHandler(fct).set_nonblock(ctxt->async_fd);
+    int rc = NetHandler(mct).set_nonblock(ctxt->async_fd);
     if(rc < 0){
-        ML(fct, error, "failed. fd: {}", ctxt->async_fd);
+        ML(mct, error, "failed. fd: {}", ctxt->async_fd);
         return -1;
     }
     return 0;
@@ -130,10 +130,10 @@ QueuePair *QueuePair::get_by_ibv_qp(ibv_qp *qp){
 }
 
 QueuePair::QueuePair(
-    FlameContext *c, Infiniband& infiniband, ibv_qp_type type,
+    MsgContext *c, Infiniband& infiniband, ibv_qp_type type,
     int port, ibv_srq *srq, CompletionQueue* txcq, CompletionQueue* rxcq,
     uint32_t tx_queue_len, uint32_t rx_queue_len, uint32_t q_key)
-: fct(c), infiniband(infiniband),
+: mct(c), infiniband(infiniband),
   type(type),
   ctxt(infiniband.get_device()->ctxt),
   ib_physical_port(port),
@@ -151,16 +151,16 @@ QueuePair::QueuePair(
 
 int QueuePair::init(){
     if(type != IBV_QPT_RC){
-        ML(fct, error, "invalid queue pair type: {}", type);
+        ML(mct, error, "invalid queue pair type: {}", type);
         return -1;
     }
     // RC max message size is 1GB
-    if(fct->msg()->config->rdma_buffer_size > 1024 * 1024 * 1024){ //1GB
-        ML(fct, error, "rdma_buffer_size is too big. ({} > 1GB)", 
-                                        fct->msg()->config->rdma_buffer_size);
+    if(mct->config->rdma_buffer_size > 1024 * 1024 * 1024){ //1GB
+        ML(mct, error, "rdma_buffer_size is too big. ({} > 1GB)", 
+                                        mct->config->rdma_buffer_size);
         return -1;
     } 
-    ML(fct, info, "started.");
+    ML(mct, info, "started.");
     ibv_qp_init_attr qpia;
     memset(&qpia, 0, sizeof(qpia));
     qpia.qp_context = this;
@@ -183,15 +183,15 @@ int QueuePair::init(){
 
     qp = ibv_create_qp(pd, &qpia);
     if(qp == nullptr){
-        ML(fct, error, "failed to create queue pair {}", cpp_strerror(errno));
+        ML(mct, error, "failed to create queue pair {}", cpp_strerror(errno));
         if(errno == ENOMEM){
-            ML(fct, error, "try reducing rdma_recv_queue_len,"
+            ML(mct, error, "try reducing rdma_recv_queue_len,"
                 "rdma_buffer_num or rdma_buffer_size.");
         }
         return -1;
     }
 
-    ML(fct, info, "successfully create queue pair: qp={:p}", (void *)qp);
+    ML(mct, info, "successfully create queue pair: qp={:p}", (void *)qp);
 
     //move from RESET to INIT state
     ibv_qp_attr qpa;
@@ -223,18 +223,18 @@ int QueuePair::init(){
     int ret = ibv_modify_qp(qp, &qpa, mask);
     if(ret){
         ibv_destroy_qp(qp);
-        ML(fct, error, "failed to transition to INIT state: {}", 
+        ML(mct, error, "failed to transition to INIT state: {}", 
                                                 cpp_strerror(errno));
         return -1;
     }
 
-    ML(fct, info, "successfully change queue pair to INIT: qp={:p}", (void*)qp);
+    ML(mct, info, "successfully change queue pair to INIT: qp={:p}", (void*)qp);
     return 0;
 }
 
 QueuePair::~QueuePair(){
     if(qp){
-        ML(fct, info, "destory qp={:p}", (void *)qp);
+        ML(mct, info, "destory qp={:p}", (void *)qp);
         int r = ibv_destroy_qp(qp);
         assert(!r);
     }
@@ -264,7 +264,7 @@ int QueuePair::to_dead(){
     int mask = IBV_QP_STATE;
     int ret = ibv_modify_qp(qp, &qpa, mask);
     if (ret) {
-        ML(fct, error, "failed to transition to ERROR state: {}", 
+        ML(mct, error, "failed to transition to ERROR state: {}", 
                                                         cpp_strerror(errno));
         return -errno;
     }
@@ -278,7 +278,7 @@ int QueuePair::get_remote_qp_number(uint32_t *rqp) const{
 
     int r = ibv_query_qp(qp, &qpa, IBV_QP_DEST_QPN, &qpia);
     if(r){
-        ML(fct, error, "failed to query qp: {}", cpp_strerror(errno));
+        ML(mct, error, "failed to query qp: {}", cpp_strerror(errno));
         return -1;
     }
 
@@ -298,7 +298,7 @@ int QueuePair::get_remote_lid(uint16_t *lid) const{
 
     int r = ibv_query_qp(qp, &qpa, IBV_QP_AV, &qpia);
     if(r){
-        ML(fct, error, "failed to query qp: {}", cpp_strerror(errno));
+        ML(mct, error, "failed to query qp: {}", cpp_strerror(errno));
         return -1;
     }
 
@@ -316,7 +316,7 @@ int QueuePair::get_state() const{
 
     int r = ibv_query_qp(qp, &qpa, IBV_QP_STATE, &qpia);
     if (r) {
-        ML(fct, error, "failed to get state: {}", cpp_strerror(errno));
+        ML(mct, error, "failed to get state: {}", cpp_strerror(errno));
         return -1;
     }
     return qpa.qp_state;
@@ -331,14 +331,14 @@ bool QueuePair::is_error() const{
 
     int r = ibv_query_qp(qp, &qpa, -1, &qpia);
     if (r) {
-        ML(fct, error, "failed to get state: {}", cpp_strerror(errno));
+        ML(mct, error, "failed to get state: {}", cpp_strerror(errno));
         return true;
     }
     return qpa.cur_qp_state == IBV_QPS_ERR;
 }
 
-CompletionChannel::CompletionChannel(FlameContext *c, Infiniband &ib)
-: fct(c), infiniband(ib), channel(NULL), cq(NULL), cq_events_that_need_ack(0) { 
+CompletionChannel::CompletionChannel(MsgContext *c, Infiniband &ib)
+: mct(c), infiniband(ib), channel(NULL), cq(NULL), cq_events_that_need_ack(0) { 
 
 }
 
@@ -346,20 +346,20 @@ CompletionChannel::~CompletionChannel(){
     if(channel){
         int r = ibv_destroy_comp_channel(channel);
         if (r < 0)
-            ML(fct, error, "failed to destroy cc: {}", cpp_strerror(errno));
+            ML(mct, error, "failed to destroy cc: {}", cpp_strerror(errno));
         assert(r == 0);
     }
 }
 
 int CompletionChannel::init(){
-    ML(fct, info, "started.");
+    ML(mct, info, "started.");
     channel = ibv_create_comp_channel(infiniband.get_device()->ctxt);
     if(!channel){
-        ML(fct, error, "failed to create receive completion channel: {}", 
+        ML(mct, error, "failed to create receive completion channel: {}", 
                                                         cpp_strerror(errno));
         return -1;
     }
-    int rc = NetHandler(fct).set_nonblock(channel->fd);
+    int rc = NetHandler(mct).set_nonblock(channel->fd);
     if(rc < 0){
         ibv_destroy_comp_channel(channel);
         return -1;
@@ -377,7 +377,7 @@ bool CompletionChannel::get_cq_event(){
     void *ev_ctx;
     if (ibv_get_cq_event(channel, &cq, &ev_ctx)) {
         if (errno != EAGAIN && errno != EINTR)
-            ML(fct, error, "failed to retrieve CQ event: {}", 
+            ML(mct, error, "failed to retrieve CQ event: {}", 
                                                         cpp_strerror(errno));
         return false;
     }
@@ -387,7 +387,7 @@ bool CompletionChannel::get_cq_event(){
      * be acked, and periodically ack them
      */
     if (++cq_events_that_need_ack == MAX_ACK_EVENT) {
-        ML(fct, info, "ack aq events.");
+        ML(mct, info, "ack aq events.");
         ibv_ack_cq_events(cq, MAX_ACK_EVENT);
         cq_events_that_need_ack = 0;
     }
@@ -399,7 +399,7 @@ CompletionQueue::~CompletionQueue(){
     if(cq){
         int r = ibv_destroy_cq(cq);
         if (r != 0)
-            ML(fct, error, "failed to destroy cq: {}", cpp_strerror(errno));
+            ML(mct, error, "failed to destroy cq: {}", cpp_strerror(errno));
         assert(r == 0);
     }
 }
@@ -408,43 +408,43 @@ int CompletionQueue::init(){
     cq = ibv_create_cq(infiniband.get_device()->ctxt, queue_depth, this, 
                                                     channel->get_channel(), 0);
     if (!cq) {
-        ML(fct, error, "failed to create receive completion queue: {}", 
+        ML(mct, error, "failed to create receive completion queue: {}", 
                                                         cpp_strerror(errno));
         return -1;
     }
 
     if (ibv_req_notify_cq(cq, 0)) {
-        ML(fct, error, "ibv_req_notify_cq failed: {}", cpp_strerror(errno));
+        ML(mct, error, "ibv_req_notify_cq failed: {}", cpp_strerror(errno));
         ibv_destroy_cq(cq);
         cq = nullptr;
         return -1;
     }
 
     channel->bind_cq(cq);
-    ML(fct, info, "successfully create cq={:p}", (void *)cq);
+    ML(mct, info, "successfully create cq={:p}", (void *)cq);
     return 0;
 }
 
 int CompletionQueue::rearm_notify(bool solicite_only){
-    ML(fct, info, "");
+    ML(mct, info, "");
     int r = ibv_req_notify_cq(cq, 0);
     if (r < 0)
-        ML(fct, error, "failed to notify cq: {}", cpp_strerror(errno));
+        ML(mct, error, "failed to notify cq: {}", cpp_strerror(errno));
     return r;
 }
 
 int CompletionQueue::poll_cq(int num_entries, ibv_wc *ret_wc_array) {
     int r = ibv_poll_cq(cq, num_entries, ret_wc_array);
     if (r < 0) {
-        ML(fct, error, "poll_completion_queue occur met error: {}", 
+        ML(mct, error, "poll_completion_queue occur met error: {}", 
                                                         cpp_strerror(errno));
         return -1;
     }
     return r;
 }
 
-ProtectionDomain::ProtectionDomain(FlameContext *c, ibv_pd* ipd)
-:fct(c), pd(ipd){
+ProtectionDomain::ProtectionDomain(MsgContext *c, ibv_pd* ipd)
+:mct(c), pd(ipd){
 
 }
 
@@ -454,37 +454,37 @@ ProtectionDomain::~ProtectionDomain(){
     }
 }
 
-ProtectionDomain *ProtectionDomain::create(FlameContext *fct, Device *device){
+ProtectionDomain *ProtectionDomain::create(MsgContext *mct, Device *device){
     auto pd = ibv_alloc_pd(device->ctxt);
     if(pd == nullptr){
-        ML(fct, error, "failed to allocate infiniband protection domain: {}",
+        ML(mct, error, "failed to allocate infiniband protection domain: {}",
                                                         cpp_strerror(errno));
         return nullptr;
     }
-    auto pd_ins = new ProtectionDomain(fct, pd);
+    auto pd_ins = new ProtectionDomain(mct, pd);
     return pd_ins;
 }
 
 static std::atomic<bool> init_prereq = {false};
 
-bool Infiniband::verify_prereq(FlameContext *fct) {
+bool Infiniband::verify_prereq(MsgContext *mct) {
     init_prereq = true;
     //On RDMA MUST be called before fork
     int rc = ibv_fork_init();
     if (rc) {
-        ML(fct, error, "failed to call ibv_for_init()."
+        ML(mct, error, "failed to call ibv_for_init()."
                 " On RDMA must be called before fork. Application aborts.");
         init_prereq = false;
         return false;
     }
-    ML(fct, info, " rdma_enable_hugepage value is: {}", 
-                                    fct->msg()->config->rdma_enable_hugepage);
-    if(fct->msg()->config->rdma_enable_hugepage){
+    ML(mct, info, " rdma_enable_hugepage value is: {}", 
+                                    mct->config->rdma_enable_hugepage);
+    if(mct->config->rdma_enable_hugepage){
         rc =  setenv("RDMAV_HUGEPAGES_SAFE","1",1);
-        ML(fct, info, "RDMAV_HUGEPAGES_SAFE is set as: {}", 
+        ML(mct, info, "RDMAV_HUGEPAGES_SAFE is set as: {}", 
                                             getenv("RDMAV_HUGEPAGES_SAFE"));
         if(rc){
-            ML(fct, error, "failed to export RDMA_HUGEPAGES_SAFE. "
+            ML(mct, error, "failed to export RDMA_HUGEPAGES_SAFE. "
                 "On RDMA must be exported before using huge pages. "
                 "Application aborts.");
             init_prereq = false;
@@ -495,7 +495,7 @@ bool Infiniband::verify_prereq(FlameContext *fct) {
     struct rlimit limit;
     getrlimit(RLIMIT_MEMLOCK, &limit);
     if (limit.rlim_cur != RLIM_INFINITY || limit.rlim_max != RLIM_INFINITY) {
-        ML(fct, error, "!!! WARNING !!! For RDMA to work properly user memlock" 
+        ML(mct, error, "!!! WARNING !!! For RDMA to work properly user memlock" 
             " (ulimit -l) must be big enough to allow large amount of "
             "registered memory. We recommend setting this parameter to "
             "infinity");
@@ -503,20 +503,20 @@ bool Infiniband::verify_prereq(FlameContext *fct) {
     return true;
 }
 
-Infiniband::Infiniband(FlameContext *c)
-:fct(c), m_lock(), max_sge(MAX_SHARED_RX_SGE_COUNT),
-device_name(c->msg()->config->rdma_device_name),
-port_num(c->msg()->config->rdma_port_num){
+Infiniband::Infiniband(MsgContext *c)
+:mct(c), m_lock(), max_sge(MAX_SHARED_RX_SGE_COUNT),
+device_name(c->config->rdma_device_name),
+port_num(c->config->rdma_port_num){
 
 }
 
 bool Infiniband::init(){
     bool ready = false;
     if(!init_prereq){
-        ready = verify_prereq(fct);
+        ready = verify_prereq(mct);
     }
     if(!ready){
-        ML(fct, error, "failed!");
+        ML(mct, error, "failed!");
         return false;
     }
 
@@ -525,57 +525,57 @@ bool Infiniband::init(){
     if (initialized)
         return true;
 
-    device_list = DeviceList::create(fct);
+    device_list = DeviceList::create(mct);
     if(!device_list) return false;
     initialized = true;
-    NetHandler net_handler(fct);
+    NetHandler net_handler(mct);
 
     device = device_list->get_device(device_name.c_str());
     assert(device);
     device->binding_port(port_num);
     ib_physical_port = device->active_port->get_port_num();
-    pd = ProtectionDomain::create(fct, device);
+    pd = ProtectionDomain::create(mct, device);
     if(!pd) return false;
     int _r = net_handler.set_nonblock(device->ctxt->async_fd);
     assert(_r == 0);
 
-    enable_srq = fct->msg()->config->rdma_enable_srq;
+    enable_srq = mct->config->rdma_enable_srq;
     if(enable_srq){
         rx_queue_len = device->device_attr->max_srq_wr;
-        ML(fct, info, "device max_srq_wr: {}", rx_queue_len);
+        ML(mct, info, "device max_srq_wr: {}", rx_queue_len);
     }else{
         rx_queue_len = device->device_attr->max_qp_wr;
-        ML(fct, info, "device max_qp_wr: {}", rx_queue_len);
+        ML(mct, info, "device max_qp_wr: {}", rx_queue_len);
     }
 
 
-    if(fct->msg()->config->rdma_recv_queue_len <= 0){
-        ML(fct, warn, "rdma_recv_queue_len must > 0! now set {}", rx_queue_len);
-    }else if (rx_queue_len > fct->msg()->config->rdma_recv_queue_len) {
-        rx_queue_len = fct->msg()->config->rdma_recv_queue_len;
-        ML(fct, info, "receive queue length is {} .", rx_queue_len);
+    if(mct->config->rdma_recv_queue_len <= 0){
+        ML(mct, warn, "rdma_recv_queue_len must > 0! now set {}", rx_queue_len);
+    }else if (rx_queue_len > mct->config->rdma_recv_queue_len) {
+        rx_queue_len = mct->config->rdma_recv_queue_len;
+        ML(mct, info, "receive queue length is {} .", rx_queue_len);
     } else {
-        ML(fct, info,"requested receive queue length {} is too big. Setting {}",
-                        fct->msg()->config->rdma_recv_queue_len, rx_queue_len);
+        ML(mct, info,"requested receive queue length {} is too big. Setting {}",
+                        mct->config->rdma_recv_queue_len, rx_queue_len);
     }
 
     tx_queue_len = device->device_attr->max_qp_wr;
-    if(fct->msg()->config->rdma_send_queue_len <= 0){
-        ML(fct, warn, "rdma_send_queue_len must > 0! now set {}", tx_queue_len);
-    }else if (tx_queue_len > fct->msg()->config->rdma_send_queue_len) {
-        tx_queue_len = fct->msg()->config->rdma_send_queue_len;
-        ML(fct, info, "send queue length is {} .", tx_queue_len);
+    if(mct->config->rdma_send_queue_len <= 0){
+        ML(mct, warn, "rdma_send_queue_len must > 0! now set {}", tx_queue_len);
+    }else if (tx_queue_len > mct->config->rdma_send_queue_len) {
+        tx_queue_len = mct->config->rdma_send_queue_len;
+        ML(mct, info, "send queue length is {} .", tx_queue_len);
     } else {
-        ML(fct, info, "requested send queue length {} is too big. Setting {}",
-                        fct->msg()->config->rdma_send_queue_len, tx_queue_len);
+        ML(mct, info, "requested send queue length {} is too big. Setting {}",
+                        mct->config->rdma_send_queue_len, tx_queue_len);
     }
 
-    //fct->msg()->config->rdma_buffer_num no use now.
+    //mct->config->rdma_buffer_num no use now.
 
-    ML(fct, info, "device allow {} completion entries.", 
+    ML(mct, info, "device allow {} completion entries.", 
                                                 device->device_attr->max_cqe);
 
-    memory_manager = new MemoryManager(fct, pd);
+    memory_manager = new MemoryManager(mct, pd);
     
     return true;
 }
@@ -606,7 +606,7 @@ ibv_srq* Infiniband::create_shared_receive_queue(uint32_t max_wr){
   sia.attr.max_sge = max_sge;
   auto new_srq = ibv_create_srq(pd->pd, &sia);
   if(!new_srq){
-      ML(fct, error, "failed.");
+      ML(mct, error, "failed.");
   }
   return new_srq;
 }
@@ -630,12 +630,12 @@ int Infiniband::get_buffers(size_t bytes, std::vector<Chunk*> &c){
  *      QueuePair on success or NULL if init fails
  * See QueuePair::QueuePair for parameter documentation.
  */
-QueuePair* Infiniband::create_queue_pair(FlameContext *fct, 
+QueuePair* Infiniband::create_queue_pair(MsgContext *mct, 
                                             CompletionQueue *tx, 
                                             CompletionQueue* rx, 
                                             ibv_srq *srq,
                                             ibv_qp_type type){
-    QueuePair *qp = new QueuePair(fct, *this, type, ib_physical_port, 
+    QueuePair *qp = new QueuePair(mct, *this, type, ib_physical_port, 
                                     srq, tx, rx, tx_queue_len, rx_queue_len);
     if (qp->init()) {
         delete qp;
@@ -720,7 +720,7 @@ int Infiniband::m_post_chunks_to_rq(int num, void *qp, bool is_srq){
     r = get_memory_manager()->get_buffers(bytes, chunk_list);
 
     if(r < num){
-        ML(fct, warn, 
+        ML(mct, warn, 
             "WARNING: out of memory. Requested {} rx buffers. Got {}",
             num, r);
         if(r == 0)
@@ -732,7 +732,7 @@ int Infiniband::m_post_chunks_to_rq(int num, void *qp, bool is_srq){
     return r;
 }
 
-CompletionChannel *Infiniband::create_comp_channel(FlameContext *c){
+CompletionChannel *Infiniband::create_comp_channel(MsgContext *c){
     auto cc = new CompletionChannel(c, *this);
     if(cc->init()){
         delete cc;
@@ -741,9 +741,9 @@ CompletionChannel *Infiniband::create_comp_channel(FlameContext *c){
     return cc;
 }
 
-CompletionQueue *Infiniband::create_comp_queue(FlameContext *fct, 
+CompletionQueue *Infiniband::create_comp_queue(MsgContext *mct, 
                                                     CompletionChannel *cc){
-    CompletionQueue *cq = new CompletionQueue(fct, *this, CQ_DEPTH, cc);
+    CompletionQueue *cq = new CompletionQueue(mct, *this, CQ_DEPTH, cc);
     if(cq->init()){
         delete cq;
         return nullptr;
@@ -751,7 +751,7 @@ CompletionQueue *Infiniband::create_comp_queue(FlameContext *fct,
     return cq;
 }
 
-int Infiniband::encode_msg(FlameContext *fct, IBSYNMsg& im, MsgBuffer &buffer){
+int Infiniband::encode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
     if(buffer.length() < TCP_MSG_LEN){
         return -1;
     }
@@ -759,12 +759,12 @@ int Infiniband::encode_msg(FlameContext *fct, IBSYNMsg& im, MsgBuffer &buffer){
     gid_to_wire_gid(&(im.gid), gid);
     sprintf(buffer.data(), "%04x:%08x:%08x:%08x:%02x:%s", 
                             im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
-    ML(fct, info, ": {}, {}, {}, {}, {}, {}", 
+    ML(mct, info, ": {}, {}, {}, {}, {}, {}", 
                             im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
     buffer.set_offset(TCP_MSG_LEN);
     return TCP_MSG_LEN;
 }
-int Infiniband::decode_msg(FlameContext *fct, IBSYNMsg& im, MsgBuffer &buffer){
+int Infiniband::decode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
     if(buffer.offset() < TCP_MSG_LEN){
         return -1;
     }
@@ -772,7 +772,7 @@ int Infiniband::decode_msg(FlameContext *fct, IBSYNMsg& im, MsgBuffer &buffer){
     sscanf(buffer.data(), "%hu:%x:%x:%x:%hhx:%s", &(im.lid), &(im.qpn), 
                                     &(im.psn), &(im.peer_qpn), &(im.sl), gid);
     wire_gid_to_gid(gid, &(im.gid));
-    ML(fct, info, ": {}, {}, {}, {}, {}, {}", 
+    ML(mct, info, ": {}, {}, {}, {}, {}, {}", 
                         im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
     return TCP_MSG_LEN;
 }

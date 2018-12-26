@@ -7,9 +7,9 @@
 namespace flame{
 
 class TcpListenPort : public ListenPort{
-    TcpListenPort(FlameContext *fct, NodeAddr *listen_addr);
+    TcpListenPort(MsgContext *mct, NodeAddr *listen_addr);
 public:
-    static TcpListenPort *create(FlameContext *fct, NodeAddr *listen_addr);
+    static TcpListenPort *create(MsgContext *mct, NodeAddr *listen_addr);
     ~TcpListenPort();
 
     virtual msg_ttype_t get_ttype() override { 

@@ -18,16 +18,16 @@ class Msg : public RefCountedObject{
     MsgBufferList data_bl;
 
 public:
-    static Msg* alloc_msg(FlameContext *fct, 
+    static Msg* alloc_msg(MsgContext *mct, 
                                     msg_ttype_t ttype=msg_ttype_t::TCP){
-        Msg *msg = new Msg(fct);
+        Msg *msg = new Msg(mct);
         msg->ttype = ttype;
         msg->type = FLAME_MSG_TYPE_CTL;
         return msg;
     }
 
-    explicit Msg(FlameContext *fct)
-    : RefCountedObject(fct){
+    explicit Msg(MsgContext *mct)
+    : RefCountedObject(mct){
         type = FLAME_MSG_TYPE_NONE;
         priority = FLAME_MSG_PRIO_DEFAULT;
     };
@@ -100,6 +100,10 @@ public:
         return (this->type == FLAME_MSG_TYPE_DECLARE_ID);
     }
 
+    bool is_imm_data() const{
+        return (this->type == FLAME_MSG_TYPE_IMM_DATA);
+    }
+
     bool is_nop() const {
         return (this->type == FLAME_MSG_TYPE_NONE);
     }
@@ -118,6 +122,10 @@ public:
 
     bool is_resp() const {
         return (this->flag & FLAME_MSG_FLAG_RESP);
+    }
+
+    bool with_imm() const {
+        return (this->flag & FLAME_MSG_FLAG_WITH_IMM);
     }
 
     bool has_rdma() const {
@@ -142,16 +150,12 @@ public:
 
     std::string msg_type_str() const{
         switch(this->type){
-        case FLAME_MSG_TYPE_NONE:
-            return "TYPE_NONE";
-        case FLAME_MSG_TYPE_CTL:
-            return "TYPE_CTL";
-        case FLAME_MSG_TYPE_IO:
-            return "TYPE_IO";
-        case FLAME_MSG_TYPE_DECLARE_ID:
-            return "TYPE_DECLARE_ID";
-        default:
-            return "TYPE_INVALID";
+        case FLAME_MSG_TYPE_NONE:          return "TYPE_NONE";
+        case FLAME_MSG_TYPE_CTL:           return "TYPE_CTL";
+        case FLAME_MSG_TYPE_IO:            return "TYPE_IO";
+        case FLAME_MSG_TYPE_DECLARE_ID:    return "TYPE_DECLARE_ID";
+        case FLAME_MSG_TYPE_IMM_DATA:      return "TYPE_IMM_DATA";
+        default:                           return "TYPE_INVALID";
         }
     }
 
@@ -181,12 +185,17 @@ public:
     uint8_t  priority; 
     uint8_t  reserved = 0;
     uint32_t data_len = 0; // only for receive
+    uint32_t imm_data = 0; // only for FLAME_MSG_TYPE_IMM_DATA
 
     size_t payload_len() const{
-        if(has_rdma()){
-            return get_rdma_cnt() * sizeof(flame_msg_rdma_mr_t);
+        size_t total = 0;
+        if(with_imm()){
+            total += sizeof(flame_msg_imm_data_t);
         }
-        return 0;
+        if(has_rdma()){
+            total += get_rdma_cnt() * sizeof(flame_msg_rdma_mr_t);
+        }
+        return total;
     }
 
 };

@@ -3,7 +3,6 @@
 #include "util/clog.h"
 #include <cstdio>
 #include <unistd.h>
-#include <sys/stat.h>
 
 namespace flame {
 
@@ -44,15 +43,6 @@ bool Logger::set_level_with_name(const std::string& level_name) {
 bool Logger::reopen(const std::string& dir, const std::string& prefix) {
     dir_ = dir;
     prefix_ = prefix;
-
-    int res = mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if(res){
-        if(errno != EEXIST){
-            lerror("logger", "create log dir(%s) failed", dir.c_str());
-            return false;
-        }
-    }
-
     return switch_log_file();
 }
 

@@ -7,9 +7,9 @@
 namespace flame{
 
 class RdmaListenPort : public ListenPort{
-    RdmaListenPort(FlameContext *fct, NodeAddr *listen_addr);
+    RdmaListenPort(MsgContext *mct, NodeAddr *listen_addr);
 public:
-    static RdmaListenPort *create(FlameContext *fct, NodeAddr *listen_addr);
+    static RdmaListenPort *create(MsgContext *mct, NodeAddr *listen_addr);
     ~RdmaListenPort();
 
     virtual msg_ttype_t get_ttype() override { 

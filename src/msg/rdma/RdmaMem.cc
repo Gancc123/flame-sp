@@ -24,7 +24,7 @@ RdmaBuffer::RdmaBuffer(void *ptr, BuddyAllocator *a)
 void *RdmaMemSrc::alloc(size_t s) {
     void *m = mmgr->malloc(s);
     if(!m){
-        MLI(mmgr->fct, error, "RdmaMemSrc failed to allocate {}B of mem.", s);
+        MLI(mmgr->mct, error, "RdmaMemSrc failed to allocate {}B of mem.", s);
         return nullptr;
     }
     // As huge page memory's unit is 2MB(on intel).
@@ -36,12 +36,12 @@ void *RdmaMemSrc::alloc(size_t s) {
                         | IBV_ACCESS_REMOTE_READ);
 
     if(mr == nullptr){
-        MLI(mmgr->fct, error, "RdmaMemSrc failed to register {}B of mem: {}",
+        MLI(mmgr->mct, error, "RdmaMemSrc failed to register {}B of mem: {}",
                 s, cpp_strerror(errno));
         mmgr->free(m);
         return nullptr;
     }else{
-        MLI(mmgr->fct, info, "RdmaMemSrc register {}B of mem", s);
+        MLI(mmgr->mct, info, "RdmaMemSrc register {}B of mem", s);
     }
 
     return m;
@@ -70,7 +70,7 @@ int RdmaBufferAllocator::expand(){
         delete mem_src;
         return -1;
     }
-    auto allocator = BuddyAllocator::create(mmgr->fct, max_level, min_level,
+    auto allocator = BuddyAllocator::create(mmgr->mct, max_level, min_level,
                                                                      mem_src);
     if(!allocator){
         delete mem_src;
@@ -86,11 +86,11 @@ int RdmaBufferAllocator::expand(){
 }
 
 int RdmaBufferAllocator::init(){
-    min_level = mmgr->fct->msg()->config->rdma_mem_min_level;
-    max_level = mmgr->fct->msg()->config->rdma_mem_max_level;
+    min_level = mmgr->mct->config->rdma_mem_min_level;
+    max_level = mmgr->mct->config->rdma_mem_max_level;
     if(max_level < RDMA_MEM_MAX_LEVEL_MIN 
-        && mmgr->fct->msg()->config->rdma_enable_hugepage){
-        ML(mmgr->fct, error, "When use hugepage, (1 << max_level) can't be less"
+        && mmgr->mct->config->rdma_enable_hugepage){
+        ML(mmgr->mct, error, "When use hugepage, (1 << max_level) can't be less"
             " than hugepage size. Or ibv_reg_mr() will fail, when reg a memory "
             "(real size > huge_page_size) with s (reg size < huge_page_size). "
             "Don't know the reason! rdma_mem_max_level is {} < {}, too small.", 

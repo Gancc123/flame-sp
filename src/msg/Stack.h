@@ -2,6 +2,7 @@
 #define FLAME_MSG_STACK_H
 
 #include "acconfig.h"
+#include "msg_context.h"
 #include "msg_types.h"
 #include "Connection.h"
 #include "ListenPort.h"
@@ -12,8 +13,9 @@ class TcpStack;
 class RdmaStack;
 
 class Stack{
+    static MsgContext *mct;
 public:
-    static int init_all_stack();
+    static int init_all_stack(MsgContext *mct);
     static int clear_all_before_stop();
     static int fin_all_stack();
 

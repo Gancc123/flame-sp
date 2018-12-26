@@ -27,7 +27,7 @@ struct msger_id_comparator{
 
 std::string msger_id_to_str(msger_id_t msger_id);
 
-NodeAddr *node_addr_from_msger_id(FlameContext *fct, msger_id_t id);
+NodeAddr *node_addr_from_msger_id(MsgContext *mct, msger_id_t id);
 msger_id_t msger_id_from_node_addr(NodeAddr *addr);
 
 

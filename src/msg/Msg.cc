@@ -45,8 +45,6 @@ ssize_t Msg::encode_header(MsgBuffer &buffer){
 
     buffer.set_offset(FLAME_MSG_HEADER_LEN);
 
-
-
     return FLAME_MSG_HEADER_LEN;
 }
 

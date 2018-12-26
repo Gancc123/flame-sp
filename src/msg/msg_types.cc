@@ -15,8 +15,8 @@ std::string msger_id_to_str(msger_id_t msger_id){
     return ss.str();
 }
 
-NodeAddr *node_addr_from_msger_id(FlameContext *fct, msger_id_t id){
-    NodeAddr *node_addr = new NodeAddr(fct);
+NodeAddr *node_addr_from_msger_id(MsgContext *mct, msger_id_t id){
+    NodeAddr *node_addr = new NodeAddr(mct);
     node_addr->set_ttype(NODE_ADDR_TTYPE_TCP);
     node_addr->set_family(AF_INET);
     std::memcpy(&node_addr->in4_addr().sin_addr, &id.ip, 

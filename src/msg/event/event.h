@@ -19,10 +19,10 @@ struct EventCallBack : public RefCountedObject{
     virtual void read_cb() {};
     virtual void write_cb() {};
     virtual void error_cb() {};
-    explicit EventCallBack(FlameContext *fct) 
-    : RefCountedObject(fct), mask(FLAME_EVENT_NONE) {};
-    explicit EventCallBack(FlameContext *fct, int m) 
-    : RefCountedObject(fct), mask(m) {}; 
+    explicit EventCallBack(MsgContext *mct) 
+    : RefCountedObject(mct), mask(FLAME_EVENT_NONE) {};
+    explicit EventCallBack(MsgContext *mct, int m) 
+    : RefCountedObject(mct), mask(m) {}; 
     virtual ~EventCallBack() {};
     
 };

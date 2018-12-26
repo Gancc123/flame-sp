@@ -9,16 +9,16 @@
 
 using namespace flame;
 
-void send_first_incre_msg(FlameContext *fct){
+void send_first_incre_msg(MsgContext *mct){
     msg_incre_d data;
     data.num = 0;
-    auto req_msg = Msg::alloc_msg(fct);
+    auto req_msg = Msg::alloc_msg(mct);
     req_msg->append_data(data);
-    NodeAddr *addr = new NodeAddr(fct);
+    NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(6666);
     msger_id_t msger_id = msger_id_from_node_addr(addr);
-    auto session = fct->msg()->manager->get_session(msger_id);
+    auto session = mct->manager->get_session(msger_id);
     session->set_listen_addr(addr);
     auto conn = session->get_conn();
     conn->send_msg(req_msg);
@@ -34,29 +34,32 @@ int main(){
         clog("init config failed.");
         return -1;
     }
-    if(!fct->init_log("log", "TRACE", "client")){
-         clog("init log failed.");
+    if(!fct->init_log("", "TRACE", "client")){
+        clog("init log failed.");
         return -1;
     }
 
-    ML(fct, info, "init complete.");
-    ML(fct, info, "load cfg: " CFG_PATH);
+    auto mct = new MsgContext(fct);
 
-    IncreMsger *msger = new IncreMsger(fct);
+    ML(mct, info, "init complete.");
+    ML(mct, info, "load cfg: " CFG_PATH);
 
-    msg_module_init(fct, msger);
+    IncreMsger *msger = new IncreMsger(mct);
 
-    ML(fct, info, "msger_id {:x} {:x} ", fct->msg()->config->msger_id.ip,
-                                         fct->msg()->config->msger_id.port);
+    mct->init(msger);
 
-    send_first_incre_msg(fct);
+    ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
+                                         mct->config->msger_id.port);
+
+    send_first_incre_msg(mct);
 
     std::getchar();
 
-    msg_module_finilize(fct);
+    mct->fin();
 
     delete msger;
 
+    delete mct;
 
     return 0;
 }

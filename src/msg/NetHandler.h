@@ -1,16 +1,16 @@
 #ifndef FLAME_MSG_NET_HANDLER_H
 #define FLAME_MSG_NET_HANDLER_H
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "internal/node_addr.h"
 
 namespace flame{
 
 class NetHandler{
-    FlameContext *fct;
+    MsgContext *mct;
 public:
-    explicit NetHandler(FlameContext *c)
-    :fct(c) {}
+    explicit NetHandler(MsgContext *c)
+    :mct(c) {}
 
     int create_socket(int domain, bool reuse);
     int set_nonblock(int fd);

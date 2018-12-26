@@ -1,10 +1,10 @@
 #ifndef FLAME_MSG_INTERNAL_NODE_ADDR_H
 #define FLAME_MSG_INTERNAL_NODE_ADDR_H
 
-#include "common/context.h"
 #include "types.h"
 #include "util.h"
 #include "ref_counted_obj.h"
+#include "msg/msg_context.h"
 
 #include <netinet/in.h>
 #include <cstring>
@@ -33,18 +33,18 @@ class NodeAddr : public RefCountedObject{
         sockaddr_in6 sin6;
     } u;
 public:
-    NodeAddr(FlameContext *fct) 
-    : RefCountedObject(fct){
+    NodeAddr(MsgContext *mct) 
+    : RefCountedObject(mct){
         std::memset(&u, 0, sizeof(u)); // !important for compare
     }
-    explicit NodeAddr(FlameContext *fct, struct node_addr_t &addr)
-    : RefCountedObject(fct){
+    explicit NodeAddr(MsgContext *mct, struct node_addr_t &addr)
+    : RefCountedObject(mct){
         // will clean this->u.
         decode(&addr, sizeof(addr));
     }
 
-    explicit NodeAddr(FlameContext *fct, NodeAddr &addr)
-    : RefCountedObject(fct){
+    explicit NodeAddr(MsgContext *mct, NodeAddr &addr)
+    : RefCountedObject(mct){
         this->u = addr.u;
     }
 

@@ -4,7 +4,7 @@
 #include <infiniband/verbs.h>
 #include <cassert>
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "common/thread/mutex.h"
 #include "msg/internal/msg_buffer.h"
 #include "msg/internal/errno.h"
@@ -33,16 +33,16 @@ struct IBSYNMsg {
 } __attribute__((packed));
 
 class Port {
-    FlameContext *fct;
+    MsgContext *mct;
     struct ibv_context* ctxt;
     int port_num;
     struct ibv_port_attr* port_attr;
     uint16_t lid;
     int gid_idx = 0;
     union ibv_gid gid;
-    Port(FlameContext *fct, struct ibv_context* ictxt, uint8_t ipn);
+    Port(MsgContext *mct, struct ibv_context* ictxt, uint8_t ipn);
 public: 
-    static Port* create(FlameContext *fct, struct ibv_context* ictxt, 
+    static Port* create(MsgContext *mct, struct ibv_context* ictxt, 
                                                                 uint8_t ipn);
     ~Port();
     int reload_info();
@@ -55,13 +55,13 @@ public:
 
 
 class Device {
-    FlameContext *fct;
+    MsgContext *mct;
     ibv_device *device;
     const char* name;
     uint8_t  port_cnt = 0;
-    Device(FlameContext *c, ibv_device* d);
+    Device(MsgContext *c, ibv_device* d);
 public:
-    static Device* create(FlameContext *c, ibv_device* d);
+    static Device* create(MsgContext *c, ibv_device* d);
     ~Device() {
         if (active_port) {
             delete active_port;
@@ -83,27 +83,27 @@ public:
 
 
 class DeviceList {
-    FlameContext *fct;
+    MsgContext *mct;
     struct ibv_device ** device_list;
     int num;
     Device** devices;
-    DeviceList(FlameContext *c):fct(c) {}
+    DeviceList(MsgContext *c):mct(c) {}
 public:
-    static DeviceList* create(FlameContext *fct){
+    static DeviceList* create(MsgContext *mct){
         struct ibv_device **device_list;
         int num;
         device_list = ibv_get_device_list(&num);
         if (device_list == NULL || num == 0) {
-            ML(fct, error, "failed to get rdma device list. {}", 
+            ML(mct, error, "failed to get rdma device list. {}", 
                                                         cpp_strerror(errno));
             return nullptr;
         }
-        auto dl = new DeviceList(fct);
+        auto dl = new DeviceList(mct);
         dl->device_list = device_list;
         dl->num = num;
         dl->devices = new Device*[num];
         for (int i = 0;i < num; ++i) {
-            dl->devices[i] = Device::create(fct, device_list[i]);
+            dl->devices[i] = Device::create(mct, device_list[i]);
         }
 
         return dl;
@@ -129,10 +129,10 @@ public:
 };
 
 class ProtectionDomain {
-    FlameContext *fct;
-    ProtectionDomain(FlameContext *fct, ibv_pd* ipd);
+    MsgContext *mct;
+    ProtectionDomain(MsgContext *mct, ibv_pd* ipd);
 public:
-    static ProtectionDomain *create(FlameContext *fct, Device *device);
+    static ProtectionDomain *create(MsgContext *mct, Device *device);
     ~ProtectionDomain();
 
     ibv_pd* const pd;
@@ -140,14 +140,14 @@ public:
 
 class CompletionChannel {
     static const uint32_t MAX_ACK_EVENT = 5000;
-    FlameContext *fct;
+    MsgContext *mct;
     Infiniband& infiniband;
     ibv_comp_channel *channel;
     ibv_cq *cq;
     uint32_t cq_events_that_need_ack;
 
 public:
-    CompletionChannel(FlameContext *c, Infiniband &ib);
+    CompletionChannel(MsgContext *c, Infiniband &ib);
     ~CompletionChannel();
     int init();
     bool get_cq_event();
@@ -163,9 +163,9 @@ public:
 // You need to call init and it will create a cq and associate to comp channel
 class CompletionQueue {
 public:
-    CompletionQueue(FlameContext *c, Infiniband &ib,
+    CompletionQueue(MsgContext *c, Infiniband &ib,
                     const uint32_t qd, CompletionChannel *cc)
-      : fct(c), infiniband(ib), channel(cc), cq(NULL), queue_depth(qd) {}
+      : mct(c), infiniband(ib), channel(cc), cq(NULL), queue_depth(qd) {}
     ~CompletionQueue();
     int init();
     int poll_cq(int num_entries, ibv_wc *ret_wc_array);
@@ -174,7 +174,7 @@ public:
     int rearm_notify(bool solicited_only=true);
     CompletionChannel* get_cc() const { return channel; }
 private:
-    FlameContext *fct;
+    MsgContext *mct;
     Infiniband&  infiniband;     // Infiniband to which this QP belongs
     CompletionChannel *channel;
     ibv_cq *cq;
@@ -190,7 +190,7 @@ private:
 class QueuePair {
 public:
     static QueuePair *get_by_ibv_qp(ibv_qp *qp);
-    QueuePair(FlameContext *c, Infiniband& infiniband, ibv_qp_type type,
+    QueuePair(MsgContext *c, Infiniband& infiniband, ibv_qp_type type,
               int ib_physical_port,  ibv_srq *srq,
               CompletionQueue* txcq, CompletionQueue* rxcq,
               uint32_t tx_queue_len, uint32_t max_recv_wr, uint32_t q_key = 0);
@@ -241,7 +241,7 @@ public:
     bool is_dead() const { return dead_; }
 
 private:
-    FlameContext  *fct;
+    MsgContext  *mct;
     Infiniband&  infiniband;     // Infiniband to which this QP belongs
     ibv_qp_type  type;           // QP type (IBV_QPT_RC, etc.)
     ibv_context* ctxt;           // device context of the HCA to use
@@ -270,7 +270,7 @@ class Infiniband{
     DeviceList *device_list = nullptr;
     void wire_gid_to_gid(const char *wgid, union ibv_gid *gid);
     void gid_to_wire_gid(const union ibv_gid *gid, char wgid[]);
-    FlameContext *fct;
+    MsgContext *mct;
     Mutex m_lock;
     bool initialized = false;
     const std::string &device_name;
@@ -279,12 +279,12 @@ class Infiniband{
     int m_post_chunks_to_rq(std::vector<Chunk*> &chunks, void *qp, bool is_srq);
     int m_post_chunks_to_rq(int num, void *qp, bool is_srq);
 public:
-    explicit Infiniband(FlameContext *c);
+    explicit Infiniband(MsgContext *c);
     ~Infiniband();
     bool init();
-    static bool verify_prereq(FlameContext *fct);
+    static bool verify_prereq(MsgContext *mct);
 
-    QueuePair* create_queue_pair(FlameContext *c, 
+    QueuePair* create_queue_pair(MsgContext *c, 
                                     CompletionQueue*, 
                                     CompletionQueue*, 
                                     ibv_srq *srq,
@@ -298,12 +298,12 @@ public:
     void post_chunks_to_pool(std::vector<Chunk *> &chunks);
     void post_chunk_to_pool(Chunk* chunk);
     int get_buffers(size_t bytes, std::vector<Chunk*> &c);
-    CompletionChannel *create_comp_channel(FlameContext *c);
-    CompletionQueue *create_comp_queue(FlameContext *c, 
+    CompletionChannel *create_comp_channel(MsgContext *c);
+    CompletionQueue *create_comp_queue(MsgContext *c, 
                                                     CompletionChannel *cc=NULL);
     uint8_t get_ib_physical_port() { return ib_physical_port; }
-    int encode_msg(FlameContext *fct, IBSYNMsg& msg, MsgBuffer &buffer);
-    int decode_msg(FlameContext *fct, IBSYNMsg& msg, MsgBuffer &buffer);
+    int encode_msg(MsgContext *mct, IBSYNMsg& msg, MsgBuffer &buffer);
+    int decode_msg(MsgContext *mct, IBSYNMsg& msg, MsgBuffer &buffer);
     static int get_ib_syn_msg_len();
     static int get_max_inline_data();
     uint16_t get_lid() { return device->get_lid(); }

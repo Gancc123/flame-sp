@@ -1,6 +1,7 @@
 #include "Stack.h"
-#include "msg/socket/TcpStack.h"
 #include "common/context.h"
+#include "msg/msg_context.h"
+#include "msg/socket/TcpStack.h"
 #include "msg_def.h"
 
 #ifdef HAVE_RDMA
@@ -9,18 +10,21 @@
 
 namespace flame{
 
+MsgContext *Stack::mct = nullptr;
+
 TcpStack* Stack::get_tcp_stack(){
-    static TcpStack instance(FlameContext::get_context());
+    static TcpStack instance(Stack::mct);
     return &instance;
 }
 
-int Stack::init_all_stack(){
+int Stack::init_all_stack(MsgContext *c){
+    if(c == nullptr) return -1;
+    Stack::mct = c;
     int r = 0;
     r = Stack::get_tcp_stack()->init();
 #ifdef HAVE_RDMA
     if(r) return r;
-    auto fct = FlameContext::get_context();
-    if(fct->msg()->config->rdma_enable){
+    if(Stack::mct->config->rdma_enable){
         r = Stack::get_rdma_stack()->init();
     }
 #endif
@@ -30,8 +34,7 @@ int Stack::init_all_stack(){
 int Stack::clear_all_before_stop(){
     int r = 0;
 #ifdef HAVE_RDMA
-    auto fct = FlameContext::get_context();
-    if(fct->msg()->config->rdma_enable){
+    if(Stack::mct->config->rdma_enable){
         r = Stack::get_rdma_stack()->clear_before_stop();
     }
     if(r) return r;
@@ -43,8 +46,7 @@ int Stack::clear_all_before_stop(){
 int Stack::fin_all_stack(){
     int r = 0;
 #ifdef HAVE_RDMA
-    auto fct = FlameContext::get_context();
-    if(fct->msg()->config->rdma_enable){
+    if(Stack::mct->config->rdma_enable){
         r = Stack::get_rdma_stack()->fin();
     }
     if(r) return r;
@@ -55,12 +57,11 @@ int Stack::fin_all_stack(){
 
 #ifdef HAVE_RDMA
 RdmaStack* Stack::get_rdma_stack(){
-    auto fct = FlameContext::get_context();
-    if(!fct->msg()->config->rdma_enable){
-        ML(fct, error, "RDMA disabled!");
+    if(!Stack::mct->config->rdma_enable){
+        ML(Stack::mct, error, "RDMA disabled!");
         return nullptr;
     }
-    static RdmaStack instance(FlameContext::get_context());
+    static RdmaStack instance(Stack::mct);
     return &instance;
 }
 #endif

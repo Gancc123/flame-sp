@@ -55,9 +55,9 @@ private:
     int submit_rw_works();
     int decode_rx_buffer(ib::Chunk *chunk);
     int reap_send_msg();
-    RdmaConnection(FlameContext *fct);
+    RdmaConnection(MsgContext *mct);
 public:
-    static RdmaConnection *create(FlameContext *fct, RdmaWorker *w, 
+    static RdmaConnection *create(MsgContext *mct, RdmaWorker *w, 
                                                                 uint8_t sl=0);
     ~RdmaConnection();
     virtual msg_ttype_t get_ttype() override { return msg_ttype_t::RDMA; }

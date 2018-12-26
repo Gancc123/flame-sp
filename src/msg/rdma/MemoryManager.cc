@@ -106,10 +106,10 @@ char *PoolAllocator::malloc(const size_type bytes){
     Chunk *ch;
     size_t buf_size;
     unsigned nbufs;
-    FlameContext *fct;
+    MsgContext *mct;
 
     assert(mmgr);
-    fct      = mmgr->fct;
+    mct      = mmgr->mct;
     buf_size = sizeof(Chunk) + mmgr->get_buffer_size();
     nbufs    = bytes/buf_size;
 
@@ -117,7 +117,7 @@ char *PoolAllocator::malloc(const size_type bytes){
         return NULL;
 
     size_t real_size;
-    if(fct->msg()->config->rdma_enable_hugepage){
+    if(mct->config->rdma_enable_hugepage){
         real_size = ALIGN_TO_PAGE_SIZE(bytes + sizeof(*m));
     }else{
         real_size = bytes + sizeof(*m);
@@ -125,7 +125,7 @@ char *PoolAllocator::malloc(const size_type bytes){
 
     m = static_cast<mem_info *>(mmgr->malloc(bytes + sizeof(*m)));
     if (!m) {
-        ML(fct, error, "failed to allocate {} + {} bytes of memory for {}",
+        ML(mct, error, "failed to allocate {} + {} bytes of memory for {}",
                                                     bytes, sizeof(*m), nbufs);
         return NULL;
     }
@@ -137,13 +137,13 @@ char *PoolAllocator::malloc(const size_type bytes){
     m->mr = ibv_reg_mr(mmgr->get_pd()->pd, m, real_size, 
                             IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE);
     if (m->mr == NULL) {
-        ML(fct, error, "failed to register {} + {} ({}) bytes of memory for "
+        ML(mct, error, "failed to register {} + {} ({}) bytes of memory for "
                     "{} bufs: {}", bytes, sizeof(*m), real_size,
                     nbufs, cpp_strerror(errno));
         mmgr->free(m);
         return NULL;
     }else{
-        ML(fct, info, "register {} + {} ({}) bytes of memory for {} bufs.",
+        ML(mct, info, "register {} + {} ({}) bytes of memory for {} bufs.",
             bytes, sizeof(*m), real_size, nbufs);
     }
 
@@ -176,10 +176,10 @@ void PoolAllocator::free(char * const block){
     m->mmgr->free(m);
 }
 
-MemoryManager::MemoryManager(FlameContext *c, ProtectionDomain *p)
-: fct(c), pd(p), buffer_size(c->msg()->config->rdma_buffer_size),
+MemoryManager::MemoryManager(MsgContext *c, ProtectionDomain *p)
+: mct(c), pd(p), buffer_size(c->config->rdma_buffer_size),
     lock(MUTEX_TYPE_ADAPTIVE_NP),
-    mem_pool(this, sizeof(Chunk) + c->msg()->config->rdma_buffer_size,
+    mem_pool(this, sizeof(Chunk) + mct->config->rdma_buffer_size,
                                                         calcu_init_space(c)){
     rdma_buffer_allocator = new RdmaBufferAllocator(this);
     assert(rdma_buffer_allocator);
@@ -198,7 +198,7 @@ void* MemoryManager::huge_pages_malloc(size_t size){
                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE | MAP_HUGETLB,
                     -1, 0);
     if (ptr == MAP_FAILED) {
-        ML(fct, info, "Alloc huge page failed. Use malloc. {} ({}) B",
+        ML(mct, info, "Alloc huge page failed. Use malloc. {} ({}) B",
             size, real_size);
         ptr = (char *)std::malloc(real_size);
         if (ptr == nullptr) return nullptr;
@@ -224,14 +224,14 @@ void MemoryManager::huge_pages_free(void *ptr){
 }
 
 void* MemoryManager::malloc(size_t size){
-    if(fct->msg()->config->rdma_enable_hugepage)
+    if(mct->config->rdma_enable_hugepage)
         return huge_pages_malloc(size);
     else
         return std::malloc(size);
 }
 
 void MemoryManager::free(void *ptr){
-    if (fct->msg()->config->rdma_enable_hugepage)
+    if (mct->config->rdma_enable_hugepage)
         huge_pages_free(ptr);
     else
         std::free(ptr);
@@ -263,8 +263,8 @@ void MemoryManager::release_buffers(std::vector<Chunk*> &c){
     }
 }
 
-uint64_t MemoryManager::calcu_init_space(FlameContext *c){
-    auto config = c->msg()->config;
+uint64_t MemoryManager::calcu_init_space(MsgContext *mct){
+    auto config = mct->config;
 
     uint64_t default_init_space = 
             2 * (config->rdma_recv_queue_len + config->rdma_send_queue_len);

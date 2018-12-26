@@ -8,13 +8,13 @@
 #include <atomic>
 
 #include "event.h"
-#include "common/context.h"
 #include "common/thread/mutex.h"
+#include "msg/msg_context.h"
 
 namespace flame{
 
 class EventPoller{
-    FlameContext *fct;
+    MsgContext *mct;
     int epfd;
     std::atomic<int> event_num;
     Mutex ecb_mutex;
@@ -27,7 +27,7 @@ public:
     int del_event(int fd);
     int process_events(std::vector<FiredEvent> &, struct timeval *);
 
-    explicit EventPoller(FlameContext *fct, int nevent);
+    explicit EventPoller(MsgContext *mct, int nevent);
     ~EventPoller();
 };
 

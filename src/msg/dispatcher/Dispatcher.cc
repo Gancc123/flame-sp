@@ -26,12 +26,12 @@ void MemFetchWork::callback(RdmaConnection *conn){
 
 int Dispatcher::deliver_to_remote(Message *msg){
 
-    auto msg_manager = fct->msg()->manager;
+    auto msg_manager = mct->manager;
     //auto session = msg_manager->get_session(xxxx);
     //auto conn = session->get_conn(msg_ttype_t::RDMA);
 
 
-    Msg *m = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+    Msg *m = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
     assert(m);
     m->type = FLAME_MSG_TYPE_IO;
     if(msg->is_res()){
@@ -158,7 +158,7 @@ void Dispatcher::on_conn_recv(Connection *conn, Msg *m){
 
     auto channel = get_channel(message->dst());
     if(!channel){
-        ML(fct, warn, "unknown dst, ignore the message. {}",
+        ML(mct, warn, "unknown dst, ignore the message. {}",
                                                          message->to_string());
         delete message;
         return;

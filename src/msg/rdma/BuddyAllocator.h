@@ -12,7 +12,7 @@
 
 namespace flame{
 
-class FlameContext;
+class MsgContext;
 
 namespace ib{
 
@@ -89,7 +89,7 @@ public:
 };
 
 class BuddyAllocator{
-    FlameContext *fct;
+    MsgContext *mct;
     uint8_t min_level;
     uint8_t max_level;
     size_t mem_free;
@@ -99,7 +99,7 @@ class BuddyAllocator{
     MemSrc *mem_src = nullptr;
     BuddyAllocator() {}
 public:
-    static BuddyAllocator *create(FlameContext *c, uint8_t max_level, 
+    static BuddyAllocator *create(MsgContext *c, uint8_t max_level, 
                                                 uint8_t min_level, MemSrc *src);
     ~BuddyAllocator();
 

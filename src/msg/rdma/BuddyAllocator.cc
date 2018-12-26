@@ -1,6 +1,6 @@
 #include "BuddyAllocator.h"
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "msg/msg_def.h"
 
 #include <sstream>
@@ -11,7 +11,7 @@
 namespace flame{
 namespace ib{
 
-BuddyAllocator *BuddyAllocator::create(FlameContext *c,  
+BuddyAllocator *BuddyAllocator::create(MsgContext *c,  
                             uint8_t max_level, uint8_t min_level, MemSrc *src){
     if(!src) return nullptr;
 
@@ -45,7 +45,7 @@ BuddyAllocator *BuddyAllocator::create(FlameContext *c,
         return nullptr;
     }
 
-    ap->fct = c;
+    ap->mct = c;
     ap->min_level = min_level;
     ap->max_level = max_level;
     ap->bit_map = bm;

@@ -1,5 +1,5 @@
 #include "msg_config.h"
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "node_addr.h"
 #include "util.h"
 

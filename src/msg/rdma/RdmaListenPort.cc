@@ -9,14 +9,14 @@
 
 namespace flame{
 
-RdmaListenPort::RdmaListenPort(FlameContext *fct, NodeAddr *listen_addr)
-:ListenPort(fct, listen_addr){
+RdmaListenPort::RdmaListenPort(MsgContext *mct, NodeAddr *listen_addr)
+:ListenPort(mct, listen_addr){
 
 }
 
-RdmaListenPort* RdmaListenPort::create(FlameContext *fct, NodeAddr *listen_addr){
+RdmaListenPort* RdmaListenPort::create(MsgContext *mct, NodeAddr *listen_addr){
     int sfd, r;
-    NetHandler net_handler(fct);
+    NetHandler net_handler(mct);
     NodeAddr *addr = listen_addr;
     auto family = addr->get_family();
     sfd = net_handler.create_socket(family, true);
@@ -40,7 +40,7 @@ RdmaListenPort* RdmaListenPort::create(FlameContext *fct, NodeAddr *listen_addr)
     r = ::bind(sfd, addr->get_sockaddr(), addr->get_sockaddr_len());
     if (r < 0) {
         r = -errno;
-        ML(fct, error, "unable to bind to [{} {}] : {}", 
+        ML(mct, error, "unable to bind to [{} {}] : {}", 
                         addr->ip_to_string(), addr->get_port(),
                         cpp_strerror(r));
         ::close(sfd);
@@ -50,17 +50,17 @@ RdmaListenPort* RdmaListenPort::create(FlameContext *fct, NodeAddr *listen_addr)
     r = ::listen(sfd, 512);
     if (r < 0) {
         r = -errno;
-        ML(fct, error, "unable to listen on [{} {}]: {}",
+        ML(mct, error, "unable to listen on [{} {}]: {}",
                         addr->ip_to_string(), addr->get_port(),
                         cpp_strerror(r));
         ::close(sfd);
         return nullptr;
     }
     
-    auto lp = new RdmaListenPort(fct, addr);
+    auto lp = new RdmaListenPort(mct, addr);
     lp->set_listen_fd(sfd);
 
-    ML(fct, debug, "add listen port {}:{}",  listen_addr->ip_to_string(),
+    ML(mct, debug, "add listen port {}:{}",  listen_addr->ip_to_string(),
                                                     listen_addr->get_port());
     return lp;
 }
@@ -71,20 +71,20 @@ RdmaListenPort::~RdmaListenPort(){
 
 void RdmaListenPort::read_cb(){
     int sfd = this->fd, r;
-    NetHandler net_handler(fct);
+    NetHandler net_handler(mct);
     NodeAddr *caddr =  nullptr;
     for(;;){
         if(!caddr){
-            caddr = new NodeAddr(fct);
+            caddr = new NodeAddr(mct);
         }
         r = net_handler.accept(sfd, *caddr);
         if(r >= 0){  // success
             int cfd = r;
-            auto conn = RdmaPrepConn::create(fct, cfd);
+            auto conn = RdmaPrepConn::create(mct, cfd);
             assert(conn);
             conn->set_rdma_listen_port(this);
 
-            auto worker = fct->msg()->manager->get_lightest_load_worker();
+            auto worker = mct->manager->get_lightest_load_worker();
             assert(worker);
             worker->add_event(conn);
             conn->set_owner(worker);
@@ -102,15 +102,15 @@ void RdmaListenPort::read_cb(){
         } else if (r == -EAGAIN) {
             break;
         } else if (r == -EMFILE || r == -ENFILE) {
-            ML(fct, error, "open file descriptions limit reached sd = {}"
+            ML(mct, error, "open file descriptions limit reached sd = {}"
                             " errno {} {}", sfd, r, cpp_strerror(r));
             break;
         } else if (r == -ECONNABORTED) {
-            ML(fct, error, "it was closed because of rst arrived sd =  {}"
+            ML(mct, error, "it was closed because of rst arrived sd =  {}"
                             " errno {} {}", sfd, r, cpp_strerror(r));
             continue;
         } else {
-            ML(fct, error, "no incoming connection? errno {} {}", 
+            ML(mct, error, "no incoming connection? errno {} {}", 
                                                             r, cpp_strerror(r));
             break;
         }

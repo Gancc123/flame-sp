@@ -1,7 +1,7 @@
 #ifndef FLAME_MSG_DISPATCHER_DISPATCHER_H
 #define FLAME_MSG_DISPATCHER_DISPATCHER_H
 
-#include "common/context.h"
+#include "msg/msg_context.h"
 #include "msg/msg_data.h"
 #include "msg/Message.h"
 
@@ -38,7 +38,7 @@ struct MemFetchWork : public RdmaRwWork{
 }
 
 class Dispatcher : public MsgerCallback{
-    FlameContext *fct;
+    MsgContext *mct;
 
     Mutex channel_map_mutex;
     std::map<uint64_t, Channel *> channel_map;
@@ -46,8 +46,8 @@ class Dispatcher : public MsgerCallback{
     int deliver_to_remote(Message *);
 
 public:
-    explicit Dispatcher(FlameContext *c) 
-    : fct(c), channel_map_mutex(MUTEX_TYPE_ADAPTIVE_NP) {}
+    explicit Dispatcher(MsgContext *c) 
+    : mct(c), channel_map_mutex(MUTEX_TYPE_ADAPTIVE_NP) {}
 
     int deliver_msg(Message *);
 

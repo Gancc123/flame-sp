@@ -1,6 +1,7 @@
 #include "Infiniband.h"
 #include "RdmaConnection.h"
 #include "RdmaStack.h"
+#include "msg/internal/byteorder.h"
 #include "msg/internal/node_addr.h"
 #include "msg/internal/errno.h"
 
@@ -32,7 +33,7 @@ void RdmaConnection::write_cb(){
 }
 
 void RdmaConnection::error_cb(){
-    ML(fct, error, "RdmaConn {:p} status:{}", (void *)this, status_str(status));
+    ML(mct, error, "RdmaConn {:p} status:{}", (void *)this, status_str(status));
     if(status == RdmaStatus::INIT){
         this->fault();
     }else if(status == RdmaStatus::CAN_WRITE){
@@ -61,8 +62,8 @@ uint32_t RdmaConnection::max_post_works(){
     return 0;
 }
 
-RdmaConnection::RdmaConnection(FlameContext *fct)
-:Connection(fct),
+RdmaConnection::RdmaConnection(MsgContext *mct)
+:Connection(mct),
  status(RdmaStatus::INIT),
  is_dead_pending(false),
  send_mutex(MUTEX_TYPE_ADAPTIVE_NP),
@@ -71,17 +72,17 @@ RdmaConnection::RdmaConnection(FlameContext *fct)
 
 }
 
-RdmaConnection *RdmaConnection::create(FlameContext *fct, RdmaWorker *w, 
+RdmaConnection *RdmaConnection::create(MsgContext *mct, RdmaWorker *w, 
                                                             uint8_t sl){
     ib::Infiniband &ib = w->get_manager()->get_ib();
-    auto qp = ib.create_queue_pair(fct, w->get_tx_cq(), w->get_rx_cq(), 
+    auto qp = ib.create_queue_pair(mct, w->get_tx_cq(), w->get_rx_cq(), 
                                                             w->get_srq(),
                                                             IBV_QPT_RC);
     if(!qp) return nullptr;
 
     // remote_addr will be updated later. 
     // just use host_addr as remote_addr temporarily.
-    auto conn = new RdmaConnection(fct);
+    auto conn = new RdmaConnection(mct);
 
     conn_id_t conn_id;
     conn_id.type = msg_ttype_t::RDMA;
@@ -104,11 +105,11 @@ RdmaConnection *RdmaConnection::create(FlameContext *fct, RdmaWorker *w,
                                                     qp->get_qp());
         if(actual_posted < required_rx_len){
             if(actual_posted > 0){
-                ML(fct, warn, "required rx_buffers: {}, acutal get: {}",
+                ML(mct, warn, "required rx_buffers: {}, acutal get: {}",
                                         required_rx_len, actual_posted);
                 conn->inflight_rx_buffers += actual_posted;
             }else{
-                ML(fct, error, "!!! can't post rx buffers (no free buffers). "
+                ML(mct, error, "!!! can't post rx buffers (no free buffers). "
                     "Create RdmaConn failed! "
                     "Please adjust buffer_limit and rx_queue_len, "
                     "or use more srq");
@@ -123,12 +124,12 @@ RdmaConnection *RdmaConnection::create(FlameContext *fct, RdmaWorker *w,
 }
 
 RdmaConnection::~RdmaConnection(){
-    MLI(fct, info, "status: {}", status_str(status));
+    MLI(mct, info, "status: {}", status_str(status));
     if(!recv_msg_list.empty()){
         //clean the recv_msg_list.
         read_cb();
         if(!recv_msg_list.empty()){
-            MLI(fct, warn, "recv_msg_list still not empty after read_cb()");
+            MLI(mct, warn, "recv_msg_list still not empty after read_cb()");
         }
     }
 
@@ -190,7 +191,7 @@ size_t RdmaConnection::recv_data(){
         return 0;
     }
 
-    ML(fct, info, "poll queue got {} responses. QP: {}", 
+    ML(mct, info, "poll queue got {} responses. QP: {}", 
                                                         cqe.size(), my_msg.qpn);
     std::vector<Chunk *> chunks;
     bool got_close_msg = false;
@@ -200,13 +201,19 @@ size_t RdmaConnection::recv_data(){
         ibv_wc* response = &(*it);
         assert(response->status == IBV_WC_SUCCESS);
         Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
-        ML(fct, debug, "chunk length: {} bytes.  {:p}", response->byte_len, 
+        ML(mct, debug, "chunk length: {} bytes.  {:p}", response->byte_len, 
                                                         (void*)chunk);
         chunk->prepare_read(response->byte_len);
-        if(response->byte_len == 0){
+        if(response->opcode == IBV_WC_RECV_RDMA_WITH_IMM){
+            Msg *msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+            msg->type = FLAME_MSG_TYPE_IMM_DATA;
+            msg->imm_data = ntohl(response->imm_data);
+            recv_msg_cb(msg);
+            chunks.push_back(chunk);
+        }else if(response->byte_len == 0){
             if(!got_close_msg){
                 got_close_msg = true;
-                ML(fct, debug, "RdmaConn({}) got remote close msg...", 
+                ML(mct, debug, "RdmaConn({}) got remote close msg...", 
                                                             (void *)this);
                 if(status == RdmaStatus::CLOSING_POSITIVE){
                     status = RdmaStatus::CLOSED;
@@ -252,8 +259,7 @@ int RdmaConnection::decode_rx_buffer(ib::Chunk *chunk){
     auto &recv_offset = recv_cur_msg_offset;
     while(!chunk->over()){
         if(!recv_cur_msg){
-            recv_cur_msg = new Msg(fct);
-            recv_cur_msg->ttype = msg_ttype_t::RDMA;
+            recv_cur_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
             recv_header_buffer.clear();
             recv_offset = 0;
         }
@@ -339,12 +345,12 @@ ssize_t RdmaConnection::submit(bool more){
     int r = 0;
     r = submit_rw_works();
     if(r < 0){
-        ML(fct, error, "submit_rw_works error!");
+        ML(mct, error, "submit_rw_works error!");
         return r;
     }
     r = submit_send_works();
     if(r < 0){
-        ML(fct, error, "submit_send_works error!");
+        ML(mct, error, "submit_send_works error!");
     }
     return 0;
 }
@@ -464,7 +470,7 @@ int RdmaConnection::activate(){
     memset(&qpa, 0, sizeof(qpa));
     qpa.qp_state = IBV_QPS_RTR;
     qpa.path_mtu = ib::Infiniband::ibv_mtu_enum(
-                                            fct->msg()->config->rdma_path_mtu);
+                                            mct->config->rdma_path_mtu);
     qpa.dest_qp_num = peer_msg.qpn;
     qpa.rq_psn = peer_msg.psn;
     qpa.max_dest_rd_atomic = 1;
@@ -478,11 +484,11 @@ int RdmaConnection::activate(){
 
     qpa.ah_attr.dlid = peer_msg.lid;
     qpa.ah_attr.sl = my_msg.sl;
-    qpa.ah_attr.grh.traffic_class = fct->msg()->config->rdma_traffic_class;
+    qpa.ah_attr.grh.traffic_class = mct->config->rdma_traffic_class;
     qpa.ah_attr.src_path_bits = 0;
     qpa.ah_attr.port_num = (uint8_t)(ib.get_ib_physical_port());
 
-    ML(fct, info, "Choosing gid_index {}, sl {}", 
+    ML(mct, info, "Choosing gid_index {}, sl {}", 
                                     (int)qpa.ah_attr.grh.sgid_index,
                                     (int)qpa.ah_attr.sl);
     
@@ -495,12 +501,12 @@ int RdmaConnection::activate(){
                                             IBV_QP_MAX_DEST_RD_ATOMIC);
     
     if(r){
-        ML(fct, error, "failed to transition to RTR state: {}",
+        ML(mct, error, "failed to transition to RTR state: {}",
                                                     cpp_strerror(errno));
         return -1;
     }
 
-    ML(fct, info, "transition to RTR state successfully.");
+    ML(mct, info, "transition to RTR state successfully.");
 
     // now move to RTS
     qpa.qp_state = IBV_QPS_RTS;
@@ -528,17 +534,17 @@ int RdmaConnection::activate(){
                                             IBV_QP_SQ_PSN |
                                             IBV_QP_MAX_QP_RD_ATOMIC);
     if (r) {
-        ML(fct, error, "failed to transition to RTS state: {}", 
+        ML(mct, error, "failed to transition to RTS state: {}", 
                                                         cpp_strerror(errno));
         return -1;
     }
 
     // the queue pair should be ready to use once the client has finished
     // setting up their end.
-    ML(fct, info, "transition to RTS state successfully.");
-    ML(fct, info, "QueuePair:{:p} with qp: {:p}", (void *)qp, 
+    ML(mct, info, "transition to RTS state successfully.");
+    ML(mct, info, "QueuePair:{:p} with qp: {:p}", (void *)qp, 
                                                         (void *)qp->get_qp());
-    ML(fct, trace, "qpn:{} state:{}", my_msg.qpn, 
+    ML(mct, trace, "qpn:{} state:{}", my_msg.qpn, 
                                     ib.qp_state_string(qp->get_state()));
     active = true;
     status = RdmaStatus::CAN_WRITE;
@@ -547,7 +553,7 @@ int RdmaConnection::activate(){
 }
 
 int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
-    // ML(fct, debug, "QP：{} {:p}", my_msg.qpn, (void *)tx_buffers.front());
+    // ML(mct, debug, "QP：{} {:p}", my_msg.qpn, (void *)tx_buffers.front());
     auto current_buffer = tx_buffers.begin();
     ibv_sge isge[tx_buffers.size()];
     uint32_t current_sge = 0;
@@ -576,7 +582,7 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
             iswr[current_swr].send_flags |= IBV_SEND_INLINE;
         }
 
-        ML(fct, debug, "sending buffer: {} length: {} {}", 
+        ML(mct, debug, "sending buffer: {} length: {} {}", 
                 (void *)(*current_buffer), isge[current_sge].length,
                 (iswr[current_swr].send_flags & IBV_SEND_INLINE)?"inline":"" );
 
@@ -594,20 +600,20 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
     ibv_send_wr *bad_tx_work_request;
     if (ibv_post_send(qp->get_qp(), iswr, &bad_tx_work_request)) {
         if(errno == ENOMEM){
-            ML(fct, error, "failed to send data. "
+            ML(mct, error, "failed to send data. "
                         "(most probably send queue is full): {}",
                         cpp_strerror(errno));
             num = ((char *)bad_tx_work_request - (char *)iswr)
                                                      / sizeof(ibv_send_wr);
         }else{
-            ML(fct, error, "failed to send data. "
+            ML(mct, error, "failed to send data. "
                         "(most probably should be peer not ready): {}",
                         cpp_strerror(errno));
         }
         r = -errno;
     }
     qp->add_tx_wr(num);
-    // ML(fct, debug, "qp state is {}", 
+    // ML(mct, debug, "qp state is {}", 
     //                     ib::Infiniband::qp_state_string(qp->get_state()));
     return r;
 }
@@ -668,7 +674,7 @@ int RdmaConnection::post_rdma_rw(RdmaRwWork *work, bool enqueue){
         }
         
         isge[current_sge].lkey = work->lbufs[num]->lkey();
-        ML(fct, debug, "{} rbuffer: {:x} length: {}",  
+        ML(mct, debug, "{} rbuffer: {:x} length: {}",  
                                             work->is_write?"write":"read", 
                                             work->rbufs[num]->addr(), 
                                             work->rbufs[num]->data_len);
@@ -693,18 +699,24 @@ int RdmaConnection::post_rdma_rw(RdmaRwWork *work, bool enqueue){
         ++current_swr;
     }
 
+    if(work->is_write && work->imm_data != 0){
+        //the last wr use write_with_imm when imm_data is not 0.
+        iswr[current_swr - 1].opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+        iswr[current_swr - 1].imm_data = htonl(work->imm_data);
+    }
+
     int r = 0;
     //can_post_works() ensure that send queue won't be full.
     ibv_send_wr *bad_tx_work_request;
     if (ibv_post_send(qp->get_qp(), iswr, &bad_tx_work_request)) {
         if(errno == ENOMEM){
-            ML(fct, error, "failed to send data. "
+            ML(mct, error, "failed to send data. "
                         "(most probably send queue is full): {}",
                         cpp_strerror(errno));
             num = ((char *)bad_tx_work_request - (char *)iswr)
                                                      / sizeof(ibv_send_wr);
         }else{
-            ML(fct, error, "failed to send data. "
+            ML(mct, error, "failed to send data. "
                         "(most probably should be peer not ready): {}",
                         cpp_strerror(errno));
         }
@@ -725,7 +737,7 @@ void RdmaConnection::fin(){
     wr.send_flags |= IBV_SEND_SIGNALED;
     ibv_send_wr* bad_tx_work_request;
     if (ibv_post_send(qp->get_qp(), &wr, &bad_tx_work_request)) {
-        ML(fct, warn, "failed to send fin message. "
+        ML(mct, warn, "failed to send fin message. "
             "ibv_post_send failed(most probably should be peer not ready): {}",
             cpp_strerror(errno));
         return ;

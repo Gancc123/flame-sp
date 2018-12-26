@@ -14,40 +14,44 @@ int main(){
         clog("init config failed.");
         return -1;
     }
-    if(!fct->init_log("log", "TRACE", "mgr")){
-         clog("init log failed.");
+    if(!fct->init_log("", "TRACE", "mgr")){
+        clog("init log failed.");
         return -1;
     }
 
-    ML(fct, info, "init complete.");
-    ML(fct, info, "load cfg: " CFG_PATH);
+    auto mct = new MsgContext(fct);
 
-    auto incre_msger = new IncreMsger(fct);
+    ML(mct, info, "init complete.");
+    ML(mct, info, "load cfg: " CFG_PATH);
 
-    msg_module_init(fct, incre_msger);
+    auto incre_msger = new IncreMsger(mct);
 
-    ML(fct, info, "msger_id {:x} {:x} ", fct->msg()->config->msger_id.ip,
-                                         fct->msg()->config->msger_id.port);
+    mct->init(incre_msger);
+
+    ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
+                                         mct->config->msger_id.port);
 
     //test time work
-    auto worker = fct->msg()->manager->get_worker(0);
-    worker->post_time_work(100, [fct](){
-        ML(fct, info, "test time work1: 100us");
+    auto worker = mct->manager->get_worker(0);
+    worker->post_time_work(100, [mct](){
+        ML(mct, info, "test time work1: 100us");
     });
 
-    worker->post_time_work(1000000, [fct](){
-        ML(fct, info, "test time work2: 1000000us");
+    worker->post_time_work(1000000, [mct](){
+        ML(mct, info, "test time work2: 1000000us");
     });
 
-    worker->post_time_work(5000000, [fct](){
-        ML(fct, info, "test time work3: 5000000us");
+    worker->post_time_work(5000000, [mct](){
+        ML(mct, info, "test time work3: 5000000us");
     });
 
     std::getchar();
 
-    msg_module_finilize(fct);
+    mct->fin();
 
     delete incre_msger;
+
+    delete mct;
 
     return 0;
 }

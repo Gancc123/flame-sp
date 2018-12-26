@@ -59,16 +59,16 @@ int RdmaWorker::init(){
     ib::Infiniband &ib = manager->get_ib();
     memory_manager = ib.get_memory_manager();
 
-    tx_cc = ib.create_comp_channel(fct);
+    tx_cc = ib.create_comp_channel(mct);
     assert(tx_cc);
-    rx_cc = ib.create_comp_channel(fct);
+    rx_cc = ib.create_comp_channel(mct);
     assert(rx_cc);
-    tx_cq = ib.create_comp_queue(fct, tx_cc);
+    tx_cq = ib.create_comp_queue(mct, tx_cc);
     assert(tx_cq);
-    rx_cq = ib.create_comp_queue(fct, rx_cc);
+    rx_cq = ib.create_comp_queue(mct, rx_cc);
     assert(rx_cq);
 
-    if(fct->msg()->config->rdma_enable_srq){
+    if(mct->config->rdma_enable_srq){
         srq = ib.create_shared_receive_queue(ib.get_rx_queue_len());
         if(!srq){
             return 1;
@@ -87,7 +87,7 @@ int RdmaWorker::clear_before_stop(){
     is_fin = true;
 
     if(!qp_conns.empty()){
-        ML(fct, info, "wait for all rdma conn cleaned... ({:p})", (void *)this);
+        ML(mct, info, "wait for all rdma conn cleaned... ({:p})", (void *)this);
         fin_clean_wait();
     }
 }
@@ -181,33 +181,33 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
         
         Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
-        ML(fct, info, "QP: {} len: {}, addr: {:p} {}", response->qp_num,
+        ML(mct, info, "QP: {} len: {}, addr: {:p} {}", response->qp_num,
                     response->byte_len, (void *)chunk,
                     manager->get_ib().wc_status_to_string(response->status));
 
         if (response->status != IBV_WC_SUCCESS) {
             if (response->status == IBV_WC_RETRY_EXC_ERR) {
-                ML(fct, error, "Connection between server and client not"
+                ML(mct, error, "Connection between server and client not"
                                 " working. Disconnect this now");
             } else if (response->status == IBV_WC_WR_FLUSH_ERR) {
-                ML(fct, error, "Work Request Flushed Error: this connection's "
+                ML(mct, error, "Work Request Flushed Error: this connection's "
                     "qp={} should be down while this WR={:x} still in flight.",
                     response->qp_num, response->wr_id);
             } else {
-                ML(fct, error, "send work request returned error for "
+                ML(mct, error, "send work request returned error for "
                     "buffer({}) status({}): {}",
                     (void *)response->wr_id, response->status,
                     manager->get_ib().wc_status_to_string(response->status));
             }
 
-            ML(fct, info, "qp state is : {}", conn->get_qp_state());
+            ML(mct, info, "qp state is : {}", conn->get_qp_state());
             conn->fault();
         }
 
         //TX completion may come either from regular send message or from 'fin'
         // message. In the case of 'fin' wr_id points to the QueuePair.
         if(reinterpret_cast<ib::QueuePair*>(response->wr_id) == qp){
-            ML(fct, debug, "sending of the disconnect msg completed");
+            ML(mct, debug, "sending of the disconnect msg completed");
         } else if(chunk != nullptr) {
             // MemoryManager doesn't check whether the chunk is valid.
             // if you worry about that, may use MemoryManager.is_from().
@@ -226,36 +226,37 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
 
 void RdmaWorker::handle_rdma_rw_cqe(ibv_wc &wc, RdmaConnection *conn){
 
-    ML(fct, info, "QP: {} len: {}, wr_id: {:x} {} {}", wc.qp_num,
+    ML(mct, info, "QP: {} len: {}, wr_id: {:x} {} {}", wc.qp_num,
                     wc.byte_len, wc.wr_id,
                     ib::Infiniband::wc_opcode_string(wc.opcode), 
                     ib::Infiniband::wc_status_to_string(wc.status));
     
     RdmaRwWork *work = reinterpret_cast<RdmaRwWork *>(wc.wr_id);
 
-    --work->cnt;
-
     if (wc.status != IBV_WC_SUCCESS) {
         if (wc.status == IBV_WC_RETRY_EXC_ERR) {
-            ML(fct, error, "Connection between server and client not"
+            ML(mct, error, "Connection between server and client not"
                             " working. Disconnect this now");
         } else if (wc.status == IBV_WC_WR_FLUSH_ERR) {
-            ML(fct, error, "Work Request Flushed Error: this connection's "
+            ML(mct, error, "Work Request Flushed Error: this connection's "
                 "qp={} should be down while this WR={:x} still in flight.",
                 wc.qp_num, wc.wr_id);
         } else if (wc.status == IBV_WC_REM_ACCESS_ERR) {
-            ML(fct, error, "Remote Access Error: qp: {}, wr_id: {:x}", 
+            ML(mct, error, "Remote Access Error: qp: {}, wr_id: {:x}", 
                 wc.qp_num, wc.wr_id);
         } else {
-            ML(fct, error, "send work request returned error for "
+            ML(mct, error, "send work request returned error for "
                 "buffer({}) status({}): {}",
                 wc.wr_id, wc.status,
                 ib::Infiniband::wc_status_to_string(wc.status));
         }
 
-        ML(fct, info, "qp state is : {}", conn->get_qp_state());
+        ML(mct, info, "qp state is : {}", conn->get_qp_state());
         conn->fault();
+        work->failed_indexes.push_back(work->lbufs.size() - work->cnt);
     }
+
+    --work->cnt;
 
     if(work->cnt == 0){
         work->callback(conn);
@@ -290,7 +291,7 @@ int RdmaWorker::process_tx_cq_dry_run(){
 int RdmaWorker::process_tx_cq(ibv_wc *wc, int max_cqes){
     int tx_ret = tx_cq->poll_cq(max_cqes, wc);
     if(tx_ret > 0){
-        ML(fct, info, "tx completion queue got {} responses.", tx_ret);
+        ML(mct, info, "tx completion queue got {} responses.", tx_ret);
         handle_tx_cqe(wc, tx_ret);
         return tx_ret;
     }
@@ -303,11 +304,11 @@ void RdmaWorker::reap_dead_conns(){
     while(dead_it != dead_conns.end()){
         auto dead_conn = *dead_it;
         if(dead_conn->get_tx_wr() && !dead_conn->is_error()){
-            ML(fct, debug, "bypass conn={:p} tx_wr={}", (void *)dead_conn,
+            ML(mct, debug, "bypass conn={:p} tx_wr={}", (void *)dead_conn,
                                                         dead_conn->get_tx_wr());
             ++dead_it;
         }else{
-            ML(fct, debug, "finally release conn={:p}", (void *)dead_conn);
+            ML(mct, debug, "finally release conn={:p}", (void *)dead_conn);
             dead_conn->get_qp()->to_dead();
             dead_it = dead_conns.erase(dead_it);
         }
@@ -319,18 +320,19 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
     for (int i = 0; i < n; ++i) {
         ibv_wc* response = &cqe[i];
         Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
-        ML(fct, info, "QP: {} len: {}, opcode: {}, addr: {:p} {}", 
+        ML(mct, info, "QP: {} len: {}, opcode: {}, wc_flags:{}, addr: {:p} {}", 
                     response->qp_num, response->byte_len, 
-                    response->opcode, (void *)chunk,
-                    manager->get_ib().wc_status_to_string(response->status));
+                    ib::Infiniband::wc_opcode_string(response->opcode), 
+                    response->wc_flags, (void *)chunk,
+                    ib::Infiniband::wc_status_to_string(response->status));
 
-        assert(cqe[i].opcode == IBV_WC_RECV);
+        assert(response->opcode & IBV_WC_RECV);
 
         auto conn = get_rdma_conn(response->qp_num);
 
         if (response->status == IBV_WC_SUCCESS) {
             if (!conn) {
-                ML(fct, info, "RdmaConnection with qpn {} may be dead. "
+                ML(mct, info, "RdmaConnection with qpn {} may be dead. "
                                 "Return rx buffer {:p} to MemoryManager.",
                                     response->qp_num, (void *)chunk);
                 memory_manager->release_buffer(chunk);
@@ -338,7 +340,7 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
                 polled[conn].push_back(*response);
             }
         } else {
-            ML(fct, error, "work request returned error for buffer({:p}) "
+            ML(mct, error, "work request returned error for buffer({:p}) "
                             "status({}:{})", (void *)chunk, response->status,
                     manager->get_ib().wc_status_to_string(response->status));
             if (conn)
@@ -382,7 +384,7 @@ int RdmaWorker::process_rx_cq_dry_run(){
 int RdmaWorker::process_rx_cq(ibv_wc *wc, int max_cqes){
     int rx_ret = rx_cq->poll_cq(max_cqes, wc);
     if(rx_ret > 0){
-        ML(fct, info, "rx completion queue got {} responses.", rx_ret);
+        ML(mct, info, "rx completion queue got {} responses.", rx_ret);
         if(srq){
             srq_buffer_backlog = srq_buffer_backlog + rx_ret - 
                         post_chunks_to_rq(srq_buffer_backlog + rx_ret);
@@ -470,9 +472,9 @@ int RdmaWorker::on_buffer_reclaimed(){
 
 int RdmaWorker::arm_notify(MsgWorker *worker){
     if(!worker) return 1;
-    tx_notifier = new RdmaTxCqNotifier(fct, this);
+    tx_notifier = new RdmaTxCqNotifier(mct, this);
     tx_notifier->fd = tx_cc->get_fd();
-    rx_notifier = new RdmaRxCqNotifier(fct, this);
+    rx_notifier = new RdmaRxCqNotifier(mct, this);
     rx_notifier->fd = rx_cc->get_fd();
 
     int r = worker->add_event(tx_notifier);
@@ -509,7 +511,7 @@ int RdmaManager::handle_async_event(){
     while(1){
         if(ibv_get_async_event(d->ctxt, &async_event)){
             if(errno != EAGAIN){
-                ML(fct, error, "ibv_get_async_event failed. (errno= {})",
+                ML(mct, error, "ibv_get_async_event failed. (errno= {})",
                                      cpp_strerror(errno));
             }
             return -1;
@@ -518,7 +520,7 @@ int RdmaManager::handle_async_event(){
             ib::QueuePair *qp = ib::QueuePair::get_by_ibv_qp(
                                                         async_event.element.qp);
             uint32_t qpn = qp->get_local_qp_number();
-            ML(fct, info, "event associated qp={} evt: {}, destroy it.", qpn,
+            ML(mct, info, "event associated qp={} evt: {}, destroy it.", qpn,
                                     ibv_event_type_str(async_event.event_type));
             
             for(auto &worker : workers){
@@ -530,7 +532,7 @@ int RdmaManager::handle_async_event(){
             }
 
         }else{
-            ML(fct, info, "ibv_get_async_event: dev={} evt: {}", 
+            ML(mct, info, "ibv_get_async_event: dev={} evt: {}", 
                 (void *)(d->ctxt), ibv_event_type_str(async_event.event_type));
         }
         ++count;
@@ -554,16 +556,16 @@ RdmaManager::~RdmaManager(){
 int RdmaManager::init(){
     int res = (m_ib.init()?0:1);
     if(res) return res;
-    auto worker = fct->msg()->manager->get_lightest_load_worker();
+    auto worker = mct->manager->get_lightest_load_worker();
     assert(worker);
     res = arm_async_event_handler(worker);
     if(res) return res;
 
-    int cqp_num = fct->msg()->config->rdma_cq_pair_num;
-    int msg_worker_num = fct->msg()->manager->get_worker_num();
+    int cqp_num = mct->config->rdma_cq_pair_num;
+    int msg_worker_num = mct->manager->get_worker_num();
     if(cqp_num >= msg_worker_num){
         cqp_num = msg_worker_num - 1;
-        ML(fct, warn, "config->rdma_cq_pair_num too large, "
+        ML(mct, warn, "config->rdma_cq_pair_num too large, "
                         "set equal to msg_worker_num - 1: {}", 
                         cqp_num);
     }
@@ -571,15 +573,14 @@ int RdmaManager::init(){
 
     
     int arm_step = (msg_worker_num - 1) / cqp_num;
-    ML(fct, info, "rdma_worker_num(rdma_cq_pair_num): {}, msg_worker_num: {},"
+    ML(mct, info, "rdma_worker_num(rdma_cq_pair_num): {}, msg_worker_num: {},"
                         " arm_step:{}", cqp_num, msg_worker_num, arm_step);
 
     for(int i = 0;i < cqp_num; ++i){
-        auto worker = new RdmaWorker(fct, this);
+        auto worker = new RdmaWorker(mct, this);
         worker->init();
         int msg_worker_index = arm_step * i;
-        res = worker->arm_notify(
-                    fct->msg()->manager->get_worker(msg_worker_index));
+        res = worker->arm_notify(mct->manager->get_worker(msg_worker_index));
         assert(res == 0);
         workers.push_back(worker);
     }
@@ -619,7 +620,7 @@ int RdmaManager::arm_async_event_handler(MsgWorker *worker){
     if(res) return res;
     int fd = d->get_async_fd();
 
-    async_event_handler = new RdmaAsyncEventHandler(fct, this);
+    async_event_handler = new RdmaAsyncEventHandler(mct, this);
     async_event_handler->fd = fd;
 
     res = worker->add_event(async_event_handler);
@@ -629,13 +630,13 @@ int RdmaManager::arm_async_event_handler(MsgWorker *worker){
     return res;
 }
 
-RdmaStack::RdmaStack(FlameContext *c)
-:fct(c), manager(nullptr) {
+RdmaStack::RdmaStack(MsgContext *c)
+:mct(c), manager(nullptr) {
 
 }
 
 int RdmaStack::init(){
-    manager = new RdmaManager(fct, fct->msg()->manager->get_worker_num());
+    manager = new RdmaManager(mct, mct->manager->get_worker_num());
     if(!manager) return -1;
     return manager->init();
 }
@@ -651,13 +652,13 @@ int RdmaStack::fin(){
 }
 
 ListenPort* RdmaStack::create_listen_port(NodeAddr *addr){
-    return RdmaListenPort::create(fct, addr);
+    return RdmaListenPort::create(mct, addr);
 }
 
 Connection* RdmaStack::connect(NodeAddr *addr){
-    auto prep_conn = RdmaPrepConn::create(fct, addr);
+    auto prep_conn = RdmaPrepConn::create(mct, addr);
 
-    auto worker = fct->msg()->manager->get_lightest_load_worker();
+    auto worker = mct->manager->get_lightest_load_worker();
     assert(worker);
     worker->add_event(prep_conn);
     prep_conn->set_owner(worker);

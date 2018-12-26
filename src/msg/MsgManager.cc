@@ -81,7 +81,7 @@ void MsgManager::del_conn(Connection *conn){
 }
 
 ListenPort* MsgManager::add_listen_port(NodeAddr *addr, msg_ttype_t ttype){
-    ML(fct, trace, "{} {}", addr->to_string(), msg_ttype_to_str(ttype));
+    ML(mct, trace, "{} {}", addr->to_string(), msg_ttype_to_str(ttype));
     MutexLocker l(m_mutex);
     if(!addr) return nullptr;
     auto lp_iter = listen_map.find(addr);
@@ -120,7 +120,7 @@ ListenPort* MsgManager::add_listen_port(NodeAddr *addr, msg_ttype_t ttype){
 }
 
 int MsgManager::del_listen_port(NodeAddr *addr){
-    ML(fct, trace, "{}", addr->to_string());
+    ML(mct, trace, "{}", addr->to_string());
     MutexLocker l(m_mutex);
     if(!addr) return -1;
     auto lp_iter = listen_map.find(addr);
@@ -140,10 +140,10 @@ Msg *MsgManager::get_declare_msg(){
     if(declare_msg){
         return declare_msg;
     }
-    Msg *msg = Msg::alloc_msg(fct);
+    Msg *msg = Msg::alloc_msg(mct);
     msg->type = FLAME_MSG_TYPE_DECLARE_ID;
     msg_declare_id_d data;
-    data.msger_id = fct->msg()->config->msger_id;
+    data.msger_id = mct->config->msger_id;
     NodeAddr *tcp_lp_addr = nullptr;
     NodeAddr *rdma_lp_addr = nullptr;
     for(auto &pair : listen_map){
@@ -178,7 +178,7 @@ Msg *MsgManager::get_declare_msg(){
 
 Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
     if(!addr) return nullptr;
-    ML(fct, trace, "{} {}", addr->to_string(), msg_ttype_to_str(ttype));
+    ML(mct, trace, "{} {}", addr->to_string(), msg_ttype_to_str(ttype));
     Connection *conn = nullptr;
     switch(ttype){
     case msg_ttype_t::TCP:
@@ -212,7 +212,7 @@ Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
 
 int MsgManager::del_connection(Connection *conn){
     if(!conn) return -1;
-    ML(fct, trace, "{}", conn->to_string());
+    ML(mct, trace, "{}", conn->to_string());
     MutexLocker l(m_mutex);
     if(session_unknown_conns.erase(conn) > 0){
         conn->put();
@@ -224,19 +224,19 @@ int MsgManager::del_connection(Connection *conn){
 }
 
 Session *MsgManager::get_session(msger_id_t msger_id){
-    ML(fct, trace, "{}", msger_id_to_str(msger_id));
+    ML(mct, trace, "{}", msger_id_to_str(msger_id));
     MutexLocker l(m_mutex);
     auto it = session_map.find(msger_id);
     if(it != session_map.end()){
         return it->second;
     }
-    Session *s = new Session(fct, msger_id);
+    Session *s = new Session(mct, msger_id);
     session_map[msger_id] = s;
     return s;
 }
 
 int MsgManager::del_session(msger_id_t msger_id){
-    ML(fct, trace, "{}", msger_id_to_str(msger_id));
+    ML(mct, trace, "{}", msger_id_to_str(msger_id));
     MutexLocker l(m_mutex);
     auto it = session_map.find(msger_id);
     if(it != session_map.end()){
@@ -249,7 +249,7 @@ int MsgManager::del_session(msger_id_t msger_id){
 
 
 int MsgManager::start(){
-    ML(fct, trace, "");
+    ML(mct, trace, "");
     MutexLocker l(m_mutex);
     if(is_running) return 0;
     is_running = true;
@@ -261,7 +261,7 @@ int MsgManager::start(){
 }
 
 int MsgManager::clear_before_stop(){
-    ML(fct, trace, "");
+    ML(mct, trace, "");
     MutexLocker l(m_mutex);
     for(auto& pair : listen_map){
         del_lp(pair.second);
@@ -281,7 +281,7 @@ int MsgManager::clear_before_stop(){
 }
 
 int MsgManager::stop(){
-    ML(fct, trace, "");
+    ML(mct, trace, "");
     MutexLocker l(m_mutex);
     if(!is_running) return 0;
     is_running = false;
@@ -294,7 +294,7 @@ int MsgManager::stop(){
 
 void MsgManager::on_listen_accept(ListenPort *lp, Connection *conn){
     conn->get();
-    ML(fct, trace, "{} {}", lp->to_string(), conn->to_string());
+    ML(mct, trace, "{} {}", lp->to_string(), conn->to_string());
     MutexLocker l(m_mutex);
     session_unknown_conns.insert(conn);
     conn->set_listener(this);
@@ -303,7 +303,7 @@ void MsgManager::on_listen_accept(ListenPort *lp, Connection *conn){
 
 void MsgManager::on_listen_error(NodeAddr *listen_addr){
     listen_addr->get();
-    ML(fct, trace, "{}", listen_addr->to_string());
+    ML(mct, trace, "{}", listen_addr->to_string());
     del_listen_port(listen_addr);
     if(m_msger_cb){
         m_msger_cb->on_listen_error(listen_addr);
@@ -312,7 +312,7 @@ void MsgManager::on_listen_error(NodeAddr *listen_addr){
 }
 
 void MsgManager::on_conn_recv(Connection *conn, Msg *msg){
-    ML(fct, trace, "{} {}", conn->to_string(), msg->to_string());
+    ML(mct, trace, "{} {}", conn->to_string(), msg->to_string());
     if(msg->type == FLAME_MSG_TYPE_DECLARE_ID){
         msg_declare_id_d data;
         auto it = msg->data_buffer_list().begin();
@@ -320,12 +320,12 @@ void MsgManager::on_conn_recv(Connection *conn, Msg *msg){
         Session* s = get_session(data.msger_id);
         assert(s);
         if(data.has_tcp_lp){
-            auto tcp_listen_addr = new NodeAddr(fct, data.tcp_listen_addr);
+            auto tcp_listen_addr = new NodeAddr(mct, data.tcp_listen_addr);
             s->set_listen_addr(tcp_listen_addr, msg_ttype_t::TCP);
             tcp_listen_addr->put();
         }
         if(data.has_rdma_lp){
-            auto rdma_listen_addr = new NodeAddr(fct, data.rdma_listen_addr);
+            auto rdma_listen_addr = new NodeAddr(mct, data.rdma_listen_addr);
             s->set_listen_addr(rdma_listen_addr, msg_ttype_t::RDMA);
             rdma_listen_addr->put();
         }
@@ -348,7 +348,7 @@ void MsgManager::on_conn_recv(Connection *conn, Msg *msg){
 }
 
 void MsgManager::on_conn_error(Connection *conn){
-    ML(fct, trace, "{}", conn->to_string());
+    ML(mct, trace, "{}", conn->to_string());
     if(m_msger_cb){
         m_msger_cb->on_conn_error(conn);
     }

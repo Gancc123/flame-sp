@@ -12,16 +12,16 @@
 
 namespace flame{
 
-RdmaPrepConn::RdmaPrepConn(FlameContext *fct)
-:EventCallBack(fct, FLAME_EVENT_READABLE | FLAME_EVENT_WRITABLE),
+RdmaPrepConn::RdmaPrepConn(MsgContext *mct)
+:EventCallBack(mct, FLAME_EVENT_READABLE | FLAME_EVENT_WRITABLE),
  my_msg_buffer(ib::Infiniband::get_ib_syn_msg_len()),
  peer_msg_buffer(ib::Infiniband::get_ib_syn_msg_len()){
      status = PrepStatus::INIT;
 }
 
-int RdmaPrepConn::connect(FlameContext *fct, NodeAddr *addr){
+int RdmaPrepConn::connect(MsgContext *mct, NodeAddr *addr){
     int cfd, r;
-    NetHandler net_handler(fct);
+    NetHandler net_handler(mct);
     auto family = addr->get_family();
     cfd = net_handler.create_socket(family, true);
     if(cfd < 0){
@@ -45,12 +45,12 @@ int RdmaPrepConn::connect(FlameContext *fct, NodeAddr *addr){
     if(r < 0){
         r = errno;
         if(r == EINPROGRESS || r == EALREADY || r== EISCONN || r == ETIMEDOUT){
-            ML(fct, debug, "connect to [{} {}] : {}", 
+            ML(mct, debug, "connect to [{} {}] : {}", 
                                         addr->ip_to_string(), addr->get_port(),
                                         cpp_strerror(r));
             return cfd;
         }
-        ML(fct, error, "unable to connect to [{} {}] : {}",
+        ML(mct, error, "unable to connect to [{} {}] : {}",
                         addr->ip_to_string(), addr->get_port(),
                         cpp_strerror(r));
         ::close(cfd);
@@ -59,13 +59,13 @@ int RdmaPrepConn::connect(FlameContext *fct, NodeAddr *addr){
     return cfd;
 }
 
-RdmaPrepConn *RdmaPrepConn::create(FlameContext *fct, int cfd){
-    auto prep_conn = new RdmaPrepConn(fct);
+RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, int cfd){
+    auto prep_conn = new RdmaPrepConn(mct);
     prep_conn->fd = cfd;
 
     auto rdma_worker = 
         Stack::get_rdma_stack()->get_manager()->get_lightest_load_rdma_worker();
-    auto real_conn = RdmaConnection::create(fct, rdma_worker);
+    auto real_conn = RdmaConnection::create(mct, rdma_worker);
     if(!real_conn){
         return nullptr;
     }  
@@ -74,16 +74,16 @@ RdmaPrepConn *RdmaPrepConn::create(FlameContext *fct, int cfd){
     return prep_conn;
 }
 
-RdmaPrepConn *RdmaPrepConn::create(FlameContext *fct, NodeAddr *addr, 
+RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr, 
                                                                 uint8_t sl){
     try{
-        int fd = RdmaPrepConn::connect(fct, addr);
-        auto conn = new RdmaPrepConn(fct);
+        int fd = RdmaPrepConn::connect(mct, addr);
+        auto conn = new RdmaPrepConn(mct);
         conn->fd = fd;
 
         auto rdma_worker = Stack::get_rdma_stack()->get_manager()
                                             ->get_lightest_load_rdma_worker();
-        auto real_conn = RdmaConnection::create(fct, rdma_worker, sl);
+        auto real_conn = RdmaConnection::create(mct, rdma_worker, sl);
         if(!real_conn){
             conn->put();
             return nullptr;
@@ -96,7 +96,7 @@ RdmaPrepConn *RdmaPrepConn::create(FlameContext *fct, NodeAddr *addr,
         auto &my_msg = real_conn->get_my_msg();
         my_msg.peer_qpn = 0;
 
-        int _r = ib.encode_msg(fct, my_msg, conn->my_msg_buffer);
+        int _r = ib.encode_msg(mct, my_msg, conn->my_msg_buffer);
         assert(_r == conn->my_msg_buffer.length());
 
         return conn;
@@ -144,15 +144,15 @@ int RdmaPrepConn::send_my_msg(){
             break;
         } else if (r == -ECONNRESET) {
             status = PrepStatus::CLOSED;
-            ML(fct, error, "it was closed because of rst arrived sd = {}"
+            ML(mct, error, "it was closed because of rst arrived sd = {}"
                             " errno {} {}", this->fd, r, cpp_strerror(r));
             return -1;
         } else {
-            ML(fct, error, "write error? errno {} {}", r, cpp_strerror(r));
+            ML(mct, error, "write error? errno {} {}", r, cpp_strerror(r));
             break;
         }
     }
-    ML(fct, trace, "RdmaPrepConn {} send {} bytes, msg_buffer {} bytes",
+    ML(mct, trace, "RdmaPrepConn {} send {} bytes, msg_buffer {} bytes",
             fd, total_bytes, my_msg_buffer.length());
     return total_bytes;
 }
@@ -166,7 +166,7 @@ int RdmaPrepConn::recv_peer_msg(){
         recv_len = r;
         r = -errno;
         if(recv_len == 0){
-            ML(fct, error, "RdmaPrepConn recv 0 bytes, close the conn.");
+            ML(mct, error, "RdmaPrepConn recv 0 bytes, close the conn.");
             this->get();
             this->error_cb();
             this->put();
@@ -181,22 +181,22 @@ int RdmaPrepConn::recv_peer_msg(){
             break;
         } else if (r == -ECONNRESET) {
             status = PrepStatus::CLOSED;
-            ML(fct, error, "it was closed because of rst arrived sd = {}"
+            ML(mct, error, "it was closed because of rst arrived sd = {}"
                             " errno {} {}", this->fd, r, cpp_strerror(r));
             break;
         } else {
-            ML(fct, error, "write error? errno {} {}", r, cpp_strerror(r));
+            ML(mct, error, "write error? errno {} {}", r, cpp_strerror(r));
             break;
         }
     }
-    ML(fct, trace, "RdmaPrepConn {} recv {} bytes, msg_buffer {} bytes",
+    ML(mct, trace, "RdmaPrepConn {} recv {} bytes, msg_buffer {} bytes",
             fd, total_bytes, peer_msg_buffer.length());
     return total_bytes;
 
 }
 
 void RdmaPrepConn::read_cb(){
-    ML(fct, trace, "RdmaPrepConn status:{}", prep_status_str(status));
+    ML(mct, trace, "RdmaPrepConn status:{}", prep_status_str(status));
     ib::Infiniband &ib = Stack::get_rdma_stack()->get_manager()->get_ib();
     if(!is_server()){
         if(status == PrepStatus::SYNED_MY_MSG){
@@ -204,25 +204,25 @@ void RdmaPrepConn::read_cb(){
             if(peer_msg_buffer.full()){
                 status = PrepStatus::SYNED_PEER_MSG;
                 auto &peer_msg = real_conn->get_peer_msg();
-                int _r = ib.decode_msg(fct, peer_msg, peer_msg_buffer);
+                int _r = ib.decode_msg(mct, peer_msg, peer_msg_buffer);
                 assert(_r == peer_msg_buffer.length());
                 peer_msg_buffer_offset = 0;
                 auto &my_msg = real_conn->get_my_msg();
                 my_msg.peer_qpn = peer_msg.qpn;
                 if(my_msg.qpn != peer_msg.peer_qpn){
-                    ML(fct, error, "syn failed: "
+                    ML(mct, error, "syn failed: "
                                     "peer_msg.peer_qpn != my_msg.qpn");
                     this->close();
                     return;
                 }
                 assert(my_msg_buffer_offset == my_msg_buffer.length());
-                _r = ib.encode_msg(fct, my_msg, my_msg_buffer);
+                _r = ib.encode_msg(mct, my_msg, my_msg_buffer);
                 assert(_r == my_msg_buffer.length());
                 my_msg_buffer_offset = 0;
                 
                 //activate client rdma connection
                 if(real_conn->activate()){
-                    ML(fct, error, "RdmaConn activate() failed."
+                    ML(mct, error, "RdmaConn activate() failed."
                                     " Close related RdmaPrepConn.");
                     this->close();
                 }
@@ -238,19 +238,19 @@ void RdmaPrepConn::read_cb(){
             if(peer_msg_buffer.full()){
                 status = PrepStatus::SYNED_PEER_MSG;
                 auto &peer_msg = real_conn->get_peer_msg();
-                int _r = ib.decode_msg(fct, peer_msg, peer_msg_buffer);
+                int _r = ib.decode_msg(mct, peer_msg, peer_msg_buffer);
                 assert(_r == peer_msg_buffer.offset());
                 peer_msg_buffer_offset = 0;
                 auto &my_msg = real_conn->get_my_msg();
                 my_msg.peer_qpn = peer_msg.qpn;
                 my_msg.sl = peer_msg.sl;
-                _r = ib.encode_msg(fct, my_msg, my_msg_buffer);
+                _r = ib.encode_msg(mct, my_msg, my_msg_buffer);
                 assert(_r == my_msg_buffer.length());
                 my_msg_buffer_offset = 0;
 
                 //activate server rdma connection
                 if(real_conn->activate()){
-                    ML(fct, error, "RdmaConn activate() failed."
+                    ML(mct, error, "RdmaConn activate() failed."
                                     " Close related RdmaPrepConn.");
                     this->close();
                 }
@@ -260,25 +260,25 @@ void RdmaPrepConn::read_cb(){
             if(peer_msg_buffer.full()){
                 status = PrepStatus::ACKED;
                 auto &peer_msg = real_conn->get_peer_msg();
-                int _r = ib.decode_msg(fct, peer_msg, peer_msg_buffer);
+                int _r = ib.decode_msg(mct, peer_msg, peer_msg_buffer);
                 assert(_r == peer_msg_buffer.offset());
                 peer_msg_buffer_offset = 0;
                 auto &my_msg = real_conn->get_my_msg();
                 if(peer_msg.peer_qpn != my_msg.qpn){
-                    ML(fct, error, "syn failed: "
+                    ML(mct, error, "syn failed: "
                                     "peer_msg.peer_qpn != my_msg.qpn");
                     this->close();
                     return;
                 }else{
-                    ML(fct, trace, 
+                    ML(mct, trace, 
                                 "Prep Server finished. Close the prep conn.");
-                    ML(fct, trace, "my_msg: {} {} {} {}",
+                    ML(mct, trace, "my_msg: {} {} {} {}",
                         my_msg.lid, my_msg.qpn, my_msg.psn, my_msg.sl);
-                    ML(fct, trace, "peer_msg: {} {} {} {}",
+                    ML(mct, trace, "peer_msg: {} {} {} {}",
                         peer_msg.lid, peer_msg.qpn, peer_msg.psn, peer_msg.sl);
                     //Prep finished. close the prep conn.
                     this->close();
-                    ML(fct, trace, "RdmaConn qp state: {}",
+                    ML(mct, trace, "RdmaConn qp state: {}",
                                         ib::Infiniband::qp_state_string(
                                             real_conn->get_qp()->get_state()));
                     return;
@@ -294,7 +294,7 @@ void RdmaPrepConn::read_cb(){
 }
 
 void RdmaPrepConn::write_cb(){
-    ML(fct, trace, "RdmaPrepConn status:{}", prep_status_str(status));
+    ML(mct, trace, "RdmaPrepConn status:{}", prep_status_str(status));
     if(!is_server()){
         if(status == PrepStatus::INIT){
             send_my_msg();
@@ -307,12 +307,12 @@ void RdmaPrepConn::write_cb(){
             send_my_msg();
             if(my_msg_buffer_offset == my_msg_buffer.offset()){
                 status = PrepStatus::ACKED;
-                ML(fct, trace, "Prep client finished. Close the prep conn.");
+                ML(mct, trace, "Prep client finished. Close the prep conn.");
                 auto &peer_msg = real_conn->get_peer_msg();
                 auto &my_msg = real_conn->get_my_msg();
-                ML(fct, trace, "my_msg: {} {} {} {}",
+                ML(mct, trace, "my_msg: {} {} {} {}",
                     my_msg.lid, my_msg.qpn, my_msg.psn, my_msg.sl);
-                ML(fct, trace, "peer_msg: {} {} {} {}",
+                ML(mct, trace, "peer_msg: {} {} {} {}",
                     peer_msg.lid, peer_msg.qpn, peer_msg.psn, peer_msg.sl);
                 this->close();
             }else{
@@ -338,7 +338,7 @@ void RdmaPrepConn::write_cb(){
 void RdmaPrepConn::close_rdma_conn_if_need(){
     // close rdma conn when prep conn failed.
     if(!real_conn->is_connected()){
-        ML(fct, warn, "close RdmaConn {:p}", (void *)real_conn);
+        ML(mct, warn, "close RdmaConn {:p}", (void *)real_conn);
         real_conn->error_cb();
     }
 }
@@ -348,7 +348,7 @@ void RdmaPrepConn::error_cb(){
     socklen_t len = sizeof(so_error);
     ::getsockopt(this->fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
     this->close();
-    ML(fct, error, "RdmaPrepConn status: {} [fd: {}] closed: {}", 
+    ML(mct, error, "RdmaPrepConn status: {} [fd: {}] closed: {}", 
                         prep_status_str(status),
                         this->fd,
                         cpp_strerror(so_error));

@@ -10,7 +10,7 @@
 #include <tuple>
 #include <cassert>
 
-#define FLAME_MSG_LOG_LEVEL_D         "INFO"
+#define FLAME_MSG_LOG_LEVEL_D         "PRINT"
 #define FLAME_MSGER_ID_D              ""
 #define FLAME_NODE_LISTEN_PORTS_D     ""
 #define FLAME_RDMA_ENABLE_D           "false"

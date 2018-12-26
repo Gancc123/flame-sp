@@ -7,22 +7,22 @@
 namespace flame{
 
 class RdmaMsger : public MsgerCallback{
-    FlameContext *fct;
+    MsgContext *mct;
 public:
-    explicit RdmaMsger(FlameContext *c) : fct(c) {};
+    explicit RdmaMsger(MsgContext *c) : mct(c) {};
     virtual void on_conn_recv(Connection *conn, Msg *msg) override;
 };
 
 void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
     assert(msg->has_rdma());
 
-    msg_rdma_header_d rdma_header(msg->get_rdma_cnt());
+    msg_rdma_header_d rdma_header(msg->get_rdma_cnt(), msg->with_imm());
 
     auto it = msg->data_buffer_list().begin();
     rdma_header.decode(it);
     
     auto msger_id = conn->get_session()->peer_msger_id;
-    ML(fct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
+    ML(mct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
 
     auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
 
@@ -34,7 +34,7 @@ void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
     rdma_cb->target_func = 
                         [this, allocator](RdmaRwWork *w, RdmaConnection *conn){
         auto lbuf = w->lbufs[0];
-        ML(fct, info, "rdma read done. buf: {}...{} {}B",
+        ML(mct, info, "rdma read done. buf: {}...{} {}B",
             lbuf->buffer()[0], lbuf->buffer()[lbuf->data_len - 1],
             lbuf->data_len);
 

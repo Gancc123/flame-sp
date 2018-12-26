@@ -14,6 +14,7 @@
 
 #include "msg_types.h"
 #include "msg_data.h"
+#include "msg_context.h"
 #include "MsgManager.h"
 #include "Message.h"
 #include "Msg.h"

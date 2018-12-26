@@ -22,7 +22,7 @@ class Connection : public EventCallBack{
     MsgWorker *owner;
     ConnectionListener *m_listener;
 public:
-    explicit Connection(FlameContext *c)
+    explicit Connection(MsgContext *c)
     :EventCallBack(c, FLAME_EVENT_READABLE | FLAME_EVENT_WRITABLE),
      session(nullptr), owner(nullptr), m_listener(nullptr){
          

@@ -175,6 +175,7 @@ private:
 public:
     bool is_rdma_fetch() const { return rdma_fetch; }
     void set_rdma_fetch(bool v) { rdma_fetch = v; }
+    uint32_t imm_data;
     std::vector<RdmaBuffer *> rdma_rbufs;
     std::vector<RdmaBuffer *> rdma_lbufs;
 #endif 

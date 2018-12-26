@@ -15,9 +15,9 @@ struct msg_incre_d : public MsgData{
 
 
 class IncreMsger : public MsgerCallback{
-    FlameContext *fct;
+    MsgContext *mct;
 public:
-    explicit IncreMsger(FlameContext *c) : fct(c) {};
+    explicit IncreMsger(MsgContext *c) : mct(c) {};
     virtual void on_conn_recv(Connection *conn, Msg *msg) override;
 };
 
@@ -35,13 +35,13 @@ void IncreMsger::on_conn_recv(Connection *conn, Msg *msg){
     data.decode(it);
     ++data.num;
     auto msger_id = conn->get_session()->peer_msger_id;
-    ML(fct, trace, "{}=>  incre num {} -> {}",
+    ML(mct, info, "{}=>  incre num {} -> {}",
                             msger_id_to_str(msger_id), data.num - 1, data.num);
     if(data.num >= 200){
         return;
     }
 
-    auto req_msg = Msg::alloc_msg(fct, msg_ttype_t::RDMA);
+    auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
     req_msg->append_data(data);
     conn->send_msg(req_msg);
     req_msg->put();

@@ -47,7 +47,7 @@ void TcpConnection::error_cb(){
     socklen_t len = sizeof(so_error);
     ::getsockopt(this->get_fd(), SOL_SOCKET, SO_ERROR, &so_error, &len);
     if(so_error != EAGAIN){
-        ML(fct, info, "connection {}{} closed : {}", 
+        ML(mct, info, "connection {}{} closed : {}", 
                                 msg_ttype_to_str(get_id().type), get_id().id,
                                 cpp_strerror(so_error));
         this->get_listener()->on_conn_error(this);
@@ -55,9 +55,9 @@ void TcpConnection::error_cb(){
     }
 }
 
-int TcpConnection::connect(FlameContext *fct, NodeAddr *addr){
+int TcpConnection::connect(MsgContext *mct, NodeAddr *addr){
     int cfd, r;
-    NetHandler net_handler(fct);
+    NetHandler net_handler(mct);
     auto family = addr->get_family();
     cfd = net_handler.create_socket(family, true);
     if(cfd < 0){
@@ -81,12 +81,12 @@ int TcpConnection::connect(FlameContext *fct, NodeAddr *addr){
     if(r < 0){
         r = errno;
         if(r == EINPROGRESS || r == EALREADY || r== EISCONN || r == ETIMEDOUT){
-            ML(fct, debug, "connect to [{} {}] : {}", 
+            ML(mct, debug, "connect to [{} {}] : {}", 
                                         addr->ip_to_string(), addr->get_port(),
                                         cpp_strerror(r));
             return cfd;
         }
-        ML(fct, error, "unable to connect to [{} {}] : {}", 
+        ML(mct, error, "unable to connect to [{} {}] : {}", 
                         addr->ip_to_string(), addr->get_port(),
                         cpp_strerror(r));
         ::close(cfd);
@@ -95,8 +95,8 @@ int TcpConnection::connect(FlameContext *fct, NodeAddr *addr){
     return cfd;
 }
 
-TcpConnection::TcpConnection(FlameContext *fct)
-    :Connection(fct), msg_list_mutex(MUTEX_TYPE_ADAPTIVE_NP), 
+TcpConnection::TcpConnection(MsgContext *mct)
+    :Connection(mct), msg_list_mutex(MUTEX_TYPE_ADAPTIVE_NP), 
         cur_msg(msg_list.begin()), 
         cur_msg_header_buffer(sizeof(flame_msg_header_t)),
         cur_msg_offset(0),
@@ -122,8 +122,8 @@ TcpConnection::~TcpConnection() {
         }
     }
 
-TcpConnection *TcpConnection::create(FlameContext *fct, int fd){
-    auto conn = new TcpConnection(fct);
+TcpConnection *TcpConnection::create(MsgContext *mct, int fd){
+    auto conn = new TcpConnection(mct);
     conn->set_fd(fd);
     conn_id_t conn_id;
     conn_id.type = msg_ttype_t::TCP;
@@ -132,11 +132,11 @@ TcpConnection *TcpConnection::create(FlameContext *fct, int fd){
     return conn;
 }
 
-TcpConnection *TcpConnection::create(FlameContext *fct, NodeAddr *addr){
-    NetHandler net_handler(fct);
+TcpConnection *TcpConnection::create(MsgContext *mct, NodeAddr *addr){
+    NetHandler net_handler(mct);
     try{
-        int fd = TcpConnection::connect(fct, addr);
-        auto conn = new TcpConnection(fct);
+        int fd = TcpConnection::connect(mct, addr);
+        auto conn = new TcpConnection(mct);
         conn->set_fd(fd);
         conn_id_t conn_id;
         conn_id.type = msg_ttype_t::TCP;
@@ -279,7 +279,7 @@ ssize_t TcpConnection::send_msg(Msg *msg){
         bool more = (msg_p != msg_list.back());
         r = submit_cur_msg(more);
 
-        ML(fct, trace, "{} total: {}B, actually send: {}B", 
+        ML(mct, trace, "{} total: {}B, actually send: {}B", 
                     msg_p->to_string(), msg_p->total_bytes(), cur_msg_offset);
 
 
@@ -299,12 +299,12 @@ ssize_t TcpConnection::send_msg(Msg *msg){
             break;
         } else if (r == -ECONNRESET) {
             can_write =  TcpConnection::WriteStatus::CLOSED;
-            ML(fct, error, "it was closed because of rst arrived sd =  {}"
+            ML(mct, error, "it was closed because of rst arrived sd =  {}"
                 " errno {} {}", this->get_fd(), r, cpp_strerror(r));
             total = -1;
             break;
         } else {
-            ML(fct, error, "write error? errno {} {}", r, cpp_strerror(r));
+            ML(mct, error, "write error? errno {} {}", r, cpp_strerror(r));
             total = -1;
             break;
         }
@@ -324,7 +324,7 @@ Msg* TcpConnection::recv_msg() {
     }
     ssize_t r, read_len;
     if(!cur_recv_msg){
-        cur_recv_msg = new Msg(this->fct);
+        cur_recv_msg = Msg::alloc_msg(this->mct);
         cur_recv_msg->ttype = msg_ttype_t::TCP;
         cur_recv_msg_offset = 0;
     }
@@ -333,7 +333,7 @@ Msg* TcpConnection::recv_msg() {
                                                 - recv_header_buffer.length();
         if(recv_header_buffer.full()){
             if(cur_recv_msg->decode_header(recv_header_buffer) < 0){
-                ML(fct, error, "error when recv msg on [{} {}]", 
+                ML(mct, error, "error when recv msg on [{} {}]", 
                                 msg_ttype_to_str(get_id().type), get_id().id);
                 this->get_listener()->on_conn_error(this);
                 return nullptr;
@@ -352,7 +352,7 @@ Msg* TcpConnection::recv_msg() {
                 r = ::recv(this->get_fd(), buffer, cd_len, MSG_DONTWAIT);
             }
         }else{
-            ML(fct, trace, "{} total: {}B, actually recv: {}B",  
+            ML(mct, trace, "{} total: {}B, actually recv: {}B",  
                 this->cur_recv_msg->to_string(), 
                 this->cur_recv_msg->data_len + FLAME_MSG_HEADER_LEN,
                 cur_recv_msg_offset);
@@ -379,11 +379,11 @@ Msg* TcpConnection::recv_msg() {
             break;
         } else if (r == -ECONNRESET) {
             can_write = TcpConnection::WriteStatus::CLOSED;
-            ML(fct, error, "it was closed because of rst arrived sd =  {}"
+            ML(mct, error, "it was closed because of rst arrived sd =  {}"
                 " errno {} {}", this->get_fd(), r, cpp_strerror(r));
             break;
         } else {
-            ML(fct, error, "write error? errno {} {}", r, cpp_strerror(r));
+            ML(mct, error, "write error? errno {} {}", r, cpp_strerror(r));
             break;
         }
     }

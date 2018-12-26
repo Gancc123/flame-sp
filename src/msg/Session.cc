@@ -14,7 +14,7 @@ Connection* Session::get_conn(msg_ttype_t ttype, uint8_t sl){
         }
     }
 
-    auto msg_manager = fct->msg()->manager;
+    auto msg_manager = mct->manager;
     auto addr = get_listen_addr(ttype);
     if(!addr){
         return nullptr;

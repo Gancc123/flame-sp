@@ -100,7 +100,7 @@ set(libcommon_files
     ${msg_common_srcs}
     ${msg_rdma_common_srcs}
     msg/Stack.cc
-    msg/msg_module.cc
+    msg/msg_context.cc
     )
 
 
