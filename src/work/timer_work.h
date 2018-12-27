@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <atomic>
 
 namespace flame {
 
@@ -25,6 +26,8 @@ public:
     void push_delay(const std::shared_ptr<WorkEntry>& we, const utime_t& delay);
 
     size_t size() const { return wait_.size(); }
+
+    void stop();
 
     class TimerEntry {
     public:
@@ -45,6 +48,7 @@ private:
     std::multimap<uint64_t, TimerEntry> wait_;
     RWLock wait_lock_;
     utime_t check_cycle_;
+    std::atomic<bool> can_run_ {true};
 }; // class TimerWorker
 
 } // namespace flame

@@ -159,21 +159,6 @@ int CsdManager::csd_sign_out(uint64_t csd_id) {
     return RC_SUCCESS;
 }
 
-// int CsdManager::csd_heart_beat(uint64_t csd_id) {
-//     ReadLocker(csd_map_lock_);
-//     auto it = csd_map_.find(csd_id);
-//     if (it == csd_map_.end()) {
-//         return OBJ_NOT_EXIST;
-//     }
-//     CsdHandle* hdl = *it;
-//     if (!hdl->stat_is_new()) {
-//         hdl->set_as_dirty();
-//     }
-//     CsdObject* obj = hdl->write_and_lock();
-//     obj->set_stat(CSD_STAT_ACTIVE);
-//     return SUCCESS;
-// }
-
 int CsdManager::csd_stat_update(uint64_t csd_id, uint32_t stat) {
     ReadLocker map_locker(csd_map_lock_);
 
@@ -248,10 +233,10 @@ void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
     obj_->health().hlt_meta = hlt.hlt_meta;
 
     // 更新需要计算的健康信息
-    obj_->set_write_count(obj_->get_write_count() + hlt.hlt_meta.last_write);
-    obj_->set_read_count(obj_->get_read_count() + hlt.hlt_meta.last_read);
-    double u = (double)hlt.used / hlt.size;
-    obj_->set_wear_weight(obj_->get_wear_weight() + (hlt.hlt_meat.last_write/ (1 - u)));
+    obj_->add_write_count(hlt.hlt_meta.last_write);
+    obj_->add_read_count(hlt.hlt_meta.last_read);
+    // double u = (double)hlt.used / hlt.size;
+    // obj_->set_wear_weight(obj_->get_wear_weight() + (hlt.hlt_meta.last_write / (1 - u)));
 
     obj_as_dirty__(); // 健康信息更新不马上写回MetaStore
 }

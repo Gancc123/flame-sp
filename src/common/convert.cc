@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <regex>
+#include <ostream>
 
 using namespace std;
 
@@ -10,7 +11,7 @@ string convert2string<flame::node_addr_t>(const flame::node_addr_t& obj) {
     ostringstream oss;
     uint32_t _ip = obj.get_ip();
     uint8_t* _p = (uint8_t*)&_ip;
-    oss << *_p << "." << *(_p + 1) << "." << *(_p + 2) << "." << *(_p + 3);
+    oss << (int)*_p << "." << (int)*(_p + 1) << "." << (int)*(_p + 2) << "." << (int)*(_p + 3);
     oss << ":" << obj.get_port();
     return oss.str();
 }
