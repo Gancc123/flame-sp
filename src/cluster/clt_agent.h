@@ -2,6 +2,7 @@
 #define FLAME_CLUSTER_AGENT_H
 
 #include "common/context.h"
+#include "csd/csd_context.h"
 
 namespace flame {
 
@@ -17,11 +18,9 @@ public:
     virtual int init() = 0;
 
 protected:
-    ClusterAgent(FlameContext* fct, uint64_t node_id) 
-    : fct_(fct), node_id_(node_id) {}
+    ClusterAgent(CsdContext* cct) : cct_(cct) {}
 
-    FlameContext* fct_;
-    uint64_t node_id_;
+    CsdContext* cct_;
 }; // class ClusterAgent
 
 } // namespace flame

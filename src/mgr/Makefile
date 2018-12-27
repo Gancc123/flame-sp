@@ -16,7 +16,7 @@ all: csdm mgr
 csdm:
 	make -C ./csdm
 
-mgr: $(OBJ_MGR) $(OBJ_MGR_CSDM) $(OBJ_COMMON) $(OBJ_METASTORE) $(OBJ_PROTO) $(OBJ_SERVICE) $(OBJ_ORM) $(OBJ_UTIL)
+mgr: $(OBJ_MGR) $(OBJ_MGR_CSDM) $(OBJ_COMMON) $(OBJ_METASTORE) $(OBJ_PROTO) $(OBJ_SERVICE) $(OBJ_ORM) $(OBJ_UTIL) $(OBJ_WORK) $(OBJ_CLUSTER)
 	$(CXX) $(CXXFLAGS) $(MYSQL_CFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(MYSQL_LIB) $(GRPC_LDFLAGS)  
 
 %.o: %.cc

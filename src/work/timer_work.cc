@@ -8,7 +8,7 @@ using namespace std;
 namespace flame {
 
 void TimerWorker::entry() {
-    while (true) {
+    while (can_run_.load()) {
         auto it = get_top__();
         if (it != wait_.cend()) {
             utime_t now = utime_t::now();
@@ -61,6 +61,11 @@ void TimerWorker::push_delay(const shared_ptr<WorkEntry>& we, const utime_t& del
     utime_t attack = utime_t::now() + delay;
 
     insert__(attack.to_nsec(), te);
+}
+
+void TimerWorker::stop() {
+    can_run_.store(false);
+    join();
 }
 
 void TimerWorker::insert__(uint64_t t, const TimerEntry& te) {
