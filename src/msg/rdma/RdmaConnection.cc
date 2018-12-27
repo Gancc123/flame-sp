@@ -207,6 +207,7 @@ size_t RdmaConnection::recv_data(){
         if(response->opcode == IBV_WC_RECV_RDMA_WITH_IMM){
             Msg *msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
             msg->type = FLAME_MSG_TYPE_IMM_DATA;
+            msg->set_flags(FLAME_MSG_FLAG_RESP);
             msg->imm_data = ntohl(response->imm_data);
             recv_msg_cb(msg);
             chunks.push_back(chunk);
@@ -668,6 +669,7 @@ int RdmaConnection::post_rdma_rw(RdmaRwWork *work, bool enqueue){
         isge[current_sge].addr = work->lbufs[num]->addr();
         if(work->is_write){
             isge[current_sge].length = work->lbufs[num]->data_len;
+            work->rbufs[num]->data_len = work->lbufs[num]->data_len;
         }else{
             isge[current_sge].length = work->rbufs[num]->data_len;
             work->lbufs[num]->data_len = work->rbufs[num]->data_len;

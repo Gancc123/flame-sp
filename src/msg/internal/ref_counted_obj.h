@@ -15,7 +15,7 @@ private:
 protected:
     MsgContext *mct;
 public:
-    RefCountedObject(MsgContext *c = NULL, uint64_t n=1) : nref(n), mct(c) {}
+    RefCountedObject(MsgContext *c=NULL, uint64_t n=1) : nref(n), mct(c) {}
     virtual ~RefCountedObject() {
         //assert(nref == 0);
     }
@@ -40,7 +40,7 @@ public:
             delete this;
         } 
     }
-    void set_fct(MsgContext *c) {
+    void set_mct(MsgContext *c) {
         mct = c;
     }
 

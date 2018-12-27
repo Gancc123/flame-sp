@@ -38,8 +38,10 @@ int main(int argc, char *argv[]){
     ML(mct, info, "load cfg: " CFG_PATH);
 
     global_config.num = (int)options.get("num");
+    global_config.result_file = std::string(options.get("result_file"));
     global_config.perf_type = perf_type_from_str(
                                             std::string(options.get("type")));
+    global_config.size = size_str_to_uint64(std::string(options.get("size")));
 
     init_resource(global_config);
 

@@ -22,6 +22,8 @@ enum class perf_type_t {
     MEM_PUSH,  // send req + rdma read + send resp
     SEND,      // send req + send resp
     SEND_DATA, // send req with data + send resp
+    MEM_FETCH, // send req + rdma write + send resp
+    MEM_FETCH_WITH_IMM, //send req + rdma write_with_imm
 };
 
 perf_type_t perf_type_from_str(const std::string &s){
@@ -35,6 +37,12 @@ perf_type_t perf_type_from_str(const std::string &s){
     if(lower == "send_data"){
         return perf_type_t::SEND_DATA;
     }
+    if(lower == "mem_fetch"){
+        return perf_type_t::MEM_FETCH;
+    }
+    if(lower == "mem_fetch_with_imm"){
+        return perf_type_t::MEM_FETCH_WITH_IMM;
+    }
     return perf_type_t::NONE;
 }
 
@@ -42,9 +50,9 @@ struct perf_config_t{
     std::string target_rdma_ip;
     int target_rdma_port;
     perf_type_t perf_type;
-    int64_t size;
-    int num;
-    ib::RdmaBuffer *tx_buffer = nullptr;
+    uint64_t size;
+    uint32_t num;
+    ib::RdmaBuffer *rw_buffer = nullptr;
     MsgBuffer *data_buffer = nullptr;
     cycles_t *tposted = nullptr;
     std::string result_file;
@@ -93,16 +101,20 @@ optparse::OptionParser init_parser(){
     parser.add_option("-c", "--config").help("set config file");
     parser.add_option("-i", "--index").type("int").set_default(0)
         .help("set node index");
-    parser.add_option("-n", "--num").type("int").set_default(1000)
+    parser.add_option("-n", "--num").type("long").set_default(1000)
         .help("iter count for perf");
-    parser.add_option("-t", "--type").choices({"mem_push", "send", "send_data"})
-        .set_default("send").help("perf type: mem_push, send, send_data");
+    parser.add_option("-t", "--type")
+        .choices({"mem_push", "send", "send_data", "mem_fetch",
+                    "mem_fetch_with_imm"})
+        .set_default("send")
+        .help("perf type: mem_push, send, send_data, mem_fetch,"
+                " mem_fetch_with_imm");
     parser.add_option("--log_level").set_default("info");
     parser.add_option("--result_file").set_default("result.txt")
         .help("result file path");
 
     parser.add_option("-s", "--size").set_default("4M")
-        .help("size for mem_push and send_data");
+        .help("size for mem_push, send_data, mem_fetch, mem_fetch_with_imm ");
 
     parser.add_option("-a", "--address").set_default("127.0.0.1")
         .help("target ip for rdma");
@@ -113,7 +125,7 @@ optparse::OptionParser init_parser(){
 }
 
 struct msg_incre_d : public MsgData{
-    int num;
+    uint32_t num;
     virtual int encode(MsgBufferList &bl) override{
         return M_ENCODE(bl, num);
     }
@@ -125,11 +137,13 @@ struct msg_incre_d : public MsgData{
 class RdmaMsger : public MsgerCallback{
     MsgContext *mct;
     perf_config_t *config;
-    ib::RdmaBuffer *rx_buffer = nullptr;
+    ib::RdmaBuffer *rw_buffer = nullptr;
     void on_mem_push_req(Connection *conn, Msg *msg);
     void on_mem_push_resp(Connection *conn, Msg *msg);
     void on_send_req(Connection *conn, Msg *msg);
     void on_send_resp(Connection *conn, Msg *msg);
+    void on_mem_fetch_req(Connection *conn, Msg *msg);
+    void on_mem_fetch_resp(Connection *conn, Msg *msg);
 public:
     explicit RdmaMsger(MsgContext *c, perf_config_t *cfg=nullptr) 
     : mct(c), config(cfg) {};
@@ -142,7 +156,7 @@ void RdmaMsger::on_mem_push_req(Connection *conn, Msg *msg){
     msg_rdma_header_d rdma_header(msg->get_rdma_cnt(), msg->with_imm());
     msg_incre_d incre_data;
 
-    auto it = msg->data_buffer_list().begin();
+    auto it = msg->data_iter();
     rdma_header.decode(it);
     incre_data.decode(it);
     
@@ -151,11 +165,12 @@ void RdmaMsger::on_mem_push_req(Connection *conn, Msg *msg){
 
     auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
 
-    auto lbuf = rx_buffer;
+    auto lbuf = rw_buffer;
     if(!lbuf){
-        lbuf = allocator->alloc(rdma_header.rdma_bufs[0]->data_len);
+        lbuf = allocator->alloc(rdma_header.rdma_bufs[0]->size());
         assert(lbuf);
-        rx_buffer = lbuf;
+        ML(mct, info, "alloc buffer {}", lbuf->size());
+        rw_buffer = lbuf;
     }
 
     auto rdma_cb = new RdmaRwWork();
@@ -194,7 +209,7 @@ void RdmaMsger::on_mem_push_req(Connection *conn, Msg *msg){
 
 void RdmaMsger::on_mem_push_resp(Connection *conn, Msg *msg){
     msg_incre_d incre_data;
-    auto it = msg->data_buffer_list().begin();
+    auto it = msg->data_iter();
     incre_data.decode(it);
 
     assert(this->config);
@@ -206,7 +221,7 @@ void RdmaMsger::on_mem_push_resp(Connection *conn, Msg *msg){
         return;
     }
 
-    auto buf = this->config->tx_buffer;
+    auto buf = this->config->rw_buffer;
     msg_rdma_header_d rdma_header(1, false);
     rdma_header.rdma_bufs.push_back(buf);
     buf->buffer()[0] = 'A' + (incre_data.num % 26);
@@ -226,7 +241,7 @@ void RdmaMsger::on_mem_push_resp(Connection *conn, Msg *msg){
 void RdmaMsger::on_send_req(Connection *conn, Msg *msg){
     msg_incre_d incre_data;
 
-    auto it = msg->data_buffer_list().begin();
+    auto it = msg->data_iter();
     incre_data.decode(it);
     
     auto msger_id = conn->get_session()->peer_msger_id;
@@ -244,7 +259,7 @@ void RdmaMsger::on_send_req(Connection *conn, Msg *msg){
 
 void RdmaMsger::on_send_resp(Connection *conn, Msg *msg){
     msg_incre_d incre_data;
-    auto it = msg->data_buffer_list().begin();
+    auto it = msg->data_iter();
     incre_data.decode(it);
 
     assert(this->config);
@@ -271,6 +286,108 @@ void RdmaMsger::on_send_resp(Connection *conn, Msg *msg){
     req_msg->put();
 }
 
+void RdmaMsger::on_mem_fetch_req(Connection *conn, Msg *msg){
+    assert(msg->has_rdma());
+
+    msg_rdma_header_d rdma_header(msg->get_rdma_cnt(), msg->with_imm());
+    msg_incre_d incre_data;
+
+    auto it = msg->data_iter();
+    rdma_header.decode(it);
+    incre_data.decode(it);
+    
+    auto msger_id = conn->get_session()->peer_msger_id;
+    ML(mct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
+
+    auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
+
+    auto lbuf = rw_buffer;
+    if(!lbuf){
+        lbuf = allocator->alloc(rdma_header.rdma_bufs[0]->data_len);
+        assert(lbuf);
+        ML(mct, info, "alloc buffer {}", lbuf->size());
+        rw_buffer = lbuf;
+    }
+    lbuf->buffer()[0] = 'A' + (incre_data.num % 26);
+    lbuf->buffer()[lbuf->size() - 1] = 'Z' - (incre_data.num % 26);
+    lbuf->data_len = lbuf->size(); //make sure that data_len is not zero.
+
+    auto rdma_cb = new RdmaRwWork();
+    assert(rdma_cb);
+    rdma_cb->is_write = true;
+    rdma_cb->rbufs = rdma_header.rdma_bufs;
+    rdma_cb->lbufs.push_back(lbuf);
+    rdma_cb->cnt = 1;
+
+    if(config->perf_type == perf_type_t::MEM_FETCH_WITH_IMM){
+        rdma_cb->imm_data = incre_data.num + 1;
+        rdma_cb->target_func = 
+            [this, allocator](RdmaRwWork *w, RdmaConnection *conn){
+            allocator->free_buffers(w->rbufs);
+            delete w;
+        };
+    }else{
+        rdma_cb->target_func = 
+            [this, allocator, incre_data](RdmaRwWork *w, RdmaConnection *conn){
+            auto lbuf = w->lbufs[0];
+            auto resp_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+            resp_msg->set_flags(FLAME_MSG_FLAG_RESP);
+
+            msg_incre_d new_incre_data;
+            new_incre_data.num = incre_data.num + 1;
+            resp_msg->append_data(new_incre_data);
+            conn->send_msg(resp_msg);
+
+            resp_msg->put();
+            allocator->free_buffers(w->rbufs);
+            delete w;
+        };
+    }
+
+    auto rdma_conn = RdmaStack::rdma_conn_cast(conn);
+    assert(rdma_conn);
+    rdma_conn->post_rdma_rw(rdma_cb);
+}
+
+void RdmaMsger::on_mem_fetch_resp(Connection *conn, Msg *msg){
+    msg_incre_d incre_data;
+    if(config->perf_type == perf_type_t::MEM_FETCH_WITH_IMM){
+        assert(msg->is_imm_data());
+        incre_data.num = msg->imm_data;
+    }else{ 
+        auto it = msg->data_iter();
+        incre_data.decode(it);
+    }
+
+    assert(this->config);
+    this->config->tposted[incre_data.num] = get_cycles();
+
+    auto buf = this->config->rw_buffer;
+    ML(mct, info, "rdma write done. buf: {}...{} {}B",
+            buf->buffer()[0], buf->buffer()[buf->data_len - 1],
+            buf->data_len);
+
+    if(incre_data.num >= this->config->num){
+        dump_result(*(this->config));
+        ML(mct, info, "iter {} times, done.", incre_data.num);
+        return;
+    }
+
+    //next iter
+    msg_rdma_header_d rdma_header(1, false);
+    rdma_header.rdma_bufs.push_back(buf);
+
+    auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+    req_msg->flag |= FLAME_MSG_FLAG_RDMA;
+    req_msg->set_rdma_cnt(1);
+    req_msg->append_data(rdma_header);
+    req_msg->append_data(incre_data);
+
+    conn->send_msg(req_msg);
+
+    req_msg->put();
+}
+
 void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
     switch(config->perf_type){
     case perf_type_t::MEM_PUSH:
@@ -288,8 +405,15 @@ void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
             on_send_resp(conn, msg);
         }
         break;
+    case perf_type_t::MEM_FETCH:
+    case perf_type_t::MEM_FETCH_WITH_IMM:
+        if(msg->is_req()){
+            on_mem_fetch_req(conn, msg);
+        }else if(msg->is_resp()){
+            on_mem_fetch_resp(conn, msg);
+        }
+        break;
     }
-    
     return;
 }
 

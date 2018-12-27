@@ -16,7 +16,7 @@
 
 namespace flame{
 
-msg_log_level_t g_msg_log_level = msg_log_level_t::info;
+msg_log_level_t g_msg_log_level = msg_log_level_t::print;
 
 int MsgContext::load_config(){
     if(config == nullptr){

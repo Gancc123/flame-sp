@@ -30,19 +30,44 @@ void send_first_msg(MsgContext *mct){
         ML(mct, info, "send first msg (mem_push)");
         auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
         
-        auto buf = allocator->alloc(global_config.size); //4MB
+        auto buf = allocator->alloc(global_config.size); 
         assert(buf);
         msg_rdma_header_d rdma_header(1, false);
         rdma_header.rdma_bufs.push_back(buf);
         buf->buffer()[0] = 'A';
         buf->buffer()[buf->size() - 1] = 'Z';
         buf->data_len = buf->size();
-        global_config.tx_buffer = buf;
+        global_config.rw_buffer = buf;
 
         global_config.tposted[0] = get_cycles();
 
         auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
-        req_msg->flag |= FLAME_MSG_FLAG_RDMA;
+        req_msg->set_flags(FLAME_MSG_FLAG_RDMA);
+        req_msg->set_rdma_cnt(1);
+        req_msg->append_data(rdma_header);
+
+        msg_incre_d incre_data;
+        incre_data.num = 0;
+        req_msg->append_data(incre_data);
+
+        conn->send_msg(req_msg);
+        req_msg->put();
+    }else if(global_config.perf_type == perf_type_t::MEM_FETCH
+                || global_config.perf_type == perf_type_t::MEM_FETCH_WITH_IMM){
+        ML(mct, info, "send first msg (mem_fetch)");
+        auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
+        
+        auto buf = allocator->alloc(global_config.size);
+        assert(buf);
+        buf->data_len = buf->size();
+        msg_rdma_header_d rdma_header(1, false);
+        rdma_header.rdma_bufs.push_back(buf);
+        global_config.rw_buffer = buf;
+
+        global_config.tposted[0] = get_cycles();
+
+        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+        req_msg->set_flags(FLAME_MSG_FLAG_RDMA);
         req_msg->set_rdma_cnt(1);
         req_msg->append_data(rdma_header);
 
@@ -117,6 +142,7 @@ int main(int argc, char *argv[]){
     global_config.target_rdma_port = (int)options.get("port");
 
     auto mct = new MsgContext(fct);
+    ML(mct, info, "num:{} size:{}", global_config.num, global_config.size);
 
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
