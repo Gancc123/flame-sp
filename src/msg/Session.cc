@@ -1,6 +1,6 @@
 #include "Session.h"
-
 #include "MsgManager.h"
+#include "util/fmt.h"
 
 #include <cstdlib>
 
@@ -68,12 +68,12 @@ int Session::del_conn(Connection *conn){
 }
 
 std::string Session::to_string() const {
-    std::stringstream ss;
-    ss << "[Session " << msger_id_to_str(peer_msger_id);
-    ss << " " << tcp_listen_addr?tcp_listen_addr->to_string():"";
-    ss << " " << rdma_listen_addr?rdma_listen_addr->to_string():"";
-    ss << "](" << (void *)this << ")";
-    return ss.str();
+    auto s = fmt::format("[Session {} {} {}]({:p})", 
+                            msger_id_to_str(peer_msger_id),
+                            tcp_listen_addr?tcp_listen_addr->to_string():"",
+                            rdma_listen_addr?rdma_listen_addr->to_string():"",
+                            (void *)this);
+    return s;
 }
 
 

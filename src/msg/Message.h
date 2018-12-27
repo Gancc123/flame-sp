@@ -4,7 +4,7 @@
 #include "acconfig.h"
 #include "internal/byteorder.h"
 
-#include <sstream>
+#include "util/fmt.h"
 
 #define MESSAGE_RESERVED_LEN 32
 #define MESSAGE_COMPID_BITLEN 48
@@ -181,13 +181,9 @@ public:
 #endif 
 
     std::string to_string() const{
-        std::stringstream ss;
-        ss << std::hex << "[Message src " << src() 
-                    << " dst " << dst()
-                    << " " << (req_typ()?"io":"admin")
-                    << std::dec 
-                    << "](" << (void *)this << ")";
-        return ss.str();
+        auto s = fmt::format("[Message src {:x} dst{:x} {}[({:p})]",
+                    src(), dst(), (req_typ()?"io":"admin"), (void *)this);
+        return s;
     }
 
 protected:

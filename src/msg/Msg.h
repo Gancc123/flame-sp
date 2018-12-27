@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <mutex>
 #include <iomanip>
-#include <sstream>
 #include <algorithm>
 
 #include "msg_common.h"
@@ -160,8 +159,9 @@ public:
     }
 
     std::string msg_flag_str() const{
-        char flags[4];
+        char flags[5];
         flags[sizeof(flags) - 1] = '\0';
+        flags[3] = with_imm()?'I':'-';
         flags[2] = has_rdma()?'M':'-';
         flags[1] = is_resp()?'R':'-';
         flags[0] = '-';
@@ -169,13 +169,12 @@ public:
     }
 
     std::string to_string() const{
-        std::stringstream ss;
-        ss << "[Msg " << msg_ttype_to_str(ttype) 
-                    << " " << msg_type_str()
-                    << " " << msg_flag_str()
-                    << " SL" << (int)priority 
-                    << " " << get_data_len() << "B](" << (void *)this << ")";
-        return ss.str();
+        auto s = fmt::format("[Msg {} {} {} SL{} {}B]({:p})",
+                                msg_ttype_to_str(ttype),
+                                msg_type_str(), msg_flag_str(),
+                                (int)priority, get_data_len(),
+                                (void *)this);
+        return s;
     }
 
     msg_ttype_t ttype = msg_ttype_t::TCP; //just for transport type

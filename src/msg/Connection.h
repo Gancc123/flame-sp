@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <mutex>
-#include <sstream>
 
 #include "msg_common.h"
 #include "Msg.h"
@@ -110,9 +109,8 @@ public:
     virtual void error_cb() = 0;
 
     std::string to_string() const{
-        std::stringstream ss;
-        ss << "[Conn " << this->conn_id.to_string() << "]";
-        return ss.str();
+        auto s = fmt::format("[Conn {}]", this->conn_id.to_string());
+        return s;
     }
 
 };

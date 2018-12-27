@@ -9,7 +9,6 @@
 #include "internal/util.h"
 #include "msg_def.h"
 #include "msg_types.h"
-
-#include <sstream>
+#include "util/fmt.h"
 
 #endif

@@ -1,5 +1,6 @@
 #include "node_addr.h"
 #include "msg/msg_def.h"
+#include "util/fmt.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -7,17 +8,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iomanip>
-#include <sstream>
 
 
 namespace flame{
 
 std::string NodeAddr::to_string() const{
-    std::stringstream ss;
-    ss << "[NodeAddr " 
-        << ip_to_string()  << "/" << get_port() 
-        << "](" << (void *)this << ")";
-    return ss.str();
+    auto s = fmt::format("[NodeAddr {}/{}]({:p})", 
+                            ip_to_string(), get_port(), (void *)this);
+    return s;
 }
 
 std::string NodeAddr::ip_to_string() const{

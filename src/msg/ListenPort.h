@@ -63,10 +63,9 @@ public:
     virtual void error_cb() = 0;
 
     std::string to_string() const{
-        std::stringstream ss;
-        ss << "[LP " << m_listen_addr?m_listen_addr->to_string():"";
-        ss << "](" << (void *)this << ")";
-        return ss.str();
+        auto s = fmt::format("[LP {}]({:p})", 
+                    m_listen_addr?m_listen_addr->to_string():"", (void *)this);
+        return s;
     }
 };
 

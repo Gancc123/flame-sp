@@ -2,8 +2,7 @@
 
 #include "msg/msg_context.h"
 #include "msg/msg_def.h"
-
-#include <sstream>
+#include "util/fmt.h"
 
 #define FLAME_BUDDY_ALLOCAOTR_MIN_LEVEL     (4)
 #define FLAME_BUDDY_ALLOCAOTR_MAX_LEVELS    (32)
@@ -143,15 +142,15 @@ void BuddyAllocator::free(void *pvoid, size_t s){
 }
 
 std::string BuddyAllocator::get_stat() const{
-    std::stringstream ss;
     size_t total = get_mem_total();
     size_t used = total - get_mem_free();
-    ss << used << "/" << total << " " << used*100/total << "%: "; 
+    fmt::memory_buffer out;
+    fmt::format_to(out, "{}/{} {}%: ", used, total, used*100/total);
     for(uint8_t l = max_level;l >= min_level;--l){
-        ss << "L" << (uint32_t)l << "(" << (1 << l) << "B)=" 
-                                                << chunks_of_level(l) << " ";
+        fmt::format_to(out, "L{}({}B)={} ", (uint32_t)l, (1 << l), 
+                                                        chunks_of_level(l));
     }
-    return ss.str();
+    return fmt::to_string(out);
 }
 
 } // namespace ib

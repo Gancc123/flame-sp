@@ -1,18 +1,17 @@
 #include "msg_types.h"
 #include "msg_def.h"
+#include "util/fmt.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
 #include <cstdlib>
-#include <sstream>
 
 namespace flame{
 
 std::string msger_id_to_str(msger_id_t msger_id){
-    std::stringstream ss;
-    ss << "[msger_id " << msger_id.ip << " " << msger_id.port << "]";
-    return ss.str();
+    auto s = fmt::format("[msger_id {} {}]", msger_id.ip, msger_id.port);
+    return s;
 }
 
 NodeAddr *node_addr_from_msger_id(MsgContext *mct, msger_id_t id){
@@ -52,9 +51,8 @@ std::string msg_ttype_to_str(msg_ttype_t ttype){
 }
 
 std::string conn_id_t::to_string() const{
-    std::stringstream ss;
-    ss << "[" << msg_ttype_to_str(type) << " " << id << "]";
-    return ss.str();
+    auto s = fmt::format("[{} {}]", msg_ttype_to_str(type), id);
+    return s;
 }
 
 }

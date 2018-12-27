@@ -12,7 +12,6 @@
 #include <cstdlib>
 #include <mutex>
 #include <tuple>
-#include <sstream>
 
 namespace flame{
 
