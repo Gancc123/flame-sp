@@ -238,7 +238,7 @@ public:
      * 需要在 read_and_lock()或write_and_lock()后使用，
      * 或者在 read_try_lock()或write_try_lock()成功后使用
      */
-    void save_and_unlock();
+    int save_and_unlock();
 
     /**
      * @brief 持久化 CsdObject

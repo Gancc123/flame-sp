@@ -3,7 +3,7 @@
 
 #include "common/context.h"
 #include "metastore/metastore.h"
-#include "include/object.h"
+#include "include/objects.h"
 #include "common/thread/rw_lock.h"
 #include "common/thread/cond.h"
 #include "include/flame.h"

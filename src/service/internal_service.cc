@@ -1,4 +1,5 @@
 #include "internal_service.h"
+#include "include/retcode.h"
 
 using grpc::ServerContext;
 using grpc::Status;
@@ -13,19 +14,28 @@ namespace service {
 Status InternalServiceImpl::registerCsd(ServerContext* context,
 const RegisterRequest* request, RegisterReply* response)
 {
-    // csd_reg_attr_t mt;
-    // mt.csd_name = request->csd_name();
-    // mt.size = request->size();
-    // mt.io_addr = request->io_addr();
-    // mt.admin_addr = request->admin_addr();
-    // mt.stat = request->stat();
+    csd_reg_attr_t mt;
+    mt.csd_name = request->csd_name();
+    mt.size = request->size();
+    mt.io_addr = request->io_addr();
+    mt.admin_addr = request->admin_addr();
+    mt.stat = request->stat();
 
-    // int r = csd_ms->create_and_get(mt);
+    mct_->log()->ldebug("internal_service", "csd register: csd_name(%s), size(%llu)",
+        mt.csd_name.c_str(), mt.size
+    );
+
+    int r;
+    CsdHandle* hdl;
+    if ((r = mct_->csdm()->csd_register(mt, &hdl)) == RC_SUCCESS) {
+        CsdObject* obj = hdl->read_and_lock();
+        response->set_csd_id(obj->get_csd_id());
+        response->set_ctime(obj->get_ctime());
+        hdl->unlock();
+    }
     
-    // response->mutable_retcode()->set_code(r);
-    // response->set_csd_id(mt.csd_id);
-    // response->set_ctime(mt.ctime);
-
+    response->mutable_retcode()->set_code(r);
+    mct_->log()->ldebug("internal_service", "csd register: %d", r);
     return Status::OK;
 }
 
@@ -33,8 +43,9 @@ const RegisterRequest* request, RegisterReply* response)
 Status InternalServiceImpl::unregisterCsd(ServerContext* context,
 const UnregisterRequest* request, InternalReply* response)
 {
-    // int r = mct_->csdm()->csd_unregister(request->csd_id());
-    // response->set_code(r);
+    int r = mct_->csdm()->csd_unregister(request->csd_id());
+    response->set_code(r);
+    mct_->log()->ldebug("internal_service", "csd (%llu) register: %d", request->csd_id(), r);
     return Status::OK;
 }
     
@@ -42,13 +53,14 @@ const UnregisterRequest* request, InternalReply* response)
 Status InternalServiceImpl::signUp(ServerContext* context,
 const SignUpRequest* request, InternalReply* response)
 {
-    // csd_sgup_attr_t at;
-    // at.csd_id = request->csd_id();
-    // at.stat = request->stat();
-    // at.io_addr = request->io_addr;
-    // at.admin_addr = request->admin_addr;
-    // int r = mct_->csdm()->csd_sign_up(at); 
-    // response->set_code(r);
+    csd_sgup_attr_t at;
+    at.csd_id = request->csd_id();
+    at.stat = request->stat();
+    at.io_addr = request->io_addr();
+    at.admin_addr = request->admin_addr();
+    int r = mct_->csdm()->csd_sign_up(at); 
+    response->set_code(r);
+    mct_->log()->ldebug("internal_service", "csd (%llu) sign up: %d", at.csd_id, r);
     return Status::OK;
 }
     
@@ -56,8 +68,9 @@ const SignUpRequest* request, InternalReply* response)
 Status InternalServiceImpl::signOut(ServerContext* context,
 const SignOutRequest* request, InternalReply* response)
 {
-    // int r = mct_->csdm()->csd_sign_out(request->csd_id());
-    // response->set_code(r);
+    int r = mct_->csdm()->csd_sign_out(request->csd_id());
+    response->set_code(r);
+    mct_->log()->ldebug("internal_service", "csd (%llu) sign out: %d", request->csd_id(), r);
     return Status::OK;
 }
     
@@ -65,9 +78,10 @@ const SignOutRequest* request, InternalReply* response)
 Status InternalServiceImpl::pushHeartBeat(ServerContext* context,
 const HeartBeatRequest* request, InternalReply* response)
 {
-    uint64_t latime = utime_t::now().to_usec();
-    int r = csd_ms->update_at(request->csd_id(), latime);
-    response->set_code(r);
+    // 心跳汇报改用pushStatus接口
+    // uint64_t latime = utime_t::now().to_usec();
+    // int r = csd_ms->update_at(request->csd_id(), latime);
+    // response->set_code(r);
     return Status::OK;
 }
     
@@ -75,8 +89,9 @@ const HeartBeatRequest* request, InternalReply* response)
 Status InternalServiceImpl::pushStatus(ServerContext* context,
 const StatusRequest* request, InternalReply* response)
 {
-    // int r = mct_->csdm()->csd_stat_update(request->csd_id(), request->stat());
-    // response->set_code(r);
+    int r = mct_->cltm()->update_stat(request->csd_id(), request->stat());
+    response->set_code(r);
+    mct_->log()->ldebug("internal_service", "csd (%llu) push status (%u): %d", request->csd_id(), request->stat(), r);
     return Status::OK;
 }
     
@@ -84,19 +99,27 @@ const StatusRequest* request, InternalReply* response)
 Status InternalServiceImpl::pushHealth(ServerContext* context,
 const HealthRequest* request, InternalReply* response)
 {
-    // // 提取出csd的健康信息
-    // csd_hlt_sub_t csd_hlt;
-    // csd_hlt.csd_id = request->csd_id();
-    // csd_hlt.size = request->size();
-    // csd_hlt.alloced = request->alloced();
-    // csd_hlt.used = request->used();
-    // csd_hlt.hlt_meta.last_time = request->last_time();
-    // csd_hlt.hlt_meta.last_write = request->last_write();
-    // csd_hlt.hlt_meta.last_read = request->last_read();
-    // csd_hlt.hlt_meta.last_latency = request->last_latency();
-    // csd_hlt.hlt_meta.last_alloc = request->last_alloc();
+    int r;
+    // 提取出csd的健康信息
+    csd_hlt_sub_t csd_hlt;
+    csd_hlt.csd_id = request->csd_id();
+    csd_hlt.size = request->size();
+    csd_hlt.alloced = request->alloced();
+    csd_hlt.used = request->used();
+    csd_hlt.hlt_meta.last_time = request->last_time();
+    csd_hlt.hlt_meta.last_write = request->last_write();
+    csd_hlt.hlt_meta.last_read = request->last_read();
+    csd_hlt.hlt_meta.last_latency = request->last_latency();
+    csd_hlt.hlt_meta.last_alloc = request->last_alloc();
 
-    // // 提取出chunk的健康信息
+    // 更新csd的健康信息
+    if ((r = mct_->csdm()->csd_health_update(csd_hlt.csd_id, csd_hlt)) != RC_SUCCESS) {
+        mct_->log()->lerror("internal_service", "update csd health faild: %llu", csd_hlt.csd_id);
+        response->set_code(r);
+        return Status::OK;
+    }
+
+    // 提取出chunk的健康信息
     // std::list<chk_hlt_attr_t> chk_hlt_list;
     // for (uint64_t i = 0; i < request->chunk_health_list_size(); ++i) {
     //     const ChunkHealthItem& item = request->chunk_health_list(i);
@@ -116,13 +139,12 @@ const HealthRequest* request, InternalReply* response)
     //     chk_hlt_list.push_back(hmt);
     // }
 
-    // // 更新csd的健康信息
-    // mct_->csdm()->find(csd_hlt.csd_id)->update_health(csd_hlt);
+    
 
     // // 更新chunk的健康信息
     // int r = mct_->chkm()->chunk_push_health(chk_hlt_list);
 
-    // response->set_code(r);
+    response->set_code(r);
 
     return Status::OK;
 }

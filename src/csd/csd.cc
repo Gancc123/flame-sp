@@ -391,6 +391,7 @@ bool CSD::init_server() {
     server_.reset(new CsdAdminServer(cct_.get(), convert2string(cfg_admin_addr_)));
 
     cct_->timer(shared_ptr<TimerWorker>(new TimerWorker()));
+    cct_->timer()->run();
     return true;
 }
 
@@ -420,7 +421,7 @@ bool CSD::csd_register() {
 
         info.id = reg_res.csd_id;
         if ((r = cct_->cs()->set_info(info)) != RC_SUCCESS) {
-            cct_->log()->lerror("");
+            cct_->log()->lerror("chunkstore set info faild");
             return false;
         }
     } else {
@@ -434,6 +435,10 @@ bool CSD::csd_register() {
         cct_->log()->lerror("csd stat error: none to pause");
         return false;
     }
+
+    cct_->log()->ldebug("csd register success: clt_name(%s), csd_id(%llu), csd_name(%s), size(%llu)", 
+        info.cluster_name.c_str(), info.id, info.name.c_str(), info.size
+    );
 
     return true;
 }
@@ -449,6 +454,8 @@ bool CSD::csd_sign_up() {
         cct_->log()->lerror("csd stat error: pause to active");
         return false;
     }
+    
+    cct_->log()->linfo("init cluster agent");
     clt_agent_.reset(new MyClusterAgent(cct_.get(), utime_t::get_by_msec(cfg_heart_beat_cycle_ms_)));
     clt_agent_->init();
     return true;

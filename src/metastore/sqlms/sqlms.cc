@@ -772,13 +772,15 @@ int SqlCsdMS::get(csd_meta_t& res_csd, uint64_t csd_id) {
 int SqlCsdMS::create(const csd_meta_t& new_csd) {
     shared_ptr<Result> ret = m_csd.insert()
         .column({
+            m_csd.csd_id,
             m_csd.name, m_csd.size, m_csd.ctime, 
             m_csd.io_addr,m_csd.admin_addr, m_csd.stat, 
-            m_csd.latime, m_csd.csd_id
+            m_csd.latime
         }).value({
+            new_csd.csd_id,
             new_csd.name, new_csd.size, new_csd.ctime, 
             new_csd.io_addr, new_csd.admin_addr, new_csd.stat, 
-            new_csd.latime, new_csd.csd_id
+            new_csd.latime
         }).exec();
 
     if (ret && ret->OK()) {
@@ -787,33 +789,33 @@ int SqlCsdMS::create(const csd_meta_t& new_csd) {
     return MSRetCode::FAILD;
 }
 
-int SqlCsdMS::create_and_get(csd_meta_t& new_csd) {
-    shared_ptr<Result> ret = m_csd.insert()
-        .column({
-            m_csd.name, m_csd.size, m_csd.ctime, 
-            m_csd.io_addr, m_csd.admin_addr, m_csd.stat, 
-            m_csd.latime
-        }).value({
-            new_csd.name, new_csd.size, new_csd.ctime, 
-            new_csd.io_addr, new_csd.admin_addr, new_csd.stat, 
-            new_csd.latime
-        }).exec();
+// int SqlCsdMS::create_and_get(csd_meta_t& new_csd) {
+//     shared_ptr<Result> ret = m_csd.insert()
+//         .column({
+//             m_csd.name, m_csd.size, m_csd.ctime, 
+//             m_csd.io_addr, m_csd.admin_addr, m_csd.stat, 
+//             m_csd.latime
+//         }).value({
+//             new_csd.name, new_csd.size, new_csd.ctime, 
+//             new_csd.io_addr, new_csd.admin_addr, new_csd.stat, 
+//             new_csd.latime
+//         }).exec();
 
-    if (ret && ret->OK()) {
-        shared_ptr<Result> res = m_csd.query().column(m_csd.csd_id)
-                                 .where(m_csd.name == new_csd.name)
-                                 .exec();
-        if (res && res->OK()) {
-            shared_ptr<DataSet> ds = res->data_set();
-            for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-                new_csd.csd_id = it->get(m_csd.csd_id);
-            }
-            return MSRetCode::SUCCESS;
-        }
-        return MSRetCode::FAILD;
-    }
-    return MSRetCode::FAILD;
-}
+//     if (ret && ret->OK()) {
+//         shared_ptr<Result> res = m_csd.query().column(m_csd.csd_id)
+//                                  .where(m_csd.name == new_csd.name)
+//                                  .exec();
+//         if (res && res->OK()) {
+//             shared_ptr<DataSet> ds = res->data_set();
+//             for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+//                 new_csd.csd_id = it->get(m_csd.csd_id);
+//             }
+//             return MSRetCode::SUCCESS;
+//         }
+//         return MSRetCode::FAILD;
+//     }
+//     return MSRetCode::FAILD;
+// }
 
 int SqlCsdMS::remove(uint64_t csd_id) {
     shared_ptr<Result> ret = m_csd.remove().where(m_csd.csd_id == csd_id).exec();

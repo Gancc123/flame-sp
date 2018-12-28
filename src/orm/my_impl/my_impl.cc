@@ -27,7 +27,7 @@ static inline void my_impl_log(const std::string& cls, const std::string& msg) {
 }
 
 std::shared_ptr<Result> MysqlStub::execute(const std::string& stmt) {
-    fct_->log()->linfo("[execute] %s", stmt.c_str());
+    fct_->log()->ldebug("[execute] %s", stmt.c_str());
     try {
         std::unique_ptr<sql::Statement> handle(conn_->createStatement());
         int code = RetCode::OK;
@@ -42,7 +42,7 @@ std::shared_ptr<Result> MysqlStub::execute(const std::string& stmt) {
 }
 
 std::shared_ptr<Result> MysqlStub::execute_query(const std::string& stmt) {
-    fct_->log()->linfo("[execute_query] %s", stmt.c_str());
+    fct_->log()->ldebug("[execute_query] %s", stmt.c_str());
     try {
         std::unique_ptr<sql::Statement> handle(conn_->createStatement());
         std::shared_ptr<sql::ResultSet> res(handle->executeQuery(stmt));
@@ -59,7 +59,7 @@ std::shared_ptr<Result> MysqlStub::execute_query(const std::string& stmt) {
 }
 
 std::shared_ptr<Result> MysqlStub::execute_update(const std::string& stmt) {
-    fct_->log()->linfo("[execute_update] %s", stmt.c_str());
+    fct_->log()->ldebug("[execute_update] %s", stmt.c_str());
     try {
         std::unique_ptr<sql::Statement> handle(conn_->createStatement());
         size_t len = handle->executeUpdate(stmt);
@@ -73,7 +73,7 @@ std::shared_ptr<Result> MysqlStub::execute_update(const std::string& stmt) {
 std::shared_ptr<Stub> MysqlDriver::create_stub() const {
     try {
         sql::Connection* conn = driver_->connect(path_, user_, passwd_);
-        fct_->log()->linfo("[create_stub] path=%s user=%s passwd=%s", path_.c_str(), user_.c_str(), passwd_.c_str());
+        fct_->log()->ldebug("[create_stub] path=%s user=%s passwd=%s", path_.c_str(), user_.c_str(), passwd_.c_str());
         if (!conn)
             return nullptr;
         conn->setSchema(schema_);
@@ -83,7 +83,6 @@ std::shared_ptr<Stub> MysqlDriver::create_stub() const {
     }
     return nullptr;
 }
-
 
 } // namespace orm
 } // namespace flame

@@ -281,7 +281,7 @@ public:
      * Create a single CSD
      */
     virtual int create(const csd_meta_t& new_csd) override;
-    virtual int create_and_get(csd_meta_t& new_csd) override;
+    // virtual int create_and_get(csd_meta_t& new_csd) override;
 
     /**
      * Remove a single CSD
