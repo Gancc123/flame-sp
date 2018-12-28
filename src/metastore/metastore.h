@@ -12,6 +12,7 @@
 #include <string>
 #include <list>
 
+#include "common/context.h"
 #include "include/meta.h"
 
 namespace flame {
@@ -258,7 +259,7 @@ public:
      * Create a single CSD
      */
     virtual int create(const csd_meta_t& new_csd) = 0;
-    virtual int create_and_get(csd_meta_t& new_csd) = 0;
+    // virtual int create_and_get(csd_meta_t& new_csd) = 0;
 
     /**
      * Remove a single CSD

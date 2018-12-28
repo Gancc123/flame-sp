@@ -24,11 +24,12 @@ int MyClusterMgmt::update_stat(uint64_t node_id, uint32_t stat) {
 void MyClusterMgmt::stat_check() {
     SpinLocker locker(stmap_lock_);
     utime_t tnow = utime_t::now();
+    fct_->log()->ldebug("stat check");
     for (auto it = stmap_.begin(); it != stmap_.end(); ++it) {
-        if (it->second.stat == CSD_STAT_ACTIVE
-            || it->second.stat == CSD_STAT_PAUSE
-            || tnow - it->second.latime > hb_check_
+        if ((it->second.stat == CSD_STAT_ACTIVE || it->second.stat == CSD_STAT_PAUSE)
+            && tnow - it->second.latime > hb_check_
         ) {
+            fct_->log()->ldebug("csd stat changed to down: %llu", it->first);
             csdm_->csd_stat_update(it->first, CSD_STAT_DOWN);
         } 
     }
@@ -39,6 +40,7 @@ bool MyClusterMgmt::stmap_update__(uint64_t node_id, uint32_t stat) {
     node_stat_item_t& item = stmap_[node_id];
     item.latime = utime_t::now();
     if (item.stat != stat) {
+        fct_->log()->ldebug("csd (%llu) stat from %u changed to %u", node_id, item.stat, stat);
         item.stat = stat;
         return true;
     } else

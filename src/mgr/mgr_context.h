@@ -4,7 +4,7 @@
 #include "common/context.h"
 #include "metastore/ms.h"
 #include "mgr/csdm/csd_mgmt.h"
-#include "mgr/chunkm/chk_mgmt.h"
+// #include "mgr/chunkm/chk_mgmt.h"
 // #include "mgr/volm/vol_mgmt.h"
 
 #include "cluster/clt_mgmt.h"

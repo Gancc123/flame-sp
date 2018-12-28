@@ -1,5 +1,5 @@
 #include "flame_service.h"
-
+#include "include/retcode.h"
 #include "util/utime.h"
 
 #include <string>

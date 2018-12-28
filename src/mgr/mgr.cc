@@ -309,6 +309,7 @@ bool Manager::init_server() {
     server_ = new MgrServer(mct_, convert2string(cfg_addr_));
 
     mct_->timer(shared_ptr<TimerWorker>(new TimerWorker()));
+    mct_->timer()->run();
     return true;
 }
 
@@ -320,7 +321,7 @@ bool Manager::init_csdm() {
         mct_->ms(),     // MetaStore
         csd_client_foctory
     ));
-
+    csdm->init();
     mct_->csdm(csdm);
     return true;
 }

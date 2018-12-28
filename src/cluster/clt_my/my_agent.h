@@ -6,6 +6,7 @@
 #include "work/timer_work.h"
 #include "cluster/clt_agent.h"
 #include "csd/csd_context.h"
+#include "include/retcode.h"
 
 #include "include/internal.h"
 
@@ -37,6 +38,7 @@ public:
             std::shared_ptr<WorkEntry>(new PushStatWork(cct_)), 
             cycle_
         );
+        return RC_SUCCESS;
     }
 
 private:
