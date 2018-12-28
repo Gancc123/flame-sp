@@ -7,9 +7,9 @@ int ChkManager::chunk_bulk_create(std::map<uint64_t, std::list<uint64_t>>& chk_l
    bool flag = false;
    for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
        std::list<chunk_meta_t> chk_meta_list;
-       std::set<chunk_meta_t> chk_meta_set;
+       std::map<uint64_t, chunk_meta_t> chk_meta_map;
        std::list<chunk_health_meta_t> chk_hlt_list;
-       std::set<chunk_health_meta_t> chk_hlt_set;
+       std::set<chunk_health_meta_t> chk_hlt_map;
        for (auto lit = it->second.begin(); lit != it->second.end(); ++lit) {
            chunk_meta_t mt;
            chunk_id_t id(*lit);
@@ -27,14 +27,14 @@ int ChkManager::chunk_bulk_create(std::map<uint64_t, std::list<uint64_t>>& chk_l
            mt.dst_id = it->first;
            mt.dst_ctime = mt.ctime;
            chk_meta_list.push_back(mt);
-           chk_meta_set.insert(mt);
+           chk_meta_map.insert(make_pair(mt.chk_id, mt));
 
            chunk_health_meta_t ht;
            ht.chk_id = *lit;
            ht.stat = CHK_STAT_CREATING;
            ht.size = vol_req.chk_sz;
            chk_hlt_list.push_back(ht);
-           chk_hlt_set.insert(ht);
+           chk_hlt_map.insert(make_pair(ht.chk_id, ht));
        }
 
        // 调用数据库的接口批量创建chunk和chunk_hlt,状态都为创建中
@@ -53,16 +53,16 @@ int ChkManager::chunk_bulk_create(std::map<uint64_t, std::list<uint64_t>>& chk_l
        // 如果创建成功修改对应的chunk的状态
        for (auto rit = res.begin(); rit != res.end(); ++rit) {
            if (rit->res == 0) {
-              auto sit = chk_meta_set.find(rit->first);
-              if (sit != chk_meta_set.end()) {
-                  chunk_meta_t mt = *sit;
+              auto sit = chk_meta_map.find(rit->first);
+              if (sit != chk_meta_map.end()) {
+                  chunk_meta_t mt = sit->second;
                   mt.stat = CHK_STAT_CREATED;
                   ms_->get_chunk_ms()->update(mt);
               }
 
-              auto shit = chk_hlt_set.find(rit->first);
-              if (shit != chk_hlt_set.end()) {
-                  chunk_health_meta_t ht = *shit;
+              auto shit = chk_hlt_map.find(rit->first);
+              if (shit != chk_hlt_map.end()) {
+                  chunk_health_meta_t ht = shit->second;
                   ht.stat = CHK_STAT_CREATED;
                   ms_->get_chunk_health_ms()->update(ht);
               }
@@ -185,6 +185,25 @@ int ChkManager::chunk_push_health(const std::list<chk_hlt_attr_t>& chk_hlt_list)
     }
 
     return SUCCESS;
+}
+
+int ChkManager::chunk_get_hot(coonst std::map<uint64_t, uint64_t>& res, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num) {
+    int r = ms_->get_hot_chunk(res, csd_id, limit, spolicy_num);
+    return r;
+}
+
+int ChkManager::chunk_record_move(const chunk_move_attr_t& chk) {
+    chunk_meta_t mt;
+
+    ms_->get_chunk_ms()->get(mt, chk.chk_id);
+
+    if (chk.signal == 1) { // 通知迁移，记录chunk迁移的目标地址dst_id
+        mt.dst_id = chk.dst_id;
+    } else if(chk.signal == 2) { // 强制迁移，迁移完成，修改chunk的src_id == dst_id
+        mt.csd_id = chk.dst_id;
+    }
+
+    ms_->get_chunk_ms()->update(mt);
 }
 
 } // namespace flame

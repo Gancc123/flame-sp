@@ -366,6 +366,8 @@ public:
     virtual CsdHealthMS* get_csd_health_ms() = 0;
     virtual GatewayMS* get_gw_ms() = 0;
 
+    virtual int get_hot_chunk(std::map<uint64_t, uint64_t>& res, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num) = 0;
+
 protected:
     MetaStore(FlameContext* fct) : fct_(fct) {}
 

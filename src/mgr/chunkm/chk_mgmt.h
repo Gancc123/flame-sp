@@ -7,6 +7,7 @@
 #include "common/thread/rw_lock.h"
 #include "include/internal.h"
 #include "include/meta.h"
+#include "include/csds.h"
 #include "mgr/csdm/csd_mgmt.h"
 
 #include <cstdint>
@@ -44,6 +45,11 @@ public:
     // 更新chunk的健康信息
     int chunk_push_health(const std::list<chk_hlt_attr_t>& chk_hlt_list);
 
+    // 获取指定csd的limit个写热点chunk的id和写次数
+    int chunk_get_hot(const std::map<uint64_t, uint64_t>& res, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num);
+
+    // 修改迁移的chunk的csd_id,分两种情况：1通知迁移 2强制迁移
+    int chunk_record_move(const chunk_move_attr_t& chk);
 private:
     FlameContext* fct_;
     std::shared_ptr<MetaStore> ms_;

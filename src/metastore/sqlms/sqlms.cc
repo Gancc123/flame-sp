@@ -58,6 +58,46 @@ GatewayMS* SqlMetaStore::get_gw_ms() {
     return new SqlGatewayMS(fct_, this);
 }
 
+int SqlMetaStore::get_hot_chunk(std::map<uint64_t, uint64_t>& ret, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num) {
+	if (spolicy_num == 1) { //单副本
+		shared_ptr<Result> res = m_chunk.query()
+			.column({ m_chunk.chk_id, m_chk_health.write_count })
+			.join(m_chk_health, m_chunk.chk_id == m_chk_health.chk_id)
+			.where({ m_chunk.csd_id == csd_id, m_chunk.csd_id == m_chunk.dst_id })
+			.order_by(m_chk_health.write_count, Order::DESC)
+			.limit(limit).exec();
+
+		if (res && res->OK()) {
+			shared_ptr<DataSet> ds = res->data_set();
+			for (auto it = ds->cbegin(); it != ds->cend(); it++) {
+				ret.insert(make_pair(it->get(m_chunk.chk_id), it->get(m_chk_health.write_count)));
+			}
+			return MSRetCode::SUCCESS;
+		}
+		return MSRetCode::FAILD;
+
+	}
+	else { //三副本
+		shared_ptr<Result> res = m_chunk.query()
+			.column({ m_chunk.chk_id, m_chk_health.write_count })
+			.join(m_chk_health, m_chunk.chk_id == m_chk_health.chk_id)
+			.where({ m_chunk.csd_id == csd_id, m_chunk.csd_id == m_chunk.dst_id, m_chunk.chk_id != m_chunk.primary })
+			.order_by(m_chk_health.write_count, Order::DESC)
+			.limit(limit).exec();
+
+		if (res && res->OK()) {
+			shared_ptr<DataSet> ds = res->data_set();
+			for (auto it = ds->cbegin(); it != ds->cend(); it++) {
+				ret.insert(make_pair(it->get(m_chunk.chk_id), it->get(m_chk_health.write_count)));
+			}
+			return MSRetCode::SUCCESS;
+		}
+		return MSRetCode::FAILD;
+
+	}
+}
+
+
 /**
  * SqlClusterMS
  */
