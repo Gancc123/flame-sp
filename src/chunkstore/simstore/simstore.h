@@ -67,7 +67,9 @@ public:
 
 private:
     SimStore(FlameContext* fct, uint64_t size, const std::string& bk_file) 
-    : ChunkStore(fct), size_(size), bk_file_(bk_file), formated_(false), mounted_(false) {}
+    : ChunkStore(fct), size_(size), bk_file_(bk_file), formated_(false), mounted_(false) {
+        info_.size = size;    
+    }
 
     bool formated_;
     bool mounted_;

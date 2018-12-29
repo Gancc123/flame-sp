@@ -12,6 +12,7 @@
 #include <string>
 #include <list>
 
+#include "common/context.h"
 #include "include/meta.h"
 
 namespace flame {
@@ -258,7 +259,7 @@ public:
      * Create a single CSD
      */
     virtual int create(const csd_meta_t& new_csd) = 0;
-    virtual int create_and_get(csd_meta_t& new_csd) = 0;
+    // virtual int create_and_get(csd_meta_t& new_csd) = 0;
 
     /**
      * Remove a single CSD
@@ -364,6 +365,8 @@ public:
     virtual CsdMS* get_csd_ms() = 0;
     virtual CsdHealthMS* get_csd_health_ms() = 0;
     virtual GatewayMS* get_gw_ms() = 0;
+
+    virtual int get_hot_chunk(std::map<uint64_t, uint64_t>& res, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num) = 0;
 
 protected:
     MetaStore(FlameContext* fct) : fct_(fct) {}

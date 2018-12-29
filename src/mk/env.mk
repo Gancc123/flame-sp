@@ -12,6 +12,7 @@ DPROTO = $(ROOT)/proto
 DSERVICE = $(ROOT)/service
 DUTIL = $(ROOT)/util
 DWORK = $(ROOT)/work
+DCLUSTER = $(ROOT)/cluster
 
 CC = gcc
 CXX = g++

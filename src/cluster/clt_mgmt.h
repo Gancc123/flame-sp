@@ -6,6 +6,7 @@
 #include "mgr/csdm/csd_mgmt.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace flame {
 
@@ -32,10 +33,11 @@ public:
     virtual int update_stat(uint64_t node_id, uint32_t stat) = 0;
 
 protected:
-    ClusterMgmt(FlameContext* fct, CsdManager* csdm) : fct_(fct), csdm_(csdm) {}
+    ClusterMgmt(FlameContext* fct, const std::shared_ptr<CsdManager>& csdm)
+    : fct_(fct), csdm_(csdm) {}
 
     FlameContext* fct_;
-    CsdManager* csdm_;
+    std::shared_ptr<CsdManager> csdm_;
 }; // class ClusterMgmt
 
 } // namespace flame

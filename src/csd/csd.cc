@@ -1,6 +1,7 @@
 #include "common/context.h"
 #include "common/cmdline.h"
 #include "common/convert.h"
+#include "common/thread/thread.h"
 #include "chunkstore/cs.h"
 
 #include "csd/csd_context.h"
@@ -9,6 +10,9 @@
 
 #include "service/internal_client.h"
 #include "include/retcode.h"
+
+#include "cluster/clt_agent.h"
+#include "cluster/clt_my/my_agent.h"
 
 #include "csd/log_csd.h"
 
@@ -27,23 +31,25 @@ public:
 
     // Argument
     Argument<string>    config_path {this, 'c', "config_file", "config file path", "/etc/flame/csd.conf"};
-    Argument<string>    admin_addr  {this, 'a', "admin_addr", "CSD admin listen port", "0.0.0.0:7777"};
-    Argument<string>    io_addr     {this, 'i', "io_addr", "CSD IO listen port", "0.0.0.0:9999"};
-    Argument<string>    mgr_addr    {this, 'm', "mgr_addr", "Flame MGR Address", "0.0.0.0:6666"};
-    Argument<string>    chunkstore  {this, "chunkstore", "ChunkStore url", ""};
-    Argument<uint64_t>  heart_beat  {this, "heart_beat", "heart beat cycle, unit: ms", 3000};
-    Argument<string>    log_dir     {this, "log_dir", "log dir", "/var/log/flame"};
-    Argument<string>    log_level   {this, "log_level", 
+    Argument<string>    clt_name    {this, 'g', CFG_CSD_CLT_NAME, "cluster name", "flame"};
+    Argument<string>    csd_name    {this, 'n', CFG_CSD_NAME, "CSD Name which used to registering.", "csd"};
+    Argument<string>    admin_addr  {this, 'a', CFG_CSD_ADMIN_ADDR, "CSD admin listen port", "0.0.0.0:7777"};
+    Argument<string>    io_addr     {this, 'i', CFG_CSD_IO_ADDR, "CSD IO listen port", "0.0.0.0:9999"};
+    Argument<string>    mgr_addr    {this, 'm', CFG_CSD_MGR_ADDR, "Flame MGR Address", "0.0.0.0:6666"};
+    Argument<string>    chunkstore  {this, CFG_CSD_CHUNKSTORE, "ChunkStore url", ""};
+    Argument<uint64_t>  heart_beat  {this, CFG_CSD_HEART_BEAT_CYCLE, "heart beat cycle, unit: ms", 3000};
+    Argument<string>    log_dir     {this, CFG_CSD_LOG_DIR, "log dir", "/var/log/flame"};
+    Argument<string>    log_level   {this, CFG_CSD_LOG_LEVEL, 
         "log level. {PRINT, TRACE, DEBUG, INFO, WARN, ERROR, WRONG, CRITICAL, DEAD}", "INFO"};
 
-    Argument<string>    csd_name    {this, 'n', "csd_name", "CSD Name which used to registering.", "csd"};
-
     // Switch
-    Switch  console_log {this, "console_log", "print log in console"};
+    Switch  console_log {this, CFG_CSD_CONSOLE_LOG, "print log in console"};
     Switch  force_format{this, "force_format", "force reformat the device"};
 
     HelpAction help {this};
 }; // class CsdCli
+
+class CsdAdminThread;
 
 /**
  * CSD
@@ -57,14 +63,22 @@ public:
     int run();
     void down();
 
+    friend class CsdAdminThread;
+
 private:
     unique_ptr<CsdContext> cct_;
     unique_ptr<CsdAdminServer> server_;
     unique_ptr<InternalClientFoctory> internal_client_foctory_;
 
+    int admin_server_stat_ {0};
+    unique_ptr<CsdAdminThread> admin_thread_;
+    unique_ptr<ClusterAgent> clt_agent_;
+
     /**
      * 配置项
      */
+    string      cfg_clt_name_;
+    string      cfg_csd_name_;
     node_addr_t cfg_mgr_addr_;
     node_addr_t cfg_admin_addr_;
     node_addr_t cfg_io_addr_;
@@ -72,7 +86,6 @@ private:
     uint64_t    cfg_heart_beat_cycle_ms_;
     string      cfg_log_dir_;
     string      cfg_log_level_;
-    string      cfg_csd_name_;
 
     int read_config(CsdCli* csd_cli);
 
@@ -82,7 +95,28 @@ private:
     bool init_server();
 
     bool csd_register();
+    bool csd_run_server();
+    bool csd_sign_up();
+
+    int csd_wait();
 }; // class CSD
+
+class CsdAdminThread : public Thread {
+public:
+    CsdAdminThread(CSD* csd) : csd_(csd) {}
+
+    virtual void entry() override {
+        if (!csd_->server_) {
+            csd_->admin_server_stat_ = -1;
+            return;
+        }
+        csd_->cct_->log()->linfo("start service");
+        csd_->admin_server_stat_ = csd_->server_->run();
+    }
+
+private:
+    CSD* csd_;
+};
 
 int CSD::init(CsdCli* csd_cli) {
     // 读取配置信息
@@ -121,8 +155,23 @@ int CSD::init(CsdCli* csd_cli) {
 
 int CSD::run() {
     if (!server_) return -1;
-    cct_->log()->linfo("start service");
-    return server_->run();
+
+    if (!csd_register()) {
+        cct_->log()->lerror("csd register faild");
+        return 1;
+    }
+
+    if (!csd_run_server()) {
+        cct_->log()->lerror("csd run server faild");
+        return 2;
+    }
+
+    if (!csd_sign_up()) {
+        cct_->log()->lerror("csd sign up faild");
+        return 3;
+    }
+
+    return csd_wait();
 }
 
 void CSD::down() {
@@ -134,6 +183,30 @@ int CSD::read_config(CsdCli* csd_cli) {
     FlameConfig* config = cct_->config();
     
     /**
+     * cfg_clt_name_
+     */
+    if (csd_cli->clt_name.done() && !csd_cli->clt_name.get().empty()) {
+        cfg_clt_name_ = csd_cli->clt_name;
+    } else if (config->has_key(CFG_CSD_CLT_NAME)) {
+        cfg_clt_name_ = config->get(CFG_CSD_CLT_NAME, "");
+    } else {
+        cct_->log()->lerror("config[ " CFG_CSD_CLT_NAME " ] not found");
+        return 1;
+    }
+
+    /**
+     * cfg_csd_name_
+     */
+    if (csd_cli->csd_name.done() && !csd_cli->csd_name.get().empty()) {
+        cfg_csd_name_ = csd_cli->csd_name;
+    } else if (config->has_key(CFG_CSD_NAME)) {
+        cfg_csd_name_ = config->get(CFG_CSD_NAME, "");
+    } else {
+        cct_->log()->lerror("config[ " CFG_CSD_NAME " ] not found");
+        return 2;
+    }
+
+    /**
      * cfg_mgr_addr_
      */
     string mgr_addr;
@@ -142,13 +215,13 @@ int CSD::read_config(CsdCli* csd_cli) {
     } else if (config->has_key(CFG_CSD_MGR_ADDR)) {
         mgr_addr = config->get(CFG_CSD_MGR_ADDR, "");
     } else {
-        cct_->log()->lerror("config[ mgr_addr ] not found");
-        return 1;
+        cct_->log()->lerror("config[ " CFG_CSD_MGR_ADDR " ] not found");
+        return 3;
     }
 
     if (!string_parse(cfg_mgr_addr_, mgr_addr)) {
-        cct_->log()->lerror("invalid config[ mgr_addr ]");
-        return 1;
+        cct_->log()->lerror("invalid config[ " CFG_CSD_MGR_ADDR " ]");
+        return 3;
     }
 
     /**
@@ -160,14 +233,16 @@ int CSD::read_config(CsdCli* csd_cli) {
     } else if (config->has_key(CFG_CSD_ADMIN_ADDR)) {
         admin_addr = config->get(CFG_CSD_ADMIN_ADDR, "");
     } else {
-        cct_->log()->lerror("config[ admin_addr ] not found");
-        return 2;
+        cct_->log()->lerror("config[ " CFG_CSD_ADMIN_ADDR " ] not found");
+        return 4;
     }
 
     if (!string_parse(cfg_admin_addr_, admin_addr)) {
-        cct_->log()->lerror("invalid config[ admin_addr ]");
-        return 2;
+        cct_->log()->lerror("invalid config[ " CFG_CSD_ADMIN_ADDR " ]");
+        return 4;
     }
+
+    cct_->admin_addr(cfg_admin_addr_);
 
     /**
      * cfg_io_addr_
@@ -178,14 +253,16 @@ int CSD::read_config(CsdCli* csd_cli) {
     } else if (config->has_key(CFG_CSD_IO_ADDR)) {
         io_addr = config->get(CFG_CSD_IO_ADDR, "");
     } else {
-        cct_->log()->lerror("config[ io_addr ] not found");
-        return 3;
+        cct_->log()->lerror("config[ " CFG_CSD_IO_ADDR " ] not found");
+        return 5;
     }
 
     if (!string_parse(cfg_io_addr_, io_addr)) {
-        cct_->log()->lerror("invalid config[ io_addr ]");
-        return 3;
+        cct_->log()->lerror("invalid config[ " CFG_CSD_IO_ADDR " ]");
+        return 5;
     }
+
+    cct_->io_addr(cfg_io_addr_);
 
     /**
      * cfg_chunkstore_url_
@@ -195,8 +272,8 @@ int CSD::read_config(CsdCli* csd_cli) {
     } else if (config->has_key(CFG_CSD_CHUNKSTORE)) {
         cfg_chunkstore_url_ = config->get(CFG_CSD_CHUNKSTORE, "");
     } else {
-        cct_->log()->lerror("config[ chunkstore ] not found");
-        return 4;
+        cct_->log()->lerror("config[ " CFG_CSD_CHUNKSTORE " ] not found");
+        return 6;
     }
 
     /**
@@ -206,12 +283,12 @@ int CSD::read_config(CsdCli* csd_cli) {
         cfg_heart_beat_cycle_ms_ = csd_cli->heart_beat;
     } else if (config->has_key(CFG_CSD_HEART_BEAT_CYCLE)) {
         if (!string_parse(cfg_heart_beat_cycle_ms_, config->get(CFG_CSD_HEART_BEAT_CYCLE, ""))) {
-            cct_->log()->lerror("invalid config[ heart_beat_cycle ]");
-            return 5;
+            cct_->log()->lerror("invalid config[ " CFG_CSD_HEART_BEAT_CYCLE " ]");
+            return 7;
         }
     } else {
-        cct_->log()->lerror("config[ heart_beat_cycle ] not found");
-        return 5;
+        cct_->log()->lerror("config[ " CFG_CSD_HEART_BEAT_CYCLE " ] not found");
+        return 7;
     }
 
     /**
@@ -223,8 +300,8 @@ int CSD::read_config(CsdCli* csd_cli) {
     } else if (config->has_key(CFG_CSD_LOG_DIR)) {
         cfg_log_dir_ = config->get(CFG_CSD_LOG_DIR, "");
     } else {
-        cct_->log()->lerror("config[ log_dir ] not found");
-        return 6;
+        cct_->log()->lerror("config[ " CFG_CSD_LOG_DIR " ] not found");
+        return 8;
     }
 
     /**
@@ -236,20 +313,8 @@ int CSD::read_config(CsdCli* csd_cli) {
     } else if (config->has_key(CFG_CSD_LOG_LEVEL)) {
         cfg_log_level_ = config->get(CFG_CSD_LOG_LEVEL, "");
     } else {
-        cct_->log()->lerror("config[ log_level ] not found");
-        return 7;
-    }
-
-    /**
-     * cfg_csd_name_
-     */
-    if (csd_cli->csd_name.done() && !csd_cli->csd_name.get().empty()) {
-        cfg_csd_name_ = csd_cli->log_level;
-    } else if (config->has_key(CFG_CSD_NAME)) {
-        cfg_csd_name_ = config->get(CFG_CSD_NAME, "");
-    } else {
-        cct_->log()->lerror("config[ log_level ] not found");
-        return 8;
+        cct_->log()->lerror("config[ " CFG_CSD_LOG_LEVEL " ] not found");
+        return 9;
     }
 
     return 0;
@@ -326,6 +391,7 @@ bool CSD::init_server() {
     server_.reset(new CsdAdminServer(cct_.get(), convert2string(cfg_admin_addr_)));
 
     cct_->timer(shared_ptr<TimerWorker>(new TimerWorker()));
+    cct_->timer()->run();
     return true;
 }
 
@@ -355,14 +421,50 @@ bool CSD::csd_register() {
 
         info.id = reg_res.csd_id;
         if ((r = cct_->cs()->set_info(info)) != RC_SUCCESS) {
-            cct_->log()->lerror("");
+            cct_->log()->lerror("chunkstore set info faild");
             return false;
         }
     } else {
         cct_->log()->linfo("csd (%llu) have been registered", info.id);
     }
 
+    cct_->csd_id(info.id);
+    cct_->clt_name(info.cluster_name);
+    cct_->csd_name(info.name);
+    if (!cct_->csd_stat(CSD_STAT_NONE, CSD_STAT_PAUSE)) {
+        cct_->log()->lerror("csd stat error: none to pause");
+        return false;
+    }
+
+    cct_->log()->ldebug("csd register success: clt_name(%s), csd_id(%llu), csd_name(%s), size(%llu)", 
+        info.cluster_name.c_str(), info.id, info.name.c_str(), info.size
+    );
+
     return true;
+}
+
+bool CSD::csd_run_server() {
+    admin_thread_.reset(new CsdAdminThread(this));
+    admin_thread_->create("csd_admin");
+    return true;
+}
+
+bool CSD::csd_sign_up() {
+    if (!cct_->csd_stat(CSD_STAT_PAUSE, CSD_STAT_ACTIVE)) {
+        cct_->log()->lerror("csd stat error: pause to active");
+        return false;
+    }
+    
+    cct_->log()->linfo("init cluster agent");
+    clt_agent_.reset(new MyClusterAgent(cct_.get(), utime_t::get_by_msec(cfg_heart_beat_cycle_ms_)));
+    clt_agent_->init();
+    return true;
+}
+
+int CSD::csd_wait() {
+    admin_thread_->join();
+    cct_->log()->lerror("join admin_thread with: %d", admin_server_stat_);
+    return 0;
 }
 
 } // namespace flame

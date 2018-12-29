@@ -56,3 +56,7 @@ $(DCHUNKSTORE)/cs.o
 # /work
 OBJ_WORK = \
 $(DWORK)/timer_work.o
+
+# /cluster
+OBJ_CLUSTER = \
+$(DCLUSTER)/clt_my/my_mgmt.o

@@ -56,23 +56,20 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     hdl->obj_as_new__();
     
     CsdObject* obj = hdl->get();
-    csd_meta_t& meta = obj->meta();
 
-    meta.csd_id = new_id;
-    meta.name = attr.csd_name;
-    meta.size = attr.size;
-    meta.io_addr = attr.io_addr;
-    meta.admin_addr = attr.admin_addr;
-    meta.stat = attr.stat;
-    meta.ctime = utime_t::now().to_usec();
-    meta.latime = utime_t::now().to_usec();
+    obj->set_csd_id(new_id);
+    obj->set_size(attr.size);
+    obj->set_stat(attr.stat);
+    obj->set_name(attr.csd_name);
+    obj->set_io_addr(attr.io_addr);
+    obj->set_admin_addr(attr.admin_addr);
+    obj->set_ctime_ut(utime_t::now());
+    obj->set_latime_ut(utime_t::now());
 
-    WriteLocker map_locker(csd_map_lock_);
-    if (!insert_csd_handle__(new_id, hdl)) {
-        delete hdl;
-        fct_->log()->lerror("register csd ($llu, %s) faild: duplicated map key", new_id, attr.csd_name.c_str());
-        return RC_OBJ_EXISTED;
-    }
+    auto meta = obj->meta();
+    auto hlt = obj->health();
+
+    fct_->log()->ldebug("meta.csd_id = %llu, hlt.csd_id = %llu", meta.csd_id, hlt.csd_id);
 
     ReadLocker hdl_locker(hdl->get_lock());
     int r = hdl->save();
@@ -81,6 +78,14 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
         fct_->log()->lerror("register csd ($llu, %s) faild: save error", new_id, attr.csd_name.c_str());
         return r;
     }
+
+    WriteLocker map_locker(csd_map_lock_);
+    if (!insert_csd_handle__(new_id, hdl)) {
+        delete hdl;
+        fct_->log()->lerror("register csd ($llu, %s) faild: duplicated map key", new_id, attr.csd_name.c_str());
+        return RC_OBJ_EXISTED;
+    }
+
     *hp = hdl;
     return RC_SUCCESS;
 }
@@ -159,21 +164,6 @@ int CsdManager::csd_sign_out(uint64_t csd_id) {
     return RC_SUCCESS;
 }
 
-// int CsdManager::csd_heart_beat(uint64_t csd_id) {
-//     ReadLocker(csd_map_lock_);
-//     auto it = csd_map_.find(csd_id);
-//     if (it == csd_map_.end()) {
-//         return OBJ_NOT_EXIST;
-//     }
-//     CsdHandle* hdl = *it;
-//     if (!hdl->stat_is_new()) {
-//         hdl->set_as_dirty();
-//     }
-//     CsdObject* obj = hdl->write_and_lock();
-//     obj->set_stat(CSD_STAT_ACTIVE);
-//     return SUCCESS;
-// }
-
 int CsdManager::csd_stat_update(uint64_t csd_id, uint32_t stat) {
     ReadLocker map_locker(csd_map_lock_);
 
@@ -247,6 +237,12 @@ void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
     obj_->set_used(hlt.used);
     obj_->health().hlt_meta = hlt.hlt_meta;
 
+    // 更新需要计算的健康信息
+    obj_->add_write_count(hlt.hlt_meta.last_write);
+    obj_->add_read_count(hlt.hlt_meta.last_read);
+    // double u = (double)hlt.used / hlt.size;
+    // obj_->set_wear_weight(obj_->get_wear_weight() + (hlt.hlt_meta.last_write / (1 - u)));
+
     obj_as_dirty__(); // 健康信息更新不马上写回MetaStore
 }
 
@@ -276,21 +272,27 @@ CsdObject* CsdHandle::write_try_lock() {
     return (obj_readable__() && lock_.try_wrlock()) ? obj_ : nullptr;
 }
 
-void CsdHandle::save_and_unlock() {
-    save();
+int CsdHandle::save_and_unlock() {
+    int r = save();
     unlock();
+    return r;
 }
 
 int CsdHandle::save() {
+    int r;
     if(!obj_readable__())
         return RC_FAILD;
 
     if (stat_.load() == CSD_OBJ_STAT_NEW) {
-        ms_->get_csd_ms()->create(obj_->meta());
-        ms_->get_csd_health_ms()->create(obj_->health());
+        if ((r = ms_->get_csd_ms()->create(obj_->meta())) != RC_SUCCESS)
+            return r;
+        if ((r = ms_->get_csd_health_ms()->create(obj_->health())) != RC_SUCCESS)
+            return r;
     } else if (stat_.load() == CSD_OBJ_STAT_DIRT) {
-        ms_->get_csd_ms()->update(obj_->meta());
-        ms_->get_csd_health_ms()->update(obj_->health());
+        if ((r = ms_->get_csd_ms()->update(obj_->meta())) != RC_SUCCESS)
+            return r;
+        if ((r = ms_->get_csd_health_ms()->update(obj_->health())) != RC_SUCCESS)
+            return r;
     } else {
         return RC_SUCCESS;
     }

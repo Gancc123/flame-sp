@@ -27,6 +27,8 @@ public:
     virtual CsdMS* get_csd_ms() override;
     virtual CsdHealthMS* get_csd_health_ms() override;
     virtual GatewayMS* get_gw_ms() override;
+     
+    virtual int get_hot_chunk(std::map<uint64_t, uint64_t>& res, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num) override;
 
     SqlMetaStore(const SqlMetaStore&) = delete;
     SqlMetaStore(SqlMetaStore&&) = delete;
@@ -281,7 +283,7 @@ public:
      * Create a single CSD
      */
     virtual int create(const csd_meta_t& new_csd) override;
-    virtual int create_and_get(csd_meta_t& new_csd) override;
+    // virtual int create_and_get(csd_meta_t& new_csd) override;
 
     /**
      * Remove a single CSD

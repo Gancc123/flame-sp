@@ -176,9 +176,11 @@ public:
 
     void set_write_count(uint64_t v) { hlt_.write_count = v; }
     uint64_t get_write_count() const { return hlt_.write_count; }
+    void add_write_count(uint64_t v) { hlt_.write_count += v; }
 
     void set_read_count(uint64_t v) { hlt_.read_count = v; }
     uint64_t get_read_count() const { return hlt_.read_count; }
+    void add_read_count(uint64_t v) { hlt_.read_count += v; }
 
     void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; }
     uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
@@ -298,9 +300,11 @@ public:
 
     void set_write_count(uint64_t v) { hlt_.write_count = v; } 
     uint64_t get_write_count() const { return hlt_.write_count; }
+    void add_write_count(uint64_t v) { hlt_.write_count += v; }
 
     void set_read_count(uint64_t v) { hlt_.read_count = v; } 
     uint64_t get_read_count() const { return hlt_.read_count; }
+    void add_read_count(uint64_t v) { hlt_.read_count += v; }
 
     void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; } 
     uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
