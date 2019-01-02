@@ -89,6 +89,8 @@ public:
 
     bool resize(size_t sz) { return ptr_->resize(sz); }
 
+    BufferPtr* get() { return ptr_.get(); }
+
     Buffer(const Buffer&) = default;
     Buffer(Buffer&&) = default;
     Buffer& operator = (const Buffer&) = default;
