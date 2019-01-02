@@ -41,7 +41,7 @@ public:
     virtual int clean(uint64_t csd_id) override;
 
     // 创建Chunk
-    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) override;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chk_attr_t& attr, const std::list<uint64_t>& chk_id_list) override;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id) override;
@@ -153,7 +153,7 @@ public:
     virtual int clean(uint64_t csd_id, callback_t cb) override;
 
     // 创建Chunk
-    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chk_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) override;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id, callback_t cb) override;

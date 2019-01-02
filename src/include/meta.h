@@ -97,6 +97,7 @@ struct chunk_meta_t {
     uint32_t    index   {0};    // Thera is a same index in a chunk group
     uint32_t    stat    {0};    // chunk status
     uint32_t    spolicy {0};
+    uint32_t    flags   {0};
     uint64_t    ctime   {0};
     uint64_t    primary {0};    // this chunk is the primary chunk when primary == chk_id
     uint64_t    size    {0};
@@ -228,6 +229,15 @@ struct gateway_meta_t {
  ***************************************************/
 
 /**
+ * chunk attr
+ */
+struct chk_attr_t {
+    uint32_t spolicy    {0};
+    uint32_t flags      {0};
+    uint64_t size       {0};
+};
+
+/**
  * chunk health attr
  */
 struct chk_hlt_attr_t {
@@ -238,6 +248,13 @@ struct chk_hlt_attr_t {
     uint64_t       csd_used    {0};
     uint64_t       dst_used    {0};
     com_hlt_meta_t hlt_meta;
+};
+
+/**
+ * chunk map
+ */
+struct chk_map_t {
+    
 };
 
 /**

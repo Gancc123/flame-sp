@@ -65,6 +65,7 @@ public:
     orm::IntCol     index   {this, "index"};    // Index in Same Volume
     orm::IntCol     stat    {this, "stat"};     // CSD状态
     orm::IntCol     spolicy {this, "spolicy"};
+    orm::IntCol     flags   {this, "flags"};
     orm::BigIntCol  ctime   {this, "ctime"};    // 创建时间
     orm::BigIntCol  primary {this, "primary"};
     orm::BigIntCol  size    {this, "size"};     // 可视大小（B）
