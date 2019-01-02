@@ -1,7 +1,7 @@
 #include "mgr/chk/chk_mgmt.h"
+#include "include/retcode.h"
 
 namespace flame {
-
 
 int ChkManager::chunk_bulk_create(std::map<uint64_t, std::list<uint64_t>>& chk_list, volume_meta_t& vol_req) {
    bool flag = false;

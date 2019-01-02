@@ -1,5 +1,5 @@
-#ifndef FLAME_CLUSTER_H
-#define FLAME_CLUSTER_H
+#ifndef FLAME_MGR_CSDM_H
+#define FLAME_MGR_CSDM_H
 
 #include "common/context.h"
 #include "metastore/metastore.h"
@@ -317,4 +317,4 @@ private:
 
 } // namespace flame
 
-#endif // FLAME_CLUSTER_H
+#endif // FLAME_MGR_CSDM_H

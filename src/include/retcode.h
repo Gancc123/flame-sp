@@ -22,7 +22,12 @@ enum RetCode {
     /**
      * 对象不存在
      */
-    RC_OBJ_NOT_FOUND = 3
+    RC_OBJ_NOT_FOUND = 3,
+
+    /**
+     * 错误参数
+     */
+    RC_WRONG_PARAMETER = 4
 };
 
 } // namespace flame

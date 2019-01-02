@@ -91,7 +91,7 @@ int CsdsClientImpl::clean(uint64_t csd_id) {
     }
 }
 
-int CsdsClientImpl::chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list) {
+int CsdsClientImpl::chunk_create(std::list<chunk_bulk_res_t>& res, const chk_attr_t& attr, const std::list<uint64_t>& chk_id_list) {
     ChunkCreateRequest req;
     req.set_flags(attr.flags);
     req.set_spolicy(attr.spolicy);

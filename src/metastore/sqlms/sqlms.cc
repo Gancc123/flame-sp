@@ -474,6 +474,7 @@ static void chunk_meta_set__(chunk_meta_t& chk, const ChunkModel& m_chunk, const
     chk.index      = it->get(m_chunk.index);
     chk.stat       = it->get(m_chunk.stat);
     chk.spolicy    = it->get(m_chunk.spolicy);
+    chk.flags      = it->get(m_chunk.flags);
     chk.ctime      = it->get(m_chunk.ctime);
     chk.primary    = it->get(m_chunk.primary);
     chk.size       = it->get(m_chunk.size);
@@ -564,11 +565,13 @@ int SqlChunkMS::create(const chunk_meta_t& new_chk) {
         .column({
             m_chunk.chk_id, m_chunk.vol_id, m_chunk.index, m_chunk.stat, 
             m_chunk.spolicy, m_chunk.ctime, m_chunk.primary, m_chunk.size, 
-            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime
+            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime,
+            m_chunk.flags
         }).value({
             new_chk.chk_id, new_chk.vol_id, new_chk.index, new_chk.stat, 
             new_chk.spolicy, new_chk.ctime, new_chk.primary, new_chk.size, 
-            new_chk.csd_id, new_chk.csd_mtime, new_chk.dst_id, new_chk.dst_ctime
+            new_chk.csd_id, new_chk.csd_mtime, new_chk.dst_id, new_chk.dst_ctime,
+            new_chk.flags
         }).exec();
 
     if (ret && ret->OK()) {
@@ -583,13 +586,15 @@ int SqlChunkMS::create_bulk(const std::list<chunk_meta_t>& chk_list) {
         .column({
             m_chunk.chk_id, m_chunk.vol_id, m_chunk.index, m_chunk.stat, 
             m_chunk.spolicy, m_chunk.ctime, m_chunk.primary, m_chunk.size, 
-            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime
+            m_chunk.csd_id, m_chunk.csd_mtime, m_chunk.dst_id, m_chunk.dst_ctime,
+            m_chunk.flags
         });
     for (auto it = chk_list.begin(); it != chk_list.end(); ++it) {
         handle.value({
             it->chk_id, it->vol_id, it->index, it->stat, 
             it->spolicy, it->ctime, it->primary,it->size, 
-            it->csd_id, it->csd_mtime, it->dst_id, it->dst_ctime
+            it->csd_id, it->csd_mtime, it->dst_id, it->dst_ctime,
+            it->flags
         });
     }
 
@@ -616,6 +621,7 @@ int SqlChunkMS::update(const chunk_meta_t& chk) {
             set_(m_chunk.index, chk.index),
             set_(m_chunk.stat, chk.stat), 
             set_(m_chunk.spolicy, chk.spolicy), 
+            set_(m_chunk.flags, chk.flags),
             set_(m_chunk.primary, chk.primary), 
             set_(m_chunk.size, chk.size), 
             set_(m_chunk.csd_id, chk.csd_id), 
