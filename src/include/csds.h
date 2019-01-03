@@ -160,7 +160,7 @@ public:
     virtual int clean(uint64_t csd_id, callback_t cb) = 0;
 
     // 创建Chunk
-    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chunk_create_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
+    virtual int chunk_create(std::list<chunk_bulk_res_t>& res, const chk_attr_t& attr, const std::list<uint64_t>& chk_id_list, callback_t cb) = 0;
 
     // 删除Chunk
     virtual int chunk_remove(uint64_t chk_id, callback_t cb) = 0;
