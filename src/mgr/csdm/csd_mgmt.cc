@@ -235,11 +235,11 @@ void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
 
     obj_->set_alloced(hlt.alloced);
     obj_->set_used(hlt.used);
-    obj_->health().hlt_meta = hlt.hlt_meta;
+    obj_->health().period = hlt.period;
 
     // 更新需要计算的健康信息
-    obj_->add_write_count(hlt.hlt_meta.last_write);
-    obj_->add_read_count(hlt.hlt_meta.last_read);
+    obj_->add_write_count(hlt.period.wr_cnt);
+    obj_->add_read_count(hlt.period.rd_cnt);
     // double u = (double)hlt.used / hlt.size;
     // obj_->set_wear_weight(obj_->get_wear_weight() + (hlt.hlt_meta.last_write / (1 - u)));
 

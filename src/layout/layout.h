@@ -6,9 +6,9 @@
 #include <list>
 #include "include/retcode.h"
 #include "mgr/csdm/csd_mgmt.h"
-#include "work/timer_work.h"
 
 namespace flame {
+namespace layout {
 
 class ChunkLayout {
 public:
@@ -48,6 +48,7 @@ protected:
     std::shared_ptr<CsdManager> csdm_;
 }; // class ChunkLayout
 
+} // namespace layout
 } // namespace flame
 
 #endif // FLAME_LAYOUT_H

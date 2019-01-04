@@ -213,11 +213,11 @@ public:
             att.csd_hlt_sub.size = t2;
             att.csd_hlt_sub.alloced = t3;
             att.csd_hlt_sub.used = t4;
-            att.csd_hlt_sub.hlt_meta.last_time = t5;
-            att.csd_hlt_sub.hlt_meta.last_write = t6;
-            att.csd_hlt_sub.hlt_meta.last_read = t7;
-            att.csd_hlt_sub.hlt_meta.last_latency = t8;
-            att.csd_hlt_sub.hlt_meta.last_alloc = t9;
+            att.csd_hlt_sub.period.ctime = t5;
+            att.csd_hlt_sub.period.wr_cnt = t6;
+            att.csd_hlt_sub.period.rd_cnt = t7;
+            att.csd_hlt_sub.period.lat = t8;
+            att.csd_hlt_sub.period.alloc = t9;
             
             string str;
             while (getline(fp, str)) {
@@ -233,11 +233,11 @@ public:
                 item.used = m4;
                 item.csd_used = m5;
                 item.dst_used = m6;
-                item.hlt_meta.last_time = m7;
-                item.hlt_meta.last_write = m8;
-                item.hlt_meta.last_read = m9;
-                item.hlt_meta.last_latency = m10;
-                item.hlt_meta.last_alloc = m11;
+                item.period.ctime = m7;
+                item.period.wr_cnt = m8;
+                item.period.rd_cnt = m9;
+                item.period.lat = m10;
+                item.period.alloc = m11;
 
                 att.chk_hlt_list.push_back(item);
             } 

@@ -5,7 +5,7 @@ include $(ROOT)/mk/grpc.mk
 
 .PHONY: all clean
 
-all: easdl.o eamou.o poll_layout.o
+all: calculator.o easdl.o eamou.o poll_layout.o
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
