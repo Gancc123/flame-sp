@@ -333,14 +333,14 @@ public:
             uint32_t stat;
             uint64_t csd_id;
             uint64_t dst_id;
-            uint64_t dst_mtime;
-            while (fp >> chk_id >> stat >> csd_id >> dst_id >> dst_mtime) {
+            uint64_t dst_ctime;
+            while (fp >> chk_id >> stat >> csd_id >> dst_id >> dst_ctime) {
                 chk_push_attr_t att;
                 att.chk_id = chk_id;
                 att.stat = stat;
                 att.csd_id = csd_id;
                 att.dst_id = dst_id;
-                att.dst_mtime = dst_mtime;
+                att.dst_ctime = dst_ctime;
                 chk_list.push_back(att);
             }
         }

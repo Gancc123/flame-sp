@@ -192,7 +192,7 @@ int InternalClientImpl::push_chunk_status(const std::list<chk_push_attr_t>& chk_
         item->set_stat(it->stat);
         item->set_csd_id(it->csd_id);
         item->set_dst_id(it->dst_id);
-        item->set_dst_mtime(it->dst_mtime);
+        item->set_dst_mtime(it->dst_ctime);
     }
 
     InternalReply reply;
