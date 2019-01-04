@@ -106,11 +106,11 @@ const HealthRequest* request, InternalReply* response)
     csd_hlt.size = request->size();
     csd_hlt.alloced = request->alloced();
     csd_hlt.used = request->used();
-    csd_hlt.hlt_meta.last_time = request->last_time();
-    csd_hlt.hlt_meta.last_write = request->last_write();
-    csd_hlt.hlt_meta.last_read = request->last_read();
-    csd_hlt.hlt_meta.last_latency = request->last_latency();
-    csd_hlt.hlt_meta.last_alloc = request->last_alloc();
+    csd_hlt.period.ctime = request->last_time();
+    csd_hlt.period.wr_cnt = request->last_write();
+    csd_hlt.period.rd_cnt = request->last_read();
+    csd_hlt.period.lat = request->last_latency();
+    csd_hlt.period.alloc = request->last_alloc();
 
     // 更新csd的健康信息
     if ((r = mct_->csdm()->csd_health_update(csd_hlt.csd_id, csd_hlt)) != RC_SUCCESS) {

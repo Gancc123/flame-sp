@@ -62,7 +62,7 @@ enum VolumeStat {
 
 /**
  * chunk_id_t
- * 
+ * |------------ chunk group id ------------|--------------|
  * |------- volume id -------|---- index ---|--- sub id ---|
  * | 63                   20 | 19         4 | 3          0 |
  */
@@ -74,6 +74,9 @@ struct chunk_id_t {
     chunk_id_t(uint64_t vol_id, uint64_t index, uint64_t sub_id) {
         val = (vol_id << 20) | ((index & 0xFFFFULL) << 4) | (sub_id & 0xFULL);
     }
+
+    uint64_t get_cg_id() const { return val >> 4; }
+    void set_cg_id(uint64_t v) { val = (v << 4) | (val & 0xFULL); }
 
     uint64_t get_vol_id() const { return val >> 20; }
     void set_vol_id(uint64_t v) { val = (v << 20) | (val & 0xFFFFFULL); }
@@ -111,41 +114,47 @@ enum ChunkFlags {
     CHK_FLG_PREALLOC = 0x1
 };
 
+struct health_count_t {
+    uint64_t    used    {0};
+    uint64_t    alloced {0};
+    uint64_t    wr_cnt  {0};
+    uint64_t    rd_cnt  {0};
+};
+
+struct health_period_t {
+    uint64_t    ctime   {0};
+    uint64_t    wr_cnt  {0};    // unit: 4KB page
+    uint64_t    rd_cnt  {0};    // unit: 4KB page
+    uint64_t    lat     {0};    // latency (ns)
+    uint64_t    alloc   {0};    
+};
+
+struct health_weight_t {
+    double      w_load  {0};    // 负载权值
+    double      w_wear  {0};    // 磨损权值
+    double      w_total {0};    // 总权值
+};
+
 /**
  * Chunk Health MetaData
  */
-struct com_hlt_meta_t {
-    uint64_t    last_time   {0};
-    uint64_t    last_write  {0};
-    uint64_t    last_read   {0};
-    uint64_t    last_latency{0};    // (ns)
-    uint64_t    last_alloc  {0};
-}; // struct com_hlt_meta_t
-
-struct com_weight_meta_t {
-    double      load_weight {0};
-    double      wear_weight {0};
-    double      total_weight{0};
-}; // struct com_weight_meta_t
-
 struct chunk_health_meta_t {
-    uint64_t          chk_id      {0};
-    uint32_t          stat        {0};
-    uint64_t          size        {0};
-    uint64_t          used        {0};
-    uint64_t          csd_used    {0};
-    uint64_t          dst_used    {0};
-    uint64_t          write_count {0};
-    uint64_t          read_count  {0};
-    com_hlt_meta_t    hlt_meta;
-    com_weight_meta_t weight_meta;
+    uint64_t            chk_id      {0};
+    uint32_t            stat        {0};
+    uint64_t            size        {0};
+    uint64_t            csd_used    {0};
+    uint64_t            dst_used    {0};
+    health_count_t      grand;      // 总健康信息
+    health_period_t     period;     // 上一个周期的健康信息
+    health_weight_t     weight;     // 健康权值
 }; // struct chunk_health_meta_t
 
 enum ChunkStat {
     CHK_STAT_CREATING = 0,
     CHK_STAT_CREATED = 1,
     CHK_STAT_MOVING = 2,
-    CHK_STAT_DELETING = 3
+    CHK_STAT_DELETING = 3,
+    CHK_STAT_DELETED = 99
 };
 
 /**
@@ -203,15 +212,12 @@ enum CsdStat {
  * CSD Health MetaData
  */
 struct csd_health_meta_t {
-    uint64_t          csd_id      {0};
-    uint32_t          stat        {0};
-    uint64_t          size        {0};
-    uint64_t          alloced     {0};
-    uint64_t          used        {0};
-    uint64_t          write_count {0};
-    uint64_t          read_count  {0};
-    com_hlt_meta_t    hlt_meta;
-    com_weight_meta_t weight_meta;
+    uint64_t            csd_id      {0};
+    uint32_t            stat        {0};
+    uint64_t            size        {0};
+    health_count_t      grand;
+    health_period_t     period;
+    health_weight_t     weight;
 }; // struct csd_health_meta_t
 
 /**
@@ -241,20 +247,25 @@ struct chk_attr_t {
  * chunk health attr
  */
 struct chk_hlt_attr_t {
-    uint64_t       chk_id      {0};
-    uint64_t       size        {0};
-    uint32_t       stat        {0};
-    uint64_t       used        {0};
-    uint64_t       csd_used    {0};
-    uint64_t       dst_used    {0};
-    com_hlt_meta_t hlt_meta;
+    uint64_t        chk_id      {0};
+    uint64_t        size        {0};
+    uint32_t        stat        {0};
+    uint64_t        used        {0};
+    uint64_t        csd_used    {0};
+    uint64_t        dst_used    {0};
+    health_period_t period;
 };
 
 /**
  * chunk map
  */
 struct chk_map_t {
-    
+    uint64_t    chk_id;
+    uint32_t    stat;
+    uint64_t    csd_id;
+    uint64_t    csd_addr;
+    uint64_t    dst_id;
+    uint64_t    dst_addr;
 };
 
 /**
@@ -282,11 +293,11 @@ struct csd_sgup_attr_t {
  * csd health sub
  */
 struct csd_hlt_sub_t {
-    uint64_t    csd_id;
-    uint64_t    size;
-    uint64_t    alloced;
-    uint64_t    used;
-    com_hlt_meta_t hlt_meta;
+    uint64_t        csd_id;
+    uint64_t        size;
+    uint64_t        alloced;
+    uint64_t        used;
+    health_period_t period;
 };
 
 } // namespace flame
