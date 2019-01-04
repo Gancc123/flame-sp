@@ -7,14 +7,15 @@ include $(ROOT)/mk/objs.mk
 
 OBJ_MGR_CSDM = $(ROOT)/mgr/csdm/csd_mgmt.o
 
-OBJ_MGR = mgr.o mgr_server.o
+OBJ_MGR = mgr.o mgr_server.o 
 
-.PHONY: all csdm clean
+.PHONY: all csdm chkm clean
 
-all: csdm mgr
+all: csdm chkm mgr
 
 csdm:
 	make -C ./csdm
+	make -C ./chkm
 
 mgr: $(OBJ_MGR) $(OBJ_MGR_CSDM) $(OBJ_COMMON) $(OBJ_METASTORE) $(OBJ_PROTO) $(OBJ_SERVICE) $(OBJ_ORM) $(OBJ_UTIL) $(OBJ_WORK) $(OBJ_CLUSTER)
 	$(CXX) $(CXXFLAGS) $(MYSQL_CFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(MYSQL_LIB) $(GRPC_LDFLAGS)  
@@ -24,4 +25,5 @@ mgr: $(OBJ_MGR) $(OBJ_MGR_CSDM) $(OBJ_COMMON) $(OBJ_METASTORE) $(OBJ_PROTO) $(OB
 
 clean:
 	make -C ./csdm clean
+	make -C ./chkm clean
 	rm -f *.o mgr

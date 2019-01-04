@@ -52,7 +52,7 @@ int ChkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_at
     // 选择合适的CSD
     int grp = chk_num / cgn;
     list<uint64_t> csd_list;
-    if ((r = layout_->select_bulk(csd_list, grp, cgn, attr.siZe)) != RC_SUCCESS) {
+    if ((r = layout_->select_bulk(csd_list, grp, cgn, attr.size)) != RC_SUCCESS) {
         fct_->log()->lerror("select csd faild: %d", r);
         return RC_FAILD;
     }
@@ -64,14 +64,16 @@ int ChkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_at
 
     // 匹配Chunk与CSD，并过滤为以CSD为单位
     map<uint64_t, list<uint64_t>> chk_dict;
-    for (int i = 0; i < chk_ids.size(); i++) {
-        chk_dict[csd_list[i]].push_back(chk_ids[i]);
+    list<uint64_t>::iterator csd_it = csd_list.begin();
+    list<uint64_t>::const_iterator chk_it = chk_ids.begin();
+    for (; csd_it != csd_list.end(); csd_it++, chk_it++) {
+        chk_dict[*csd_it].push_back(*chk_it);
     }
 
     // 控制CSD创建Chunk
     bool success = true;
     for (auto it = chk_dict.begin(); it != chk_dict.end(); it++) {
-        CsdHandle* hdl = csdm_.find(it->first);
+        CsdHandle* hdl = csdm_->find(it->first);
         if (hdl == nullptr) {
             // CSD宕机，暂时不做处理
             fct_->log()->lerror("csd shutdown: %llu", it->first);
@@ -112,7 +114,7 @@ int ChkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_at
                 meta.csd_id = it->first;
                 meta.csd_mtime = tnow;
                 meta.dst_id = it->first;
-                meta.dst_mtime = tnow;
+                meta.dst_ctime = tnow;
                 meta.stat = CHK_STAT_CREATED;
                 r = ms_->get_chunk_ms()->update(meta);
                 if (r != RC_SUCCESS) {
@@ -157,7 +159,7 @@ int ChkManager::create_vol(chunk_id_t pid, int grp, int cgn, const chk_attr_t& a
         pid.set_index(pid.get_index() + g);
         for (int i = 0; i < cgn; i++) {
             pid.set_sub_id(i);
-            chk_ids.push(pid);
+            chk_ids.push_back(pid);
         }
     }
 
@@ -186,7 +188,7 @@ int ChkManager::update_status(const list<chk_push_attr_t>& chk_list) {
 
         meta.csd_id = it->csd_id;
         meta.dst_id = it->dst_id;
-        meta.dst_mtime = it->dst_mtime;
+        meta.dst_ctime = it->dst_ctime;
 
         r = ms_->get_chunk_ms()->update(meta);
         if (r != RC_SUCCESS) {
@@ -210,10 +212,10 @@ int ChkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
             continue;
         }
 
-        hlt.used = it->used;
+        hlt.grand.used = it->used;
         hlt.csd_used = it->csd_used;
         hlt.dst_used = it->dst_used;
-        hlt.hlt_meta = it->hlt_meta;
+        hlt.period = it->period;
 
         // 计算weight
 

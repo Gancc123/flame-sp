@@ -39,7 +39,7 @@ struct chk_push_attr_t {
     uint32_t       stat        {0};
     uint64_t       csd_id      {0};
     uint64_t       dst_id      {0};
-    uint64_t       dst_mtime   {0};
+    uint64_t       dst_ctime   {0};
 }; //struct chk_push_attr_t
 
 class InternalClient {

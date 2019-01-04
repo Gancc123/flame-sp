@@ -19,7 +19,7 @@ public:
     ChkManager(FlameContext* fct, 
         const std::shared_ptr<MetaStore>& ms, 
         const std::shared_ptr<CsdManager>& csdm,
-        const std::shared_ptr<ChunkLayout>& layout)
+        const std::shared_ptr<layout::ChunkLayout>& layout)
     : fct_(fct), ms_(ms), csdm_(csdm), layout_(layout) {}
 
     /**
@@ -102,7 +102,7 @@ private:
     FlameContext* fct_;
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdManager> csdm_;
-    std::shared_ptr<ChunkLayout> layout_;
+    std::shared_ptr<layout::ChunkLayout> layout_;
 }; // class ChkManager
 
 } // namespace flame
