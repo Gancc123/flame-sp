@@ -6,6 +6,7 @@
 #include "include/meta.h"
 #include "mgr/csdm/csd_mgmt.h"
 #include "layout/layout.h"
+#include "layout/calculator.h"
 
 #include <cstdint>
 #include <memory>
@@ -14,13 +15,14 @@
 
 namespace flame {
 
-class ChkManager final {
+class ChunkManager final {
 public:
-    ChkManager(FlameContext* fct, 
+    ChunkManager(FlameContext* fct, 
         const std::shared_ptr<MetaStore>& ms, 
         const std::shared_ptr<CsdManager>& csdm,
-        const std::shared_ptr<layout::ChunkLayout>& layout)
-    : fct_(fct), ms_(ms), csdm_(csdm), layout_(layout) {}
+        const std::shared_ptr<layout::ChunkLayout>& layout,
+        const std::shared_ptr<layout::ChunkHealthCaculator>& chk_hlt_calor)
+    : fct_(fct), ms_(ms), csdm_(csdm), layout_(layout), chk_hlt_calor_(chk_hlt_calor) {}
 
     /**
      * @brief 批量创建Chunk
@@ -103,6 +105,7 @@ private:
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdManager> csdm_;
     std::shared_ptr<layout::ChunkLayout> layout_;
+    std::shared_ptr<layout::ChunkHealthCaculator> chk_hlt_calor_;
 }; // class ChkManager
 
 } // namespace flame

@@ -13,6 +13,7 @@ DSERVICE = $(ROOT)/service
 DUTIL = $(ROOT)/util
 DWORK = $(ROOT)/work
 DCLUSTER = $(ROOT)/cluster
+DLAYOUT = $(ROOT)/layout
 
 CC = gcc
 CXX = g++
