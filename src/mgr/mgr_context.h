@@ -4,7 +4,7 @@
 #include "common/context.h"
 #include "metastore/ms.h"
 #include "mgr/csdm/csd_mgmt.h"
-// #include "mgr/chunkm/chk_mgmt.h"
+#include "mgr/chkm/chk_mgmt.h"
 // #include "mgr/volm/vol_mgmt.h"
 
 #include "cluster/clt_mgmt.h"
@@ -31,8 +31,8 @@ public:
     std::shared_ptr<ClusterMgmt> cltm() const { return cltm_; }
     void cltm(const std::shared_ptr<ClusterMgmt>& cltm) { cltm_ = cltm; }
 
-    // std::shared_ptr<ChkManager> chkm() const { return chkm_; }
-    // void chkm(std::shared_ptr<ChkManager>& chkm) { chkm_ = chkm; }
+    std::shared_ptr<ChunkManager> chkm() const { return chkm_; }
+    void chkm(std::shared_ptr<ChunkManager>& chkm) { chkm_ = chkm; }
 
     // std::shared_ptr<VolManager> volm() const { return volm_; }
     // void volm(std::shared_ptr<VolManager>& volm) { volm_ = volm; }
@@ -45,7 +45,7 @@ private:
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdManager> csdm_;
     std::shared_ptr<ClusterMgmt> cltm_;
-    // std::shared_ptr<ChkManager> chkm_;
+    std::shared_ptr<ChunkManager> chkm_;
     // std::shared_ptr<VolManager> volm_;
 
     std::shared_ptr<TimerWorker> timer_;

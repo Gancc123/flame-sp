@@ -238,10 +238,7 @@ void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
     obj_->health().period = hlt.period;
 
     // 更新需要计算的健康信息
-    obj_->add_write_count(hlt.period.wr_cnt);
-    obj_->add_read_count(hlt.period.rd_cnt);
-    // double u = (double)hlt.used / hlt.size;
-    // obj_->set_wear_weight(obj_->get_wear_weight() + (hlt.hlt_meta.last_write / (1 - u)));
+    csdm_->csd_hlt_calor_->cal_health(obj_->health());
 
     obj_as_dirty__(); // 健康信息更新不马上写回MetaStore
 }

@@ -10,7 +10,7 @@ using namespace std;
 
 namespace flame {
 
-int ChkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_attr_t& attr) {
+int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_attr_t& attr) {
     int r;
 
     if (chk_ids.empty()) 
@@ -143,7 +143,7 @@ int ChkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_at
     return RC_SUCCESS;
 }
 
-int ChkManager::create_cg(chunk_id_t pid, int num, const chk_attr_t& attr) {
+int ChunkManager::create_cg(chunk_id_t pid, int num, const chk_attr_t& attr) {
     list<uint64_t> chk_ids;
     for (int i = 0; i < num; i++) {
         pid.set_sub_id(i);
@@ -153,7 +153,7 @@ int ChkManager::create_cg(chunk_id_t pid, int num, const chk_attr_t& attr) {
     return create_bulk(chk_ids, num, attr);
 }
 
-int ChkManager::create_vol(chunk_id_t pid, int grp, int cgn, const chk_attr_t& attr) {
+int ChunkManager::create_vol(chunk_id_t pid, int grp, int cgn, const chk_attr_t& attr) {
     list<uint64_t> chk_ids;
     for (int g = 0; g < grp; g++) {
         pid.set_index(pid.get_index() + g);
@@ -166,15 +166,15 @@ int ChkManager::create_vol(chunk_id_t pid, int grp, int cgn, const chk_attr_t& a
     return create_bulk(chk_ids, cgn, attr);
 }
 
-int ChkManager::info_vol(list<chunk_meta_t>& chk_list, const uint64_t& vol_id) {
+int ChunkManager::info_vol(list<chunk_meta_t>& chk_list, const uint64_t& vol_id) {
     return ms_->get_chunk_ms()->list(chk_list, vol_id);
 }
 
-int ChkManager::info_bulk(list<chunk_meta_t>& chk_list, const list<uint64_t>& chk_ids) {
+int ChunkManager::info_bulk(list<chunk_meta_t>& chk_list, const list<uint64_t>& chk_ids) {
     return ms_->get_chunk_ms()->list(chk_list, chk_ids);
 }
 
-int ChkManager::update_status(const list<chk_push_attr_t>& chk_list) {
+int ChunkManager::update_status(const list<chk_push_attr_t>& chk_list) {
     int r;
     bool success = true;
     for (auto it = chk_list.begin(); it != chk_list.end(); it++) {
@@ -200,7 +200,7 @@ int ChkManager::update_status(const list<chk_push_attr_t>& chk_list) {
     return success ? RC_SUCCESS : RC_FAILD;
 }
 
-int ChkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
+int ChunkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
     int r;
     bool success = true;
     for (auto it = chk_hlt_list.begin(); it != chk_hlt_list.end(); it++) {
@@ -218,6 +218,7 @@ int ChkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
         hlt.period = it->period;
 
         // 计算weight
+        chk_hlt_calor_->cal_health(hlt);
 
         r = ms_->get_chunk_health_ms()->update(hlt);
         if (r != RC_SUCCESS) {

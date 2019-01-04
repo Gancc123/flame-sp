@@ -7,6 +7,7 @@
 #include "common/thread/rw_lock.h"
 #include "include/internal.h"
 #include "include/csds.h"
+#include "layout/calculator.h"
 
 #include <cstdint>
 #include <atomic>
@@ -19,9 +20,11 @@ class CsdHandle;
 
 class CsdManager final {
 public:
-    CsdManager(FlameContext* fct, const std::shared_ptr<MetaStore>& ms, 
-        const std::shared_ptr<CsdsClientFoctory>& csd_client_foctory) 
-    : fct_(fct), ms_(ms), csd_client_foctory_(csd_client_foctory) {}
+    CsdManager(FlameContext* fct, 
+        const std::shared_ptr<MetaStore>& ms, 
+        const std::shared_ptr<CsdsClientFoctory>& csd_client_foctory,
+        const std::shared_ptr<layout::CsdHealthCaculator>& csd_hlt_calor)
+    : fct_(fct), ms_(ms), csd_client_foctory_(csd_client_foctory), csd_hlt_calor_(csd_hlt_calor) {}
     
     ~CsdManager() {
         destroy__();
@@ -118,6 +121,7 @@ private:
     FlameContext* fct_;
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdsClientFoctory> csd_client_foctory_;
+    std::shared_ptr<layout::CsdHealthCaculator> csd_hlt_calor_;
 
     /**
      * CsdHandle 存储管理

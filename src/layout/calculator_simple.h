@@ -6,7 +6,7 @@
 namespace flame  {
 namespace layout {
 
-class SimpleCsdHealthCal : public CsdHealthCaculator {
+class SimpleCsdHealthCalculator : public CsdHealthCaculator {
 public:
     virtual double cal_load_weight(const csd_health_meta_t& hlt) override {
         return  hlt.weight.w_load + hlt.period.wr_cnt;
@@ -22,7 +22,7 @@ public:
 
 };
 
-class SimpleChkHealthCal : public ChunkHealthCaculator {
+class SimpleChunkHealthCalulator : public ChunkHealthCaculator {
 public:
     virtual double cal_load_weight(const chunk_health_meta_t& hlt) override {
         return hlt.weight.w_load / 2 + hlt.period.wr_cnt;
@@ -37,9 +37,7 @@ public:
     }
 };
 
-}    
-}
-
-
-
-#endif
+} // namespace layout    
+} // namespace flame
+ 
+#endif // FLAME_LAYOUT_CALCULATOR_SIMPLE_H

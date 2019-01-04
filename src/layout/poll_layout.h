@@ -1,7 +1,8 @@
 #ifndef FLAME_LAYOUT_POLL_H
 #define FLAME_LAYOUT_POLL_H
 
-#include "layout.h"
+#include "layout/layout.h"
+#include "layout/layout_types.h"
 #include "include/retcode.h"
 #include <map>
 #include <set>
@@ -18,6 +19,8 @@ public:
 
     int get_next_csd(uint64_t& csd_id, const uint64_t& chk_sz);
 
+    virtual int type() override { return LAYOUT_TYPE_POLL; }
+
     virtual int select(std::list<uint64_t>& csd_ids, int num, uint64_t chk_sz) override;
 
     virtual int select_bulk(std::list<uint64_t>& csd_ids, int grp, int cgn, uint64_t chk_sz) override;
@@ -27,10 +30,10 @@ private:
     std::map<uint64_t, uint64_t>::iterator it_;
     RWLock csd_info_lock_;
     RWLock select_lock_;
-};
+}; // class PollLayout
 
-}
-}
+} // namespace layout
+} // namespace flame
 
 
 #endif

@@ -8,6 +8,7 @@
 #include "mgr/mgr_server.h"
 #include "mgr/config_mgr.h"
 #include "mgr/csdm/csd_mgmt.h"
+#include "mgr/chkm/chk_mgmt.h"
 
 #include <grpcpp/grpcpp.h>
 #include "service/flame_service.h"
@@ -16,6 +17,11 @@
 
 #include "cluster/clt_mgmt.h"
 #include "cluster/clt_my/my_mgmt.h"
+
+#include "layout/layout.h"
+#include "layout/poll_layout.h"
+#include "layout/calculator.h"
+#include "layout/calculator_simple.h"
 
 #include "mgr/log_mgr.h"
 
@@ -95,6 +101,7 @@ private:
     bool init_server();
     bool init_csdm();
     bool init_cltm();
+    bool init_chkm();
 
     bool run_server();
 
@@ -154,6 +161,12 @@ int Manager::init(MgrCli* mgr_cli) {
     if (!init_cltm()) {
         mct_->log()->lerror("init cluster manager");
         return 6;
+    }
+
+    // 初始化ChunkManager
+    if (!init_chkm()) {
+        mct_->log()->lerror("init chunk manager faild");
+        return 7;
     }
 
     return 0;
@@ -316,10 +329,14 @@ bool Manager::init_server() {
 bool Manager::init_csdm() {
     shared_ptr<CsdsClientFoctory> csd_client_foctory(new CsdsClientFoctoryImpl(mct_->fct()));
 
+    // 配置Csd健康信息计算器
+    shared_ptr<layout::CsdHealthCaculator> csd_hlt_calor(new layout::SimpleCsdHealthCalculator());
+
     shared_ptr<CsdManager> csdm(new CsdManager(
         mct_->fct(),    // Flame上下文文
         mct_->ms(),     // MetaStore
-        csd_client_foctory
+        csd_client_foctory,
+        csd_hlt_calor   // CSD 健康信息计算器
     ));
     csdm->init();
     mct_->csdm(csdm);
@@ -336,6 +353,25 @@ bool Manager::init_cltm() {
 
     mct_->cltm(cltm);
     cltm->init();
+    return true;
+}
+
+bool Manager::init_chkm() {
+    // 配置Chunk布局策略
+    shared_ptr<layout::ChunkLayout> layout(new layout::PollLayout(mct_->csdm()));
+
+    // 配置Chunk健康信息计算器（通常需要跟布局策略一同配置）
+    shared_ptr<layout::ChunkHealthCaculator> chk_hlt_calor(new layout::SimpleChunkHealthCalulator());
+
+    shared_ptr<ChunkManager> chkm(new ChunkManager(
+        mct_->fct(),
+        mct_->ms(),
+        mct_->csdm(),
+        layout,
+        chk_hlt_calor   // Chunk健康信息计算器
+    ));
+
+    mct_->chkm(chkm);
     return true;
 }
 
