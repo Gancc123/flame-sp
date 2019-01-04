@@ -1,12 +1,12 @@
-#ifndef FLAME_LAYOUT_CALCULATOR_MY_H
-#define FLAME_LAYOUT_CALCULATOR_MY_H
+#ifndef FLAME_LAYOUT_CALCULATOR_SIMPLE_H
+#define FLAME_LAYOUT_CALCULATOR_SIMPLE_H
 
 #include "calculator.h"
 
 namespace flame  {
 namespace layout {
 
-class MyCsdHealthCal : public CsdHealthCaculator {
+class SimpleCsdHealthCal : public CsdHealthCaculator {
 public:
     virtual double cal_load_weight(const csd_health_meta_t& hlt) override {
         return  hlt.weight.w_load + hlt.period.wr_cnt;
@@ -22,7 +22,7 @@ public:
 
 };
 
-class MyChkHealthCal : public ChunkHealthCaculator {
+class SimpleChkHealthCal : public ChunkHealthCaculator {
 public:
     virtual double cal_load_weight(const chunk_health_meta_t& hlt) override {
         return hlt.weight.w_load / 2 + hlt.period.wr_cnt;
