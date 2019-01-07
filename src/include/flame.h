@@ -9,21 +9,6 @@
 
 namespace flame {
 
-struct csd_addr_attr_t {
-    uint64_t    csd_id    {0};
-    uint64_t    io_addr   {0};
-    uint32_t    stat      {0};
-}; // struct csd_addr_attr_t
-
-struct volume_attr_t {
-    std::string vg_name   { };
-    std::string vol_name  { };
-    uint64_t    chk_sz    {0};
-    uint64_t    size      {0};
-    uint32_t    flags     {0};
-    uint32_t    spolicy   {0};
-}; // struct volume_attr_t
-
 struct chunk_attr_t {
     uint64_t    chk_id    {0};
     uint64_t    vol_id    {0};
@@ -57,7 +42,7 @@ public:
     virtual int clean_clustrt() = 0;
     
     // 获取CSD地址信息，需要指定一系列CSD ID
-    virtual int pull_csd_addr(std::list<csd_addr_attr_t>& res, const std::list<uint64_t>& csd_id_list) = 0;
+    virtual int pull_csd_addr(std::list<csd_addr_t>& res, const std::list<uint64_t>& csd_id_list) = 0;
 
     //* Group Set
     // 获取所有VG信息，支持分页（需要提供<offset, limit>，以vg_name字典顺序排序）
@@ -77,7 +62,7 @@ public:
     virtual int get_volume_list(std::list<volume_meta_t>& res, const std::string& name, uint32_t offset, uint32_t limit) = 0;
     
     // 创建Volume
-    virtual int create_volume(const volume_attr_t& vol_attr) = 0;
+    virtual int create_volume(const std::string& vg_name, const std::string& vol_name, const vol_attr_t& attr) = 0;
     
     // 删除Volume
     virtual int remove_volume(const std::string& vg_name, const std::string& vol_name) = 0;

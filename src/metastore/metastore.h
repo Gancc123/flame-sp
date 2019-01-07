@@ -17,13 +17,6 @@
 
 namespace flame {
 
-enum MSRetCode {
-    SUCCESS = 0,
-    FAILD = 1,
-    OBJ_EXIST = 2,
-    OBJ_NOT_EXIST = 3
-};
-
 /**
  * Interface for Cluster Meta Store
  */
@@ -188,6 +181,9 @@ public:
      * @By: chk_id
      */
     virtual int remove(uint64_t chk_id) = 0;
+    virtual int remove_vol(uint64_t vol_id) = 0;
+    virtual int remove_cg(uint64_t vol_id, uint32_t index) = 0;
+    virtual int remove_bulk(const std::list<uint64_t>& chk_ids) = 0;
 
     /**
      * Update a single chunk
@@ -225,6 +221,7 @@ public:
      * Remove a single chunk health
      */
     virtual int remove(uint64_t chk_id) = 0;
+    virtual int remove_bulk(const std::list<uint64_t>& chk_ids) = 0;
 
     /**
      * Update a single chunk health

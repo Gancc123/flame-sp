@@ -1,5 +1,5 @@
-#ifndef FLAME_INCLUDE_BUFFER_H
-#define FLAME_INCLUDE_BUFFER_H
+#ifndef FLAME_LIBFLAME_BUFFER_H
+#define FLAME_LIBFLAME_BUFFER_H
 
 #include <cassert>
 #include <cstdint>
@@ -48,7 +48,7 @@ inline bool operator != (const BufferPtr& x, const BufferPtr& y) {
     return !(x == y);
 }
 
-template<typename T>
+template<T>
 class Pointer : public BufferPtr {
 public:
     explicit Pointer() : ptr_(nullptr), cnt_(0) {}
@@ -121,10 +121,10 @@ public:
 
     bool empty() const { return count() == 0 || size() == 0; }
 
-    std::list<Buffer>::const_iterator begin() const { return blist_.cbegin(); }
-    std::list<Buffer>::const_iterator end() const { return blist_.cend(); }
-    std::list<Buffer>::const_reverse_iterator rbegin() const { return blist_.crbegin(); }
-    std::list<Buffer>::const_reverse_iterator rend() const { return blist_.crend(); }
+    std::list<Buffer>::const_iterator begin() { return list_.cbegin(); }
+    std::list<Buffer>::const_iterator end() { return list_.cend(); }
+    std::list<Buffer>::const_iterator rbegin() { return list_.crbegin(); }
+    std::list<Buffer>::const_iterator rend() { return list_.crend(); }
 
     void push_front(const Buffer& buff) {
         blist_.push_front(buff);

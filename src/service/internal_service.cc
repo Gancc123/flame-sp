@@ -79,9 +79,9 @@ Status InternalServiceImpl::pushHeartBeat(ServerContext* context,
 const HeartBeatRequest* request, InternalReply* response)
 {
     // 心跳汇报改用pushStatus接口
-    // uint64_t latime = utime_t::now().to_usec();
-    // int r = csd_ms->update_at(request->csd_id(), latime);
-    // response->set_code(r);
+    int r = mct_->cltm()->update_stat(request->csd_id(), CSD_STAT_ACTIVE);
+    response->set_code(r);
+    mct_->log()->ldebug("internal_service", "csd (%llu) heart beat: %d", request->csd_id(), r);
     return Status::OK;
 }
     
@@ -120,32 +120,28 @@ const HealthRequest* request, InternalReply* response)
     }
 
     // 提取出chunk的健康信息
-    // std::list<chk_hlt_attr_t> chk_hlt_list;
-    // for (uint64_t i = 0; i < request->chunk_health_list_size(); ++i) {
-    //     const ChunkHealthItem& item = request->chunk_health_list(i);
-    //     chk_hlt_attr_t hmt;
-    //     hmt.chk_id = item.chk_id();
-    //     hmt.size = item.size();
-    //     hmt.stat = item.stat();
-    //     hmt.used = item.used();
-    //     hmt.csd_used = item.csd_used();
-    //     hmt.dst_used = item.dst_used();
-    //     hmt.hlt_meta.last_time = item.last_time();
-    //     hmt.hlt_meta.last_write = item.last_write();
-    //     hmt.hlt_meta.last_read = item.last_read();
-    //     hmt.hlt_meta.last_latency = item.last_latency();
-    //     hmt.hlt_meta.last_alloc = item.last_alloc();
+    std::list<chk_hlt_attr_t> chk_hlt_list;
+    for (uint64_t i = 0; i < request->chunk_health_list_size(); ++i) {
+        const ChunkHealthItem& item = request->chunk_health_list(i);
+        chk_hlt_attr_t hmt;
+        hmt.chk_id = item.chk_id();
+        hmt.size = item.size();
+        hmt.stat = item.stat();
+        hmt.used = item.used();
+        hmt.csd_used = item.csd_used();
+        hmt.dst_used = item.dst_used();
+        hmt.period.ctime = item.last_time();
+        hmt.period.wr_cnt = item.last_write();
+        hmt.period.rd_cnt = item.last_read();
+        hmt.period.lat = item.last_latency();
+        hmt.period.alloc = item.last_alloc();
 
-    //     chk_hlt_list.push_back(hmt);
-    // }
+        chk_hlt_list.push_back(hmt);
+    }
 
-    
-
-    // // 更新chunk的健康信息
-    // int r = mct_->chkm()->chunk_push_health(chk_hlt_list);
-
+    // 更新chunk的健康信息
+    r = mct_->chkm()->update_health(chk_hlt_list);
     response->set_code(r);
-
     return Status::OK;
 }
 
@@ -153,9 +149,10 @@ const HealthRequest* request, InternalReply* response)
 Status InternalServiceImpl::pullRelatedChunk(ServerContext* context,
 const ChunkPullRequest* request, ChunkPullReply* response)
 {
-    // for (uint64_t i = 0; i < request->chkid_list_size(); ++i) {
-    //     uint64_t org_id = request->chkid_list(i);
-    //     list<chunk_meta_t> res_list;
+    // @@@ 关联chunk id 可以直接计算，此接口暂时没用了
+    // for (int i = 0; i < request->chkid_list_size(); ++i) {
+    //     chunk_id_t cid = (uint64_t)request->chkid_list(i);
+    //     list<chunk_meta_t> chks;
     //     int r = mct_->chkm()->chunk_get_related(res_list, org_id);
 
     //     for (auto it = res_list.begin(); it != res_list.end(); ++it) {
@@ -165,7 +162,6 @@ const ChunkPullRequest* request, ChunkPullReply* response)
     //         item->set_csd_id(it->csd_id);
     //         item->set_dst_id(it->dst_id);
     //     }
-
     // }
     return Status::OK;
 }
@@ -174,21 +170,21 @@ const ChunkPullRequest* request, ChunkPullReply* response)
 Status InternalServiceImpl::pushChunkStatus(ServerContext* context,
 const ChunkPushRequest* request, InternalReply* response)
 {
-    // std::list<chk_push_attr_t> chk_list;
-    // for (uint64_t i = 0; i < request->chk_list_size(); ++i) {
-    //     const ChunkPushItem& item = request->chk_list(i);
-    //     chunk_meta_t mt;
-    //     mt.chk_id = item.chk_id();
-    //     mt.stat = item.stat();
-    //     mt.csd_id = item.csd_id();
-    //     mt.dst_id = item.dst_id();
-    //     mt.dst_ctime = item.dst_mtime();
+    std::list<chk_push_attr_t> chk_list;
+    for (uint64_t i = 0; i < request->chk_list_size(); ++i) {
+        const ChunkPushItem& item = request->chk_list(i);
+        chk_push_attr_t mt;
+        mt.chk_id = item.chk_id();
+        mt.stat = item.stat();
+        mt.csd_id = item.csd_id();
+        mt.dst_id = item.dst_id();
+        mt.dst_ctime = item.dst_mtime();
 
-    //     chk_list.push_back(mt);
-    // }
+        chk_list.push_back(mt);
+    }
 
-    // int r = mct_->chkm()->chunk_push_status(chk_list);
-
+    int r = mct_->chkm()->update_status(chk_list);
+    response->set_code(r);
     return Status::OK;
 }
 

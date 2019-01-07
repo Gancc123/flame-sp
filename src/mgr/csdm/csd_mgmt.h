@@ -92,6 +92,15 @@ public:
     int csd_health_update(uint64_t csd_id, const csd_hlt_sub_t& hlt);
 
     /**
+     * @brief 拉取CSD地址信息
+     * 
+     * @param addrs 
+     * @param csd_ids 为空时拉取全部CSD地址信息
+     * @return int 
+     */
+    int csd_pull_addr(std::list<csd_addr_t>& addrs, const std::list<uint64_t>& csd_ids);
+
+    /**
      * @brief 查询CSD
      * 
      * @param csd_id 

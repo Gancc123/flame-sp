@@ -1,8 +1,10 @@
 #include "sqlms.h"
+#include "include/retcode.h"
 
-#include "metastore/log_ms.h"
 #include "orm/orm.h"
 #include "util/utime.h"
+
+#include "metastore/log_ms.h"
 
 #include <cassert>
 
@@ -72,9 +74,9 @@ int SqlMetaStore::get_hot_chunk(std::map<uint64_t, uint64_t>& ret, const uint64_
 			for (auto it = ds->cbegin(); it != ds->cend(); it++) {
 				ret.insert(make_pair(it->get(m_chunk.chk_id), it->get(m_chk_health.write_count)));
 			}
-			return MSRetCode::SUCCESS;
+			return RC_SUCCESS;
 		}
-		return MSRetCode::FAILD;
+		return RC_FAILD;
 
 	}
 	else { //三副本
@@ -90,9 +92,9 @@ int SqlMetaStore::get_hot_chunk(std::map<uint64_t, uint64_t>& ret, const uint64_
 			for (auto it = ds->cbegin(); it != ds->cend(); it++) {
 				ret.insert(make_pair(it->get(m_chunk.chk_id), it->get(m_chk_health.write_count)));
 			}
-			return MSRetCode::SUCCESS;
+			return RC_SUCCESS;
 		}
-		return MSRetCode::FAILD;
+		return RC_FAILD;
 
 	}
 }
@@ -124,9 +126,9 @@ int SqlClusterMS::get(cluster_meta_t& cluster) {
             cluster_meta_set__(cluster, m_cluster, it);
             break;
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlClusterMS::create(const cluster_meta_t& cluster) {
@@ -143,10 +145,7 @@ int SqlClusterMS::create(const cluster_meta_t& cluster) {
             cluster.ctime
         }).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlClusterMS::update(const cluster_meta_t& cluster) {
@@ -177,9 +176,9 @@ int SqlVolumeGroupMS::list(std::list<volume_group_meta_t>& res_list, uint32_t of
             volume_group_meta_set__(item, m_vg, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeGroupMS::get(volume_group_meta_t& res_vg, uint64_t vg_id) {
@@ -190,9 +189,9 @@ int SqlVolumeGroupMS::get(volume_group_meta_t& res_vg, uint64_t vg_id) {
         for(auto it = ds->cbegin(); it != ds->cend(); ++it) {
             volume_group_meta_set__(res_vg, m_vg, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeGroupMS::get(volume_group_meta_t& res_vg, const std::string& name) {
@@ -203,9 +202,9 @@ int SqlVolumeGroupMS::get(volume_group_meta_t& res_vg, const std::string& name) 
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             volume_group_meta_set__(res_vg, m_vg, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeGroupMS::create(const volume_group_meta_t& new_vg) {
@@ -218,10 +217,7 @@ int SqlVolumeGroupMS::create(const volume_group_meta_t& new_vg) {
             new_vg.size, new_vg.alloced, new_vg.used
         }).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeGroupMS::create_and_get(volume_group_meta_t& new_vg) {
@@ -235,28 +231,22 @@ int SqlVolumeGroupMS::create_and_get(volume_group_meta_t& new_vg) {
         }).exec();
 
     if (ret && ret->OK()) {
-        if (get(new_vg, new_vg.name) == MSRetCode::SUCCESS)
-            return MSRetCode::SUCCESS;
+        if (get(new_vg, new_vg.name) == RC_SUCCESS)
+            return RC_SUCCESS;
         else
-            return MSRetCode::FAILD;
+            return RC_FAILD;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeGroupMS::remove(uint64_t vg_id) {
     shared_ptr<Result> ret = m_vg.remove().where(m_vg.vg_id == vg_id).exec();
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeGroupMS::remove(const std::string& name) {
     shared_ptr<Result> ret = m_vg.remove().where(m_vg.name == name).exec();
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeGroupMS::update(const volume_group_meta_t& vg) {
@@ -270,10 +260,7 @@ int SqlVolumeGroupMS::update(const volume_group_meta_t& vg) {
             set_(m_vg.used, vg.used)
         }).where(m_vg.vg_id == vg.vg_id).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeGroupMS::rename(uint64_t vg_id, const std::string& new_name) {
@@ -281,10 +268,7 @@ int SqlVolumeGroupMS::rename(uint64_t vg_id, const std::string& new_name) {
         .assign(set_(m_vg.name, new_name))
         .where(m_vg.vg_id == vg_id).exec();
     
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeGroupMS::rename(const std::string& old_name, const std::string& new_name) {
@@ -292,10 +276,7 @@ int SqlVolumeGroupMS::rename(const std::string& old_name, const std::string& new
         .assign(set_(m_vg.name, new_name))
         .where(m_vg.name == old_name).exec();
     
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 /**
@@ -326,9 +307,9 @@ int SqlVolumeMS::list(std::list<volume_meta_t>& res_list, uint64_t vg_id, uint32
             volume_meta_set__(item, m_volume, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeMS::get(volume_meta_t& res_vol, uint64_t vol_id) {
@@ -339,9 +320,9 @@ int SqlVolumeMS::get(volume_meta_t& res_vol, uint64_t vol_id) {
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             volume_meta_set__(res_vol, m_volume, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeMS::get(volume_meta_t& res_vol, uint64_t vg_id, const std::string& name) {
@@ -353,9 +334,9 @@ int SqlVolumeMS::get(volume_meta_t& res_vol, uint64_t vg_id, const std::string& 
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             volume_meta_set__(res_vol, m_volume, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlVolumeMS::create(const volume_meta_t& new_vol) {
@@ -372,10 +353,7 @@ int SqlVolumeMS::create(const volume_meta_t& new_vol) {
             new_vol.chunks
         }).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeMS::create_and_get(volume_meta_t& new_vol) {
@@ -392,33 +370,19 @@ int SqlVolumeMS::create_and_get(volume_meta_t& new_vol) {
             new_vol.chunks
         }).exec();
 
-    if (ret && ret->OK()) {
-        if (get(new_vol, new_vol.vg_id, new_vol.name) == MSRetCode::SUCCESS)
-            return MSRetCode::SUCCESS;
-        else
-            return MSRetCode::FAILD;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? get(new_vol, new_vol.vg_id, new_vol.name) : RC_FAILD;
 }
 
 int SqlVolumeMS::remove(uint64_t vol_id) {
     shared_ptr<Result> ret = m_volume.remove()
         .where(m_volume.vol_id == vol_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeMS::remove(uint64_t vg_id, const std::string& name) {
     shared_ptr<Result> ret = m_volume.remove()
         .where({m_volume.vg_id == vg_id, m_volume.name == name}).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeMS::update(const volume_meta_t& vol) {
@@ -435,21 +399,14 @@ int SqlVolumeMS::update(const volume_meta_t& vol) {
             set_(m_volume.chunks, vol.chunks)
         }).where(m_volume.vol_id == vol.vol_id).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeMS::rename(uint64_t vol_id, const std::string& new_name) {
     shared_ptr<Result> ret = m_volume.update()
         .assign(set_(m_volume.name, new_name))
         .where(m_volume.vol_id == vol_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlVolumeMS::rename(uint64_t vg_id, const std::string& old_name, const std::string& new_name) {
@@ -457,11 +414,7 @@ int SqlVolumeMS::rename(uint64_t vg_id, const std::string& old_name, const std::
         .assign(set_(m_volume.name, new_name))
         .where({m_volume.vg_id == vg_id, m_volume.name == old_name})
         .exec();
-    
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 /**
@@ -496,9 +449,9 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_
             chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t>& chk_ids) {
@@ -512,9 +465,9 @@ int SqlChunkMS::list(std::list<chunk_meta_t>& res_list, const std::list<uint64_t
             chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlChunkMS::list_cg(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint32_t index) {
@@ -528,9 +481,9 @@ int SqlChunkMS::list_cg(std::list<chunk_meta_t>& res_list, uint64_t vol_id, uint
             chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlChunkMS::list_all(std::list<chunk_meta_t>& res_list) {
@@ -542,9 +495,9 @@ int SqlChunkMS::list_all(std::list<chunk_meta_t>& res_list) {
             chunk_meta_set__(item, m_chunk, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlChunkMS::get(chunk_meta_t& res_chk, uint64_t chk_id) {
@@ -555,9 +508,9 @@ int SqlChunkMS::get(chunk_meta_t& res_chk, uint64_t chk_id) {
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             chunk_meta_set__(res_chk, m_chunk, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlChunkMS::create(const chunk_meta_t& new_chk) {
@@ -574,10 +527,7 @@ int SqlChunkMS::create(const chunk_meta_t& new_chk) {
             new_chk.flags
         }).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 
@@ -600,19 +550,31 @@ int SqlChunkMS::create_bulk(const std::list<chunk_meta_t>& chk_list) {
 
     shared_ptr<Result> ret = handle.exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlChunkMS::remove(uint64_t chk_id) {
     shared_ptr<Result> ret = m_chunk.remove().where(m_chunk.chk_id == chk_id).exec();
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+int SqlChunkMS::remove_vol(uint64_t vol_id) {
+    shared_ptr<Result> ret = m_chunk.remove().where(m_chunk.vol_id == vol_id).exec();
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
+
+int SqlChunkMS::remove_cg(uint64_t vol_id, uint32_t index) {
+    shared_ptr<Result> ret = m_chunk.remove()
+        .where({m_chunk.vol_id == vol_id, m_chunk.index == index})
+        .exec();
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
+
+int SqlChunkMS::remove_bulk(const std::list<uint64_t>& chk_ids) {
+    shared_ptr<Result> ret = m_chunk.remove()
+        .where(in_(m_chunk.chk_id, chk_ids))
+        .exec();
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlChunkMS::update(const chunk_meta_t& chk) {
@@ -630,10 +592,7 @@ int SqlChunkMS::update(const chunk_meta_t& chk) {
             set_(m_chunk.dst_ctime, chk.dst_ctime)
         }).where(m_chunk.chk_id == chk.chk_id).exec();
 
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 /**
@@ -667,9 +626,9 @@ int SqlChunkHealthMS::get(chunk_health_meta_t& chk_hlt, uint64_t chk_id) {
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             chunk_health_meta_set__(chk_hlt, m_chk_health, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
@@ -687,11 +646,7 @@ int SqlChunkHealthMS::create(const chunk_health_meta_t& chk_hlt) {
             chk_hlt.period.rd_cnt, chk_hlt.period.lat, chk_hlt.period.alloc, 
             chk_hlt.weight.w_load, chk_hlt.weight.w_wear, chk_hlt.weight.w_total
         }).exec();
-    
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlChunkHealthMS::create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_list) {
@@ -715,20 +670,18 @@ int SqlChunkHealthMS::create_bulk(const std::list<chunk_health_meta_t>& chk_hlt_
     }
 
     shared_ptr<Result> ret = handle.exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 
 int SqlChunkHealthMS::remove(uint64_t chk_id) {
     shared_ptr<Result> ret = m_chk_health.remove().where(m_chk_health.chk_id == chk_id).exec();
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
+
+int SqlChunkHealthMS::remove_bulk(const std::list<uint64_t>& chk_ids) {
+    shared_ptr<Result> ret = m_chk_health.remove().where(in_(m_chk_health.chk_id, chk_ids)).exec();
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
@@ -750,11 +703,7 @@ int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
             set_(m_chk_health.wear_weight, chk_hlt.weight.w_wear), 
             set_(m_chk_health.total_weight, chk_hlt.weight.w_total)
         }).where(m_chk_health.chk_id == chk_hlt.chk_id).exec();
-    
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 /**
@@ -782,9 +731,9 @@ int SqlCsdMS::list(std::list<csd_meta_t>& res_list, const std::list<uint64_t>& c
             csd_meta_set__(item, m_csd, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlCsdMS::list_all(std::list<csd_meta_t>& res_list) {
@@ -797,9 +746,9 @@ int SqlCsdMS::list_all(std::list<csd_meta_t>& res_list) {
             csd_meta_set__(item, m_csd, it);
             res_list.push_back(item);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlCsdMS::get(csd_meta_t& res_csd, uint64_t csd_id) {
@@ -810,9 +759,9 @@ int SqlCsdMS::get(csd_meta_t& res_csd, uint64_t csd_id) {
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             csd_meta_set__(res_csd, m_csd, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlCsdMS::create(const csd_meta_t& new_csd) {
@@ -828,11 +777,7 @@ int SqlCsdMS::create(const csd_meta_t& new_csd) {
             new_csd.io_addr, new_csd.admin_addr, new_csd.stat, 
             new_csd.latime
         }).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 // int SqlCsdMS::create_and_get(csd_meta_t& new_csd) {
@@ -856,20 +801,16 @@ int SqlCsdMS::create(const csd_meta_t& new_csd) {
 //             for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
 //                 new_csd.csd_id = it->get(m_csd.csd_id);
 //             }
-//             return MSRetCode::SUCCESS;
+//             return RC_SUCCESS;
 //         }
-//         return MSRetCode::FAILD;
+//         return RC_FAILD;
 //     }
-//     return MSRetCode::FAILD;
+//     return RC_FAILD;
 // }
 
 int SqlCsdMS::remove(uint64_t csd_id) {
     shared_ptr<Result> ret = m_csd.remove().where(m_csd.csd_id == csd_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlCsdMS::update(const csd_meta_t& csd) {
@@ -883,11 +824,7 @@ int SqlCsdMS::update(const csd_meta_t& csd) {
             set_(m_csd.stat, csd.stat), 
             set_(m_csd.latime, csd.latime)
         }).where(m_csd.csd_id == csd.csd_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlCsdMS::update_sm(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64_t admin_addr) {
@@ -903,11 +840,7 @@ int SqlCsdMS::update_sm(uint64_t csd_id, uint32_t stat, uint64_t io_addr, uint64
     }
     
     shared_ptr<Result> ret = handle.exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlCsdMS::update_at(uint64_t csd_id, uint64_t latime) {
@@ -915,11 +848,7 @@ int SqlCsdMS::update_at(uint64_t csd_id, uint64_t latime) {
         .assign(set_(m_csd.latime, latime))
         .where(m_csd.csd_id == csd_id)
         .exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 /**
@@ -955,9 +884,9 @@ int SqlCsdHealthMS::list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint
             csd_health_meta_set__(csd_hlt, m_csd_health, it);
             res_list.push_back(csd_hlt);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlCsdHealthMS::list_all(std::list<csd_health_meta_t>& res_list) {
@@ -970,9 +899,9 @@ int SqlCsdHealthMS::list_all(std::list<csd_health_meta_t>& res_list) {
             csd_health_meta_set__(csd_hlt, m_csd_health, it);
             res_list.push_back(csd_hlt);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlCsdHealthMS::get(csd_health_meta_t& csd_hlt, uint64_t csd_id) {
@@ -984,9 +913,9 @@ int SqlCsdHealthMS::get(csd_health_meta_t& csd_hlt, uint64_t csd_id) {
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             csd_health_meta_set__(csd_hlt, m_csd_health, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlCsdHealthMS::create(const csd_health_meta_t& new_csd) {
@@ -1004,20 +933,12 @@ int SqlCsdHealthMS::create(const csd_health_meta_t& new_csd) {
             new_csd.period.lat, new_csd.period.alloc, new_csd.weight.w_load, 
             new_csd.weight.w_wear, new_csd.weight.w_total
         }).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlCsdHealthMS::remove(uint64_t csd_id) {
     shared_ptr<Result> ret = m_csd_health.remove().where(m_csd_health.csd_id == csd_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
@@ -1038,11 +959,7 @@ int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
             set_(m_csd_health.wear_weight, csd_hlt.weight.w_wear),
             set_(m_csd_health.total_weight, csd_hlt.weight.w_total)
         }).where(m_csd_health.csd_id == csd_hlt.csd_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 /**
@@ -1063,9 +980,9 @@ int SqlGatewayMS::get(gateway_meta_t& res_gw, uint64_t gw_id) {
         for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
             gateway_meta_set__(res_gw, m_gw, it);
         }
-        return MSRetCode::SUCCESS;
+        return RC_SUCCESS;
     }
-    return MSRetCode::FAILD;
+    return RC_FAILD;
 }
 
 int SqlGatewayMS::create(const gateway_meta_t& gw) {
@@ -1075,21 +992,12 @@ int SqlGatewayMS::create(const gateway_meta_t& gw) {
         }).value({
             gw.gw_id, gw.admin_addr, gw.ltime, gw.atime
         }).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlGatewayMS::remove(uint64_t gw_id) {
     shared_ptr<Result> ret = m_gw.remove().where(m_gw.gw_id == gw_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
-    
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 int SqlGatewayMS::update(const gateway_meta_t& gw) {
@@ -1099,11 +1007,7 @@ int SqlGatewayMS::update(const gateway_meta_t& gw) {
             set_(m_gw.ltime, gw.ltime), 
             set_(m_gw.atime, gw.atime)
         }).where(m_gw.gw_id == gw.gw_id).exec();
-
-    if (ret && ret->OK()) {
-        return MSRetCode::SUCCESS;
-    }
-    return MSRetCode::FAILD;
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
 } // namespace flame
