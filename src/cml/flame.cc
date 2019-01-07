@@ -207,14 +207,12 @@ public:
 
     int def_run() {
         auto cct = make_flame_client_context();
-        volume_attr_t att;
-        att.vg_name = vg_name.get();
-        att.vol_name = vol_name.get();
-        att.size = size.get();
-        att.chk_sz = chk_sz.get();
-        att.spolicy = 0;
+        vol_attr_t attr;
+        attr.size = size.get();
+        attr.chk_sz = chk_sz.get();
+        attr.spolicy = 0;
         
-        int r = cct->client()->create_volume(att);
+        int r = cct->client()->create_volume(vg_name.get(), vol_name.get(), attr);
         check_faild__(r, "create volume");
 
         return success__();

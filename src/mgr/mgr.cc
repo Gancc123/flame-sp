@@ -9,6 +9,7 @@
 #include "mgr/config_mgr.h"
 #include "mgr/csdm/csd_mgmt.h"
 #include "mgr/chkm/chk_mgmt.h"
+#include "mgr/volm/vol_mgmt.h"
 
 #include <grpcpp/grpcpp.h>
 #include "service/flame_service.h"
@@ -102,6 +103,7 @@ private:
     bool init_csdm();
     bool init_cltm();
     bool init_chkm();
+    bool init_volm();
 
     bool run_server();
 
@@ -167,6 +169,12 @@ int Manager::init(MgrCli* mgr_cli) {
     if (!init_chkm()) {
         mct_->log()->lerror("init chunk manager faild");
         return 7;
+    }
+
+    // 初始化VolumeManager
+    if (!init_volm()) {
+        mct_->log()->lerror("init volume manager faild");
+        return 8;
     }
 
     return 0;
@@ -372,6 +380,19 @@ bool Manager::init_chkm() {
     ));
 
     mct_->chkm(chkm);
+    return true;
+}
+
+bool Manager::init_volm() {
+    shared_ptr<VolumeManager> volm(new VolumeManager(
+        mct_->fct(),
+        mct_->ms(),
+        mct_->csdm(),
+        mct_->chkm()
+    ));
+    if (volm->init() != RC_SUCCESS)
+        return false;
+    mct_->volm(volm);
     return true;
 }
 

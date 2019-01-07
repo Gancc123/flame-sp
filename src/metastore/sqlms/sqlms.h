@@ -217,6 +217,9 @@ public:
      * @By: chk_id
      */
     virtual int remove(uint64_t chk_id) override;
+    virtual int remove_vol(uint64_t vol_id) override;
+    virtual int remove_cg(uint64_t vol_id, uint32_t index) override;
+    virtual int remove_bulk(const std::list<uint64_t>& chk_ids) override;
 
     /**
      * Update a single chunk
@@ -251,6 +254,7 @@ public:
      * Remove a single chunk health
      */
     virtual int remove(uint64_t chk_id) override;
+    virtual int remove_bulk(const std::list<uint64_t>& chk_ids) override;
 
     /**
      * Update a single chunk health

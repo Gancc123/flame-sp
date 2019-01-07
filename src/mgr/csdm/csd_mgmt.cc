@@ -1,7 +1,11 @@
 #include "mgr/csdm/csd_mgmt.h"
 #include "include/retcode.h"
 #include "log_csdm.h"
+
 #include <cassert>
+#include <algorithm>
+
+using namespace std;
 
 namespace flame {
 
@@ -12,7 +16,7 @@ namespace flame {
 int CsdManager::init() {
     // pass: 从MetaStore加载所有CSD信息
     // 初始化next_csd_id
-    std::list<csd_meta_t> res_list;
+    list<csd_meta_t> res_list;
     int r = ms_->get_csd_ms()->list_all(res_list);
     if (r != 0) return r;
     
@@ -31,7 +35,7 @@ int CsdManager::init() {
 
     next_csd_id_ = max_id + 1;
 
-    std::list<csd_health_meta_t> hlt_list;
+    list<csd_health_meta_t> hlt_list;
     r = ms_->get_csd_health_ms()->list_all(hlt_list);
     if (r != 0) return r;
 
@@ -190,6 +194,40 @@ int CsdManager::csd_health_update(uint64_t csd_id, const csd_hlt_sub_t& hlt) {
     return RC_SUCCESS;
 }
 
+int CsdManager::csd_pull_addr(list<csd_addr_t>& addrs, const list<uint64_t>& csd_ids) {
+    vector<uint64_t> ids(csd_ids.begin(), csd_ids.end());
+    sort(ids.begin(), ids.end());
+
+    ReadLocker map_locker(csd_map_lock_);
+
+    csd_addr_t addr;
+    auto dit = ids.begin();
+    for (auto mit = csd_map_.begin(); mit != csd_map_.end() && dit != ids.end(); mit++) {
+        if (mit->second == nullptr)
+            continue;
+        while (*dit < mit->first) {
+            addr.csd_id = *dit;
+            addr.admin_addr = 0;
+            addr.io_addr = 0;
+            addr.stat = CSD_STAT_NONE;
+            addrs.push_back(addr);
+            dit++;
+        }
+        if (*dit == mit->first) {
+            ReadLocker hdl_locker(mit->second->get_lock());
+            CsdObject* obj = mit->second->get();
+            addr.csd_id = mit->first;
+            addr.admin_addr = obj->get_admin_addr();
+            addr.io_addr = obj->get_io_addr();
+            addr.stat = obj->get_stat();
+            addrs.push_back(addr);
+            dit++;
+        }
+    }
+
+    return RC_SUCCESS;
+}
+
 CsdHandle* CsdManager::find(uint64_t csd_id) {
     ReadLocker map_locker(csd_map_lock_);
     auto it = csd_map_.find(csd_id);
@@ -329,14 +367,14 @@ int CsdHandle::disconnect() {
     return RC_SUCCESS;
 }
 
-std::shared_ptr<CsdsClient> CsdHandle::get_client() {
+shared_ptr<CsdsClient> CsdHandle::get_client() {
     ReadLocker locker(lock_);
     if (connect() == RC_SUCCESS)
         return client_;
     return nullptr;
 }
 
-std::shared_ptr<CsdsClient> CsdHandle::make_client__() {
+shared_ptr<CsdsClient> CsdHandle::make_client__() {
     node_addr_t addr = obj_->get_admin_addr();
     return csdm_->csd_client_foctory_->make_csds_client(addr);
 }

@@ -36,7 +36,7 @@ public:
     int clean_clustrt() override;
 
     // 获取CSD地址信息，需要指定一系列CSD ID
-    int pull_csd_addr(std::list<csd_addr_attr_t>& res, const std::list<uint64_t>& csd_id_list) override;
+    int pull_csd_addr(std::list<csd_addr_t>& res, const std::list<uint64_t>& csd_id_list) override;
 
     //* Group Set
     // 获取所有VG信息，支持分页（需要提供<offset, limit>，以vg_name字典顺序排序）
@@ -56,7 +56,7 @@ public:
     int get_volume_list(std::list<volume_meta_t>& res, const std::string& name, uint32_t offset, uint32_t limit) override;
 
     // 创建Volume
-    int create_volume(const volume_attr_t& vol_attr) override;
+    int create_volume(const std::string& vg_name, const std::string& vol_name, const vol_attr_t& attr) override;
 
     // 删除Volume
     int remove_volume(const std::string& vg_name, const std::string& vol_name) override;

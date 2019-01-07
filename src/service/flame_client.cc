@@ -96,7 +96,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
     }
  }
 
- int FlameClientImpl::pull_csd_addr(std::list<csd_addr_attr_t>& res, const std::list<uint64_t>& csd_id_list) {
+ int FlameClientImpl::pull_csd_addr(std::list<csd_addr_t>& res, const std::list<uint64_t>& csd_id_list) {
     CsdIDListRequest req;
     for (auto it = csd_id_list.begin(); it != csd_id_list.end(); ++it) {
         req.add_csd_id_list(*it);
@@ -108,7 +108,7 @@ int FlameClientImpl::disconnect(uint64_t gw_id) {
 
     if (stat.ok()) {
         for (int i = 0; i < reply.csd_list_size(); ++i) {
-            csd_addr_attr_t item;
+            csd_addr_t item;
             item.csd_id = reply.csd_list(i).csd_id();
             item.io_addr = reply.csd_list(i).io_addr();
             item.stat = reply.csd_list(i).stat();
@@ -231,14 +231,14 @@ int FlameClientImpl::get_volume_list(std::list<volume_meta_t>& res, const std::s
     }
 }
 
-int FlameClientImpl::create_volume(const volume_attr_t& vol_attr) {
+int FlameClientImpl::create_volume(const std::string& vg_name, const std::string& vol_name, const vol_attr_t& attr) {
     VolCreateRequest req;
-    req.set_vg_name(vol_attr.vg_name);
-    req.set_vol_name(vol_attr.vol_name);
-    req.set_chk_sz(vol_attr.chk_sz);
-    req.set_size(vol_attr.size);
-    req.set_flags(vol_attr.flags);
-    req.set_spolicy(vol_attr.spolicy);
+    req.set_vg_name(vg_name);
+    req.set_vol_name(vol_name);
+    req.set_chk_sz(attr.chk_sz);
+    req.set_size(attr.size);
+    req.set_flags(attr.flags);
+    req.set_spolicy(attr.spolicy);
 
     FlameReply reply;
     ClientContext ctx;

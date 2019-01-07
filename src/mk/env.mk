@@ -14,6 +14,7 @@ DUTIL = $(ROOT)/util
 DWORK = $(ROOT)/work
 DCLUSTER = $(ROOT)/cluster
 DLAYOUT = $(ROOT)/layout
+DSPOLICY = $(ROOT)/spolicy
 
 CC = gcc
 CXX = g++
