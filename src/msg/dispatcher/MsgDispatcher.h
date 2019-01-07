@@ -22,6 +22,8 @@ class MsgDispatcher : public MsgerCallback{
     RWLock channel_map_rwlock;
     std::map<uint64_t, MsgChannel *> channel_map;
 
+    Session *get_session(uint64_t dst_id);
+
     int deliver_to_remote(MessagePtr msg);
 
     int resolve_addr(uint64_t dst_id, csd_addr_attr_t &res);

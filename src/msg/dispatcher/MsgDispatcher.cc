@@ -3,6 +3,7 @@
 #include "msg/msg_data.h"
 #include "msg/Msg.h"
 #include "msg/MsgManager.h"
+#include "msg/rdma/RdmaStack.h"
 
 namespace flame{
 namespace msg{
@@ -57,20 +58,23 @@ int MsgDispatcher::resolve_addr(uint64_t csd_id, csd_addr_attr_t &res){
     return -1;
 }
 
-int MsgDispatcher::deliver_to_remote(MessagePtr msg){
-
-    auto msg_manager = mct->manager;
-
-    msger_id_t msger_id = MsgDispatcher::msger_id_from_node_addr(msg->dst());
-    auto session = msg_manager->get_session(msger_id);
+Session *MsgDispatcher::get_session(uint64_t dst_id){
+    msger_id_t msger_id = MsgDispatcher::msger_id_from_node_addr(dst_id);
+    auto session = mct->manager->get_session(msger_id);
     if(!session->ready()){
         csd_addr_attr_t dst_addr_attr;
-        if(resolve_addr(msg->dst(), dst_addr_attr)){
-            return -1;
+        if(resolve_addr(dst_id, dst_addr_attr)){
+            return nullptr;
         }
         session->set_listen_addr(dst_addr_attr.csd_id, msg_ttype_t::TCP);
         session->set_listen_addr(dst_addr_attr.io_addr, msg_ttype_t::RDMA);
     }
+    return session;
+}
+
+int MsgDispatcher::deliver_to_remote(MessagePtr msg){
+
+    auto session = get_session(msg->dst());
 
     auto conn = session->get_conn(msg_ttype_t::RDMA);
     if(conn == nullptr){
@@ -95,6 +99,30 @@ int MsgDispatcher::deliver_msg(MessagePtr msg){
         deliver_to_remote(msg);
     }
     return 0;
+}
+
+int MsgDispatcher::post_rdma_work(uint64_t dst_id, RdmaRwWork *work){
+    auto channel = get_channel(dst_id);
+    if(channel){
+        ML(mct, error, "can't post rdma_work to local channel! {:x}", dst_id);
+        return -1;
+    }
+
+    auto session = get_session(dst_id);
+    if(session == nullptr) {
+        ML(mct, error, "get session failed! {:x}", dst_id);
+        return -1;
+    }
+
+    auto conn = session->get_conn(msg_ttype_t::RDMA);
+    if(conn == nullptr){
+        ML(mct, error, "get conn failed. {}", session->to_string());
+        return -1;
+    }
+
+    auto rdma_conn = RdmaStack::rdma_conn_cast(conn);
+
+    return rdma_conn->post_rdma_rw(work);
 }
 
 int MsgDispatcher::reg_channel(uint64_t comp_id, MsgChannel *ch){
