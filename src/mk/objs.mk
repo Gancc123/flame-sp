@@ -60,3 +60,8 @@ $(DWORK)/timer_work.o
 # /cluster
 OBJ_CLUSTER = \
 $(DCLUSTER)/clt_my/my_mgmt.o
+
+# /layout
+OBJ_LAYOUT = \
+$(DLAYOUT)/calculator.o \
+$(DLAYOUT)/poll_layout.o

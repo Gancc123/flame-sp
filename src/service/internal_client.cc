@@ -126,11 +126,11 @@ int InternalClientImpl::push_health(const csd_hlt_attr_t& csd_hlt_attr) {
     req.set_size(csd_hlt_attr.csd_hlt_sub.size);
     req.set_alloced(csd_hlt_attr.csd_hlt_sub.alloced);
     req.set_used(csd_hlt_attr.csd_hlt_sub.used);
-    req.set_last_time(csd_hlt_attr.csd_hlt_sub.hlt_meta.last_time);
-    req.set_last_write(csd_hlt_attr.csd_hlt_sub.hlt_meta.last_write);
-    req.set_last_read(csd_hlt_attr.csd_hlt_sub.hlt_meta.last_read);
-    req.set_last_latency(csd_hlt_attr.csd_hlt_sub.hlt_meta.last_latency);
-    req.set_last_alloc(csd_hlt_attr.csd_hlt_sub.hlt_meta.last_alloc);
+    req.set_last_time(csd_hlt_attr.csd_hlt_sub.period.ctime);
+    req.set_last_write(csd_hlt_attr.csd_hlt_sub.period.wr_cnt);
+    req.set_last_read(csd_hlt_attr.csd_hlt_sub.period.rd_cnt);
+    req.set_last_latency(csd_hlt_attr.csd_hlt_sub.period.lat);
+    req.set_last_alloc(csd_hlt_attr.csd_hlt_sub.period.alloc);
     for (auto it = csd_hlt_attr.chk_hlt_list.begin(); it != csd_hlt_attr.chk_hlt_list.end(); ++it) {
         ChunkHealthItem* item = req.add_chunk_health_list();
         item->set_chk_id(it->chk_id);
@@ -139,11 +139,11 @@ int InternalClientImpl::push_health(const csd_hlt_attr_t& csd_hlt_attr) {
         item->set_used(it->used);
         item->set_csd_used(it->csd_used);
         item->set_dst_used(it->dst_used);
-        item->set_last_time(it->hlt_meta.last_time);
-        item->set_last_write(it->hlt_meta.last_write);
-        item->set_last_read(it->hlt_meta.last_read);
-        item->set_last_latency(it->hlt_meta.last_latency);
-        item->set_last_alloc(it->hlt_meta.last_alloc);
+        item->set_last_time(it->period.ctime);
+        item->set_last_write(it->period.wr_cnt);
+        item->set_last_read(it->period.rd_cnt);
+        item->set_last_latency(it->period.lat);
+        item->set_last_alloc(it->period.alloc);
     }
 
     InternalReply reply;
@@ -192,7 +192,7 @@ int InternalClientImpl::push_chunk_status(const std::list<chk_push_attr_t>& chk_
         item->set_stat(it->stat);
         item->set_csd_id(it->csd_id);
         item->set_dst_id(it->dst_id);
-        item->set_dst_mtime(it->dst_mtime);
+        item->set_dst_mtime(it->dst_ctime);
     }
 
     InternalReply reply;

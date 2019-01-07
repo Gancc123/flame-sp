@@ -165,8 +165,8 @@ public:
     /**
      * Chunk Health
      */
-    void set_used(uint64_t v) { hlt_.used = v; }
-    uint64_t get_used() const { return hlt_.used; }
+    void set_used(uint64_t v) { hlt_.grand.used = v; }
+    uint64_t get_used() const { return hlt_.grand.used; }
 
     void set_csd_used(uint64_t v) { hlt_.csd_used = v; }
     uint64_t get_csd_used() const { return hlt_.csd_used; }
@@ -174,39 +174,39 @@ public:
     void set_dst_used(uint64_t v) { hlt_.dst_used = v; }
     uint64_t get_dst_used() const { return hlt_.dst_used; }
 
-    void set_write_count(uint64_t v) { hlt_.write_count = v; }
-    uint64_t get_write_count() const { return hlt_.write_count; }
-    void add_write_count(uint64_t v) { hlt_.write_count += v; }
+    void set_write_count(uint64_t v) { hlt_.grand.wr_cnt = v; }
+    uint64_t get_write_count() const { return hlt_.grand.wr_cnt; }
+    void add_write_count(uint64_t v) { hlt_.grand.wr_cnt += v; }
 
-    void set_read_count(uint64_t v) { hlt_.read_count = v; }
-    uint64_t get_read_count() const { return hlt_.read_count; }
-    void add_read_count(uint64_t v) { hlt_.read_count += v; }
+    void set_read_count(uint64_t v) { hlt_.grand.rd_cnt = v; }
+    uint64_t get_read_count() const { return hlt_.grand.rd_cnt; }
+    void add_read_count(uint64_t v) { hlt_.grand.rd_cnt += v; }
 
-    void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; }
-    uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
-    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_usec(); }
-    utime_t get_last_time_ut() const { return utime_t::get_by_usec(hlt_.hlt_meta.last_time); }
+    void set_last_time(uint64_t v) { hlt_.period.ctime = v; }
+    uint64_t get_last_time() const { return hlt_.period.ctime; }
+    void set_last_time_ut(const utime_t& ut) { hlt_.period.ctime = ut.to_usec(); }
+    utime_t get_last_time_ut() const { return utime_t::get_by_usec(hlt_.period.ctime); }
 
-    void set_last_write(uint64_t v) { hlt_.hlt_meta.last_write = v; }
-    uint64_t get_last_write() const { return hlt_.hlt_meta.last_write; }
+    void set_last_write(uint64_t v) { hlt_.period.wr_cnt = v; }
+    uint64_t get_last_write() const { return hlt_.period.wr_cnt; }
 
-    void set_last_read(uint64_t v) { hlt_.hlt_meta.last_read = v; }
-    uint64_t get_last_read() const { return hlt_.hlt_meta.last_read; }
+    void set_last_read(uint64_t v) { hlt_.period.rd_cnt = v; }
+    uint64_t get_last_read() const { return hlt_.period.rd_cnt; }
 
-    void set_last_latency(uint64_t v) { hlt_.hlt_meta.last_latency = v; }
-    uint64_t get_last_latency() const { return hlt_.hlt_meta.last_latency; }
+    void set_last_latency(uint64_t v) { hlt_.period.lat = v; }
+    uint64_t get_last_latency() const { return hlt_.period.lat; }
 
-    void set_last_alloc(uint64_t v) { hlt_.hlt_meta.last_alloc = v; }
-    uint64_t get_last_alloc() const { return hlt_.hlt_meta.last_alloc; }
+    void set_last_alloc(uint64_t v) { hlt_.period.alloc = v; }
+    uint64_t get_last_alloc() const { return hlt_.period.alloc; }
 
-    void set_load_weight(double v) { hlt_.weight_meta.load_weight = v; }
-    double get_load_weight() const { return hlt_.weight_meta.load_weight; }
+    void set_load_weight(double v) { hlt_.weight.w_load = v; }
+    double get_load_weight() const { return hlt_.weight.w_load; }
 
-    void set_wear_weight(double v) { hlt_.weight_meta.wear_weight = v; }
-    double get_wear_weight() const { return hlt_.weight_meta.wear_weight; }
+    void set_wear_weight(double v) { hlt_.weight.w_wear = v; }
+    double get_wear_weight() const { return hlt_.weight.w_wear; }
 
-    void set_total_weight(double v) { hlt_.weight_meta.total_weight = v; }
-    double get_total_weight() const { return hlt_.weight_meta.total_weight; }
+    void set_total_weight(double v) { hlt_.weight.w_total = v; }
+    double get_total_weight() const { return hlt_.weight.w_total; }
 
     ChunkObject(const ChunkObject&) = default;
     ChunkObject(ChunkObject&&) = default;
@@ -292,48 +292,48 @@ public:
     /**
      * CSD Health
      */
-    void set_alloced(uint64_t v) { hlt_.alloced = v; } 
-    uint64_t get_alloced() const { return hlt_.alloced; }
+    void set_alloced(uint64_t v) { hlt_.grand.alloced = v; } 
+    uint64_t get_alloced() const { return hlt_.grand.alloced; }
 
-    void set_used(uint64_t v) { hlt_.used = v; } 
-    uint64_t get_used() const { return hlt_.used; }
+    void set_used(uint64_t v) { hlt_.grand.used = v; } 
+    uint64_t get_used() const { return hlt_.grand.used; }
 
-    void set_write_count(uint64_t v) { hlt_.write_count = v; } 
-    uint64_t get_write_count() const { return hlt_.write_count; }
-    void add_write_count(uint64_t v) { hlt_.write_count += v; }
+    void set_write_count(uint64_t v) { hlt_.grand.wr_cnt = v; } 
+    uint64_t get_write_count() const { return hlt_.grand.wr_cnt; }
+    void add_write_count(uint64_t v) { hlt_.grand.wr_cnt += v; }
 
-    void set_read_count(uint64_t v) { hlt_.read_count = v; } 
-    uint64_t get_read_count() const { return hlt_.read_count; }
-    void add_read_count(uint64_t v) { hlt_.read_count += v; }
+    void set_read_count(uint64_t v) { hlt_.grand.rd_cnt = v; } 
+    uint64_t get_read_count() const { return hlt_.grand.rd_cnt; }
+    void add_read_count(uint64_t v) { hlt_.grand.rd_cnt += v; }
 
-    void set_last_time(uint64_t v) { hlt_.hlt_meta.last_time = v; } 
-    uint64_t get_last_time() const { return hlt_.hlt_meta.last_time; }
-    void set_last_time_ut(const utime_t& ut) { hlt_.hlt_meta.last_time = ut.to_usec(); }
-    utime_t get_last_time_ut() const { return utime_t::get_by_usec(hlt_.hlt_meta.last_time); }
+    void set_last_time(uint64_t v) { hlt_.period.ctime = v; } 
+    uint64_t get_last_time() const { return hlt_.period.ctime; }
+    void set_last_time_ut(const utime_t& ut) { hlt_.period.ctime = ut.to_usec(); }
+    utime_t get_last_time_ut() const { return utime_t::get_by_usec(hlt_.period.ctime); }
 
-    void set_last_write(uint64_t v) { hlt_.hlt_meta.last_write = v; } 
-    uint64_t get_last_write() const { return hlt_.hlt_meta.last_write; }
+    void set_last_write(uint64_t v) { hlt_.period.wr_cnt = v; } 
+    uint64_t get_last_write() const { return hlt_.period.wr_cnt; }
 
-    void set_last_read(uint64_t v) { hlt_.hlt_meta.last_read = v; } 
-    uint64_t get_last_read() const { return hlt_.hlt_meta.last_read; }
+    void set_last_read(uint64_t v) { hlt_.period.rd_cnt = v; } 
+    uint64_t get_last_read() const { return hlt_.period.rd_cnt; }
 
-    void set_last_latency(uint64_t v) { hlt_.hlt_meta.last_latency = v; } 
-    uint64_t get_last_latency() const { return hlt_.hlt_meta.last_latency; }
+    void set_last_latency(uint64_t v) { hlt_.period.lat = v; } 
+    uint64_t get_last_latency() const { return hlt_.period.lat; }
 
-    void set_last_alloc(uint64_t v) { hlt_.hlt_meta.last_alloc = v; } 
-    uint64_t get_last_alloc() const { return hlt_.hlt_meta.last_alloc; }
+    void set_last_alloc(uint64_t v) { hlt_.period.alloc = v; } 
+    uint64_t get_last_alloc() const { return hlt_.period.alloc; }
 
-    void set_load_weight(double v) { hlt_.weight_meta.load_weight = v;}
-    double get_load_weight() const { return hlt_.weight_meta.load_weight; }
+    void set_load_weight(double v) { hlt_.weight.w_load = v;}
+    double get_load_weight() const { return hlt_.weight.w_load; }
 
-    void set_wear_weight(double v) { hlt_.weight_meta.wear_weight = v;}
-    double get_wear_weight() const { return hlt_.weight_meta.wear_weight; }
+    void set_wear_weight(double v) { hlt_.weight.w_wear = v;}
+    double get_wear_weight() const { return hlt_.weight.w_wear; }
 
-    void set_total_weight(double v) { hlt_.weight_meta.total_weight = v;}
-    double get_total_weight() const { return hlt_.weight_meta.total_weight; }
+    void set_total_weight(double v) { hlt_.weight.w_total = v;}
+    double get_total_weight() const { return hlt_.weight.w_total; }
 
-    uint64_t get_left() const { return meta_.size - hlt_.alloced; }
-    double get_space_usage() const { return (double)hlt_.used / meta_.size; }
+    uint64_t get_left() const { return meta_.size - hlt_.grand.alloced; }
+    double get_space_usage() const { return (double)hlt_.grand.used / meta_.size; }
 
     csd_meta_t& meta() { return meta_; }
     csd_health_meta_t& health() { return hlt_; }

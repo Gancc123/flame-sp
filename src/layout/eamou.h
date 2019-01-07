@@ -1,4 +1,4 @@
-#ifndef FLAME_LAYOUT_EAMOU_H
+/*#ifndef FLAME_LAYOUT_EAMOU_H
 #define FLAME_LAYOUT_EAMOU_H
 
 #include "layout.h"
@@ -76,4 +76,4 @@ private:
 } // namespace layout
 } // namespace flame
 
-#endif
+#endif*/

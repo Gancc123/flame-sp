@@ -1,4 +1,4 @@
-#ifndef FLAME_LAOUT_EASDL_H
+/*#ifndef FLAME_LAOUT_EASDL_H
 #define FLAME_LAOUT_EASDL_H
 
 #include "layout.h"
@@ -20,7 +20,7 @@ private:
     EasdLayout* m_elayout;
 }; // class GetCsdInfoWork
 
-class EasdLayout final : public StaticLayoutBase {
+class EasdLayout final : public Layout {
 public:
     EasdLayout(CsdManager* csd_mgmt, TimerWorker* tw, utime_t cycle)
     :m_csd_mgmt(csd_mgmt), m_tw(tw), m_cycle(cycle), k1(0.6), k2(0.2), k3(0.2) {}
@@ -49,4 +49,4 @@ private:
 } //namespace layout
 } //namespace flame
 
-#endif
+#endif*/
