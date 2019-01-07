@@ -4,7 +4,8 @@
 
 #include "incre_msger.h"
 
-using namespace flame;
+using FlameContext = flame::FlameContext;
+using namespace flame::msg;
 
 #define CFG_PATH "flame_mgr.cfg"
 
@@ -26,7 +27,7 @@ int main(){
 
     auto incre_msger = new IncreMsger(mct);
 
-    mct->init(incre_msger);
+    mct->init(incre_msger, nullptr);
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
                                          mct->config->msger_id.port);

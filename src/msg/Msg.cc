@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 
 namespace flame{
+namespace msg{
 
 ssize_t Msg::decode_header(MsgBuffer &buffer){
     if(buffer.offset() < FLAME_MSG_HEADER_LEN){
@@ -48,6 +49,6 @@ ssize_t Msg::encode_header(MsgBuffer &buffer){
     return FLAME_MSG_HEADER_LEN;
 }
 
-
-}
+} //namespace msg
+} //namespace flame
 

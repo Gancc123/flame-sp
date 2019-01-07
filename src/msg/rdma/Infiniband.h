@@ -17,6 +17,7 @@
 
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 class Infiniband;
@@ -321,8 +322,9 @@ public:
     static enum ibv_mtu ibv_mtu_enum(int mtu);
 };
 
-}
-}
+} //namespace ib
+} //namespace msg
+} //namespace flame
 
 
 #endif

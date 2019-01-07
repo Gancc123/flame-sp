@@ -14,6 +14,7 @@
 
 
 namespace flame{
+namespace msg{
 
 typedef std::function<void(void)> work_fn_t;
 
@@ -114,8 +115,8 @@ public:
 
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 
 #endif

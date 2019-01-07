@@ -12,6 +12,7 @@
 #include <map>
 
 namespace flame{
+namespace msg{
 
 class MsgManager : public ListenPortListener, public ConnectionListener{
     MsgContext *mct;
@@ -87,7 +88,7 @@ private:
     void del_conn(Connection *conn);
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

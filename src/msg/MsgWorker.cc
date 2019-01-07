@@ -10,6 +10,7 @@
 
 
 namespace flame{
+namespace msg{
 
 void MsgWorkerThread::entry(){
     worker->process();
@@ -352,5 +353,5 @@ void MsgWorker::drain(){
     ML(mct, trace, "{} drain done. total: {}", this->name, total);
 }
 
-
-}
+} //namespace msg
+} //namespace flame

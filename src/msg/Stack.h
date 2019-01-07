@@ -8,6 +8,7 @@
 #include "ListenPort.h"
 
 namespace flame{
+namespace msg{
 
 class TcpStack;
 class RdmaStack;
@@ -35,6 +36,7 @@ public:
     virtual Connection * connect(NodeAddr *addr) = 0;
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

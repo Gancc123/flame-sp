@@ -12,6 +12,7 @@
 #define FLAME_BUFFER_LIST_UNIT_SIZE 1024
 
 namespace flame{
+namespace msg{
 
 class MsgBufferList{
     std::list<MsgBuffer> m_buffer_list;
@@ -603,6 +604,7 @@ public:
 
 };
 
+} // namespace msg
 } // namespace flame
 
 #endif

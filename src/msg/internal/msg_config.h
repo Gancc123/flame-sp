@@ -33,6 +33,8 @@ namespace flame{
 
 class FlameContext;
 
+namespace msg{
+
 class MsgConfig{
     FlameContext *fct;
 
@@ -181,6 +183,7 @@ public:
 
 };
 
+} //namespace msg
 } //namespace flame
 
 #endif // FLAME_MSG_INTERNAL_CONFIG_H

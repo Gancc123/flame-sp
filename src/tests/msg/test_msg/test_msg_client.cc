@@ -7,7 +7,8 @@
 #include <unistd.h>
 #include <cstdio>
 
-using namespace flame;
+using FlameContext = flame::FlameContext;
+using namespace flame::msg;
 
 void send_first_incre_msg(MsgContext *mct){
     msg_incre_d data;
@@ -17,7 +18,7 @@ void send_first_incre_msg(MsgContext *mct){
     NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(6666);
-    msger_id_t msger_id = msger_id_from_node_addr(addr);
+    msger_id_t msger_id = msger_id_from_msg_node_addr(addr);
     auto session = mct->manager->get_session(msger_id);
     session->set_listen_addr(addr);
     auto conn = session->get_conn();
@@ -46,7 +47,7 @@ int main(){
 
     IncreMsger *msger = new IncreMsger(mct);
 
-    mct->init(msger);
+    mct->init(msger, nullptr);
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
                                          mct->config->msger_id.port);

@@ -1,5 +1,5 @@
-#ifndef FLAME_MSG_MESSAGE_H
-#define FLAME_MSG_MESSAGE_H
+#ifndef FLAME_MSG_MSG_H
+#define FLAME_MSG_MSG_H
 
 #include <list>
 #include <vector>
@@ -12,6 +12,7 @@
 #include "msg_common.h"
 
 namespace flame{
+namespace msg{
 
 class Msg : public RefCountedObject{
     MsgBufferList data_bl;
@@ -199,6 +200,7 @@ public:
 
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif //FLAME_MSG_MESSAGE_H

@@ -13,6 +13,7 @@
 #define FLAME_MSG_IOV_MAX (8)
 
 namespace flame{
+namespace msg{
 
 void TcpConnection::read_cb(){
     if(!this->is_connected() || !this->get_owner()->am_self()){
@@ -401,4 +402,5 @@ void TcpConnection::close(){
     this->put();
 }
 
-}
+} //namespace msg
+} //namespace flame

@@ -8,6 +8,7 @@
 #include <cassert>
 
 namespace flame{
+namespace msg{
 
 struct RefCountedObject {
 private:
@@ -53,6 +54,7 @@ public:
     }
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

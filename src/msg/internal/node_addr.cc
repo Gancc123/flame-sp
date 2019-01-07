@@ -11,6 +11,7 @@
 
 
 namespace flame{
+namespace msg{
 
 std::string NodeAddr::to_string() const{
     auto s = fmt::format("[NodeAddr {}/{}]({:p})", 
@@ -79,12 +80,12 @@ bool NodeAddr::ip_from_string(const std::string str){
 }
 
 ssize_t NodeAddr::decode(const void *buf, size_t len){
-    if(len < sizeof(struct node_addr_t)){
-        ML(mct, error, "buffer length must > sizeof struct node_addr_t");
+    if(len < sizeof(struct msg_node_addr_t)){
+        ML(mct, error, "buffer length must > sizeof struct msg_node_addr_t");
         return -1;
     }
     char *buffer = (char *)buf;
-    struct node_addr_t *addr = (struct node_addr_t *)buffer;
+    struct msg_node_addr_t *addr = (struct msg_node_addr_t *)buffer;
     std::memset(&u, 0, sizeof(u));
     this->ttype = addr->ttype;
     switch(addr->addr_type){
@@ -104,17 +105,17 @@ ssize_t NodeAddr::decode(const void *buf, size_t len){
         ML(mct, error, "Invalid addr_type.");
         return -1;
     }
-    return sizeof(struct node_addr_t);
+    return sizeof(struct msg_node_addr_t);
 }
 
 ssize_t NodeAddr::encode(void *buf, size_t len) const {
-    if(len < sizeof(struct node_addr_t)){
-        ML(mct, error, "buffer length must > sizeof struct node_addr_t");
+    if(len < sizeof(struct msg_node_addr_t)){
+        ML(mct, error, "buffer length must > sizeof struct msg_node_addr_t");
         return -1;
     }
     char *buffer = (char *)buf;
-    struct node_addr_t *addr = (struct node_addr_t *)buffer;
-    std::memset(buffer, 0, sizeof(struct node_addr_t));
+    struct msg_node_addr_t *addr = (struct msg_node_addr_t *)buffer;
+    std::memset(buffer, 0, sizeof(struct msg_node_addr_t));
     addr->ttype = get_ttype();
     addr->addr_type = get_addr_type();
     addr->port = get_port();
@@ -131,8 +132,9 @@ ssize_t NodeAddr::encode(void *buf, size_t len) const {
         ML(mct, error, "Invalid addr_type.");
         return -1;
     }
-    return sizeof(struct node_addr_t);
+    return sizeof(struct msg_node_addr_t);
 }
 
 
-}
+} //namespace msg
+} //namespace flame

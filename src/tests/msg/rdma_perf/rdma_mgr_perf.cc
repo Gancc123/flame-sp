@@ -9,7 +9,8 @@
 #include <cstdio>
 #include <string>
 
-using namespace flame;
+using FlameContext = flame::FlameContext;
+using namespace flame::msg;
 
 perf_config_t global_config;
 
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]){
     mct->config->set_msg_log_level(std::string(options.get("log_level")));
 
     ML(mct, info, "before msg module init");
-    mct->init(rdma_msger);
+    mct->init(rdma_msger, nullptr);
     ML(mct, info, "after msg module init");
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,

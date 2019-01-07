@@ -17,6 +17,7 @@
 #include <functional>
 
 namespace flame{
+namespace msg{
 
 class RdmaWorker;
 class RdmaManager;
@@ -179,7 +180,7 @@ public:
 };
 
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

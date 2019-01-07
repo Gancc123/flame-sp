@@ -11,6 +11,7 @@
 #define PA(p) (reinterpret_cast<char *>(p))
 
 namespace flame{
+namespace msg{
 
 class MsgContext;
 
@@ -217,6 +218,7 @@ private:
 };
 
 } //namespace ib
+} //namespace msg
 } //namespace flame
 
 #undef PA

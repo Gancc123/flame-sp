@@ -10,6 +10,7 @@
 #include <utility>
 
 namespace flame{
+namespace msg{
 
 bool MsgConfig::get_bool(const std::string &v) {
     const char *true_values[] = {"yes", "enable", "on", "true", nullptr};
@@ -409,5 +410,5 @@ int MsgConfig::set_rdma_mem_max_level(const std::string &v){
     return 1;
 }
 
-
+} //namespace msg
 } //namespace flame

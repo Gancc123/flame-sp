@@ -7,13 +7,14 @@
 #include <unistd.h>
 #include <cstdio>
 
-using namespace flame;
+using FlameContext = flame::FlameContext;
+using namespace flame::msg;
 
 void send_first_incre_msg(MsgContext *mct){
     NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(6666);
-    msger_id_t msger_id = msger_id_from_node_addr(addr);
+    msger_id_t msger_id = msger_id_from_msg_node_addr(addr);
     auto session = mct->manager->get_session(msger_id);
     NodeAddr *rdma_addr = new NodeAddr(mct);
     rdma_addr->set_ttype(NODE_ADDR_TTYPE_RDMA);
@@ -63,7 +64,7 @@ int main(){
     ML(mct, info, "load cfg: " CFG_PATH);
     
     ML(mct, info, "before msg module init");
-    mct->init(nullptr);
+    mct->init(nullptr, nullptr);
     ML(mct, info, "after msg module init");
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
