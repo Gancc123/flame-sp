@@ -32,7 +32,7 @@ public:
     :mct(c), is_running(false), m_mutex(MUTEX_TYPE_ADAPTIVE_NP){
         workers.reserve(worker_num);
         for(int i = 0;i < worker_num; ++i){
-            workers.push_back(new MsgWorker(mct, i));
+            workers.push_back(new ThrMsgWorker(mct, i));
         }
     }
 

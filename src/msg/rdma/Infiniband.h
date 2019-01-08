@@ -69,6 +69,7 @@ public:
             int r = ibv_close_device(ctxt);
             assert(r == 0);
         }
+        delete device_attr;
     }
     const char* get_name() { return name;}
     uint16_t get_lid() { return active_port->get_lid(); }
