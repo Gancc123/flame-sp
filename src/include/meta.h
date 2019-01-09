@@ -235,6 +235,16 @@ struct gateway_meta_t {
  ***************************************************/
 
 /**
+ * volume attr
+ */
+struct vol_attr_t {
+    uint64_t chk_sz;
+    uint64_t size;
+    uint32_t flags  {0};
+    uint32_t spolicy;
+};
+
+/**
  * chunk attr
  */
 struct chk_attr_t {
@@ -298,6 +308,16 @@ struct csd_hlt_sub_t {
     uint64_t        alloced;
     uint64_t        used;
     health_period_t period;
+};
+
+/**
+ * csd addr
+ */
+struct csd_addr_t {
+    uint64_t    csd_id      {0};
+    uint64_t    admin_addr  {0}; 
+    uint64_t    io_addr     {0};
+    uint32_t    stat        {0};
 };
 
 } // namespace flame

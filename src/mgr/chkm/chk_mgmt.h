@@ -99,6 +99,10 @@ public:
 
     // // 修改迁移的chunk的csd_id,分两种情况：1通知迁移 2强制迁移
     // int chunk_record_move(const chunk_move_attr_t& chk);
+
+    int remove_bulk(const std::list<uint64_t>& chk_ids);
+
+    int remove_vol(uint64_t vol_id);
     
 private:
     FlameContext* fct_;
@@ -106,6 +110,14 @@ private:
     std::shared_ptr<CsdManager> csdm_;
     std::shared_ptr<layout::ChunkLayout> layout_;
     std::shared_ptr<layout::ChunkHealthCaculator> chk_hlt_calor_;
+
+    /**
+     * @brief 删除指定CSD上的Chunk
+     * 
+     * @param chk_ids 
+     * @return int 
+     */
+    int remove__(std::list<chunk_meta_t>& chks);
 }; // class ChkManager
 
 } // namespace flame

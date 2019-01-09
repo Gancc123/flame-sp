@@ -27,7 +27,6 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
         return RC_WRONG_PARAMETER;
     }
 
-
     // 将Chunk记录持久化到MetaStore并将状态标记为CREATING
     list<chunk_meta_t> chk_list;
     chunk_meta_t meta;
@@ -228,6 +227,97 @@ int ChunkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
     }
 
     return success ? RC_SUCCESS : RC_FAILD;
+}
+
+int ChunkManager::remove_bulk(const std::list<uint64_t>& chk_ids) {
+    int r;
+    list<chunk_meta_t> chks;
+    r = ms_->get_chunk_ms()->list(chks, chk_ids);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("get chunks faild");
+        return r;
+    }
+
+    return remove__(chks);
+}
+
+int ChunkManager::remove_vol(uint64_t vol_id) {
+    int r;
+    list<chunk_meta_t> chks;
+    r = ms_->get_chunk_ms()->list(chks, vol_id);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("get chunks faild");
+        return r;
+    }
+
+    return remove__(chks);
+    return RC_SUCCESS;
+}
+
+int ChunkManager::remove__(list<chunk_meta_t>& chks) {
+    int r;
+    int faild = false; 
+    map<uint64_t, list<uint64_t>> chk_dict;
+    for (auto it = chks.begin(); it != chks.end(); it++) {
+        it->stat = CHK_STAT_DELETING;
+        chk_dict[it->csd_id].push_back(it->chk_id);
+        if (it->csd_id != it->dst_id) {
+            chk_dict[it->dst_id].push_back(it->chk_id);
+        }
+        r = ms_->get_chunk_ms()->update(*it);
+        if (r != RC_SUCCESS) {
+            fct_->log()->lerror("remove chunk from metastore faild: %llu", it->chk_id);
+            faild = true;
+        }
+    }
+    if (faild) return RC_INTERNAL_ERROR;
+
+    for (auto dit = chk_dict.begin(); dit != chk_dict.end(); dit++) {
+        CsdHandle* hdl = csdm_->find(dit->first);
+        if (hdl == nullptr) {
+            // CSD宕机，暂时不做处理
+            fct_->log()->lerror("csd shutdown: %llu", dit->first);
+            return RC_FAILD;
+        }
+
+        shared_ptr<CsdsClient> stub = hdl->get_client();
+        if (stub.get() == nullptr) {
+            // 连接断开
+            fct_->log()->lerror("stub shutdown: %llu", dit->first);
+            return RC_FAILD;
+        }
+
+        list<chunk_bulk_res_t> res;
+        r = stub->chunk_remove(res, dit->second);
+        if (r != RC_SUCCESS) {
+            fct_->log()->lerror("csds chunk_remove faild: %d", r);
+            return RC_FAILD;
+        }
+
+        list<uint64_t> rm_chk_ids;
+        for (auto rit = res.begin(); rit != res.end(); rit++) {
+            if (rit->res != RC_SUCCESS) {
+                fct_->log()->lerror("csds chunk_remove faild with chunk: %llu : %d", rit->chk_id, rit->res);
+                faild = true;
+            } else {
+                rm_chk_ids.push_back(rit->chk_id);
+            }
+        }
+
+        r = ms_->get_chunk_ms()->remove_bulk(rm_chk_ids);
+        if (r != RC_SUCCESS) {
+            fct_->log()->lerror("remove chunks from metastore faild");
+            faild = true;
+            continue;
+        }
+
+        r = ms_->get_chunk_health_ms()->remove_bulk(rm_chk_ids);
+        if (r != RC_SUCCESS) {
+            fct_->log()->lerror("remove chunk health from metastore faild");
+            faild = true;
+        }
+    }
+    return faild ? RC_FAILD : RC_SUCCESS;
 }
 
 } //  namespace flame

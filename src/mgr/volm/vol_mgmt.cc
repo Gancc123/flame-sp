@@ -1,262 +1,370 @@
-#include "mgr/vol/vol_mgmt.h"
+#include "mgr/volm/vol_mgmt.h"
+#include "util/utime.h"
+
+#include <climits>
+
+#include "mgr/volm/log_volm.h"
+
+using namespace std;
 
 namespace flame {
 
-int VolManager::init_vg_map() {
-    std::list<volume_group_meta_t> res_list;
-    int r = ms_->get_vg_ms()->list(res_list, 0, 0);
-    if (r) return r;
-
-    for (auto it = res_list.begin(); it != res_list.end(); ++it) {
-        vg_map_[it->name] = it->vg_id;
-    }
-
-    return SUCCESS;
-}
-
-int VolManager::vg_map_find(const std::string& vg_name, uint64_t& vg_id) {
-    WriteLocker lok(vg_map_);
-    int r = 0;
-
-    auto it = vg_map_.find(vg_name);
-    if (it != vg_map_.end()) {
-        vg_id = it->second;
-    }
-    else {
-        volume_group_meta_t vg;
-        r = ms_->get_vg_ms()->get(vg, vg_name);
-        if (r) return r;
-        vg_map_[vg_name] = vg.vg_id;
-        vg_id = vg.vg_id;
-    }
-
-    return SUCCESS;
+int VolumeManager::init() {
+    int r;
+    r = init_vg__();
+    if (r != RC_SUCCESS) 
+        return r;
+    r = init_sp__();
+    if (r != RC_SUCCESS)
+        return r;
+    return RC_SUCCESS;
 }
 
 /**
- * volume group
+ * Volume Group
 */
+int VolumeManager::vg_list(list<volume_group_meta_t>& res_list, uint32_t off, uint32_t limit) {
+    ReadLocker locker(vg_lock_);
+    auto it = vg_idx_.begin();
+    while (off > 0 && it != vg_idx_.end())
+        off--, it++;
 
-int VolManager::volume_group_list(std::list<volume_group_meta_t>& res_list, const uint32_t& offset, const uint32_t& limit) {
-    int r = ms_->get_vg_ms()->list(res_list, offset, limit);
+    if (limit == 0) 
+        limit = UINT32_MAX;
+    while (limit > 0 && it != vg_idx_.end()) {
+        res_list.push_back(*it->second);
+        limit--;
+    }
 
-    return r;
+    return RC_SUCCESS;
 }
 
-int VolManager::volume_group_create(const std::string& name) {
+int VolumeManager::vg_create(const string& name) {
+    WriteLocker locker(vg_lock_);
     volume_group_meta_t vg;
+    vg.vg_id = max_vg_id_++;
     vg.name = name;
-    vg.ctime = utime_t::now().to_msec();
-    int r = ms_->get_vg_ms()->create_and_get(vg);
-
-    if (r == 0) {
-        WriteLocker lok(vg_map_lock_);
-        vg_map_[name] = vg.vg_id;
-    }
-
-    return r;
-}
-
-int VolManager::volume_group_remove(const std::string& name) {
-    volume_group_meta_t vg;
-    inr r = ms_->get_vg_ms()->get(vg, name);
-    if (r) return r;
-
-    if (vg.volumes <= 0) {
-        return FAILD;
-    }
-    else {
-        r = ms_->get_vg_ms->remove(name);
-
-        if (r == 0) {
-            WriteLocker lok(vg_map_lock_);
-            auto it = vg_map_.find(name);
-            if (it != vg_map_.end()) vg_map_.erase(it);
-        }
-
+    vg.ctime = utime_t::now().to_usec();
+    int r = ms_->get_vg_ms()->create(vg);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("persist new vg faild: %d", r);
         return r;
     }
+
+    volume_group_meta_t& meta = vg_map_[vg.vg_id];
+    meta = vg;
+    vg_idx_[meta.name] = &meta;
+
+    return RC_SUCCESS;
 }
 
-int VolManager::volume_group_rename(const std::string& old_name, const std::string& new_name) {
-    int r = ms_->get_vg_ms()->rename(old_name, new_name);
+int VolumeManager::vg_remove(const string& name) {
+    WriteLocker locker(vg_lock_);
 
-    if (r == 0) {
-        WriteLocker lok(vg_map_lock_);
-        auto it = vg_map_.find(old_name);
-        if (it != vg_map_.end()) {
-            vg_map_[new_name] = it->second;
-            vg_map_.erase(it);
-        }
+    auto it = vg_idx_.find(name);
+    if (it == vg_idx_.end()) {
+        fct_->log()->lerror("vg object can't be found in vg_idx_");
+        return RC_OBJ_NOT_FOUND;
     }
 
-    return r;
+    if (it->second->volumes > 0) {
+        fct_->log()->lerror("vg is not emptry");
+        return RC_REFUSED;
+    }
+
+    int r = ms_->get_vg_ms()->remove(name);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("remove vg faild: %d", r);
+        return r;
+    }
+
+    uint64_t vg_id = it->second->vg_id;
+    vg_idx_.erase(it);
+    vg_map_.erase(vg_id);
+
+    return RC_SUCCESS;
+}
+
+int VolumeManager::vg_rename(const string& old_name, const string& new_name) {
+    WriteLocker locker(vg_lock_);
+    auto it = vg_idx_.find(old_name);
+    if (it == vg_idx_.end()) {
+        fct_->log()->lerror("vg object not found");
+        return RC_OBJ_NOT_FOUND;
+    }
+
+    auto nit = vg_idx_.find(new_name);
+    if (nit != vg_idx_.end()) {
+        fct_->log()->lerror("new vg name have been existed");
+        return RC_OBJ_EXISTED;
+    }
+
+    auto vg = it->second;
+    vg_idx_.erase(it);
+    vg_idx_[new_name] = vg;
+    vg->name = new_name;
+
+    return RC_SUCCESS;
 }
 
 /**
- * volume
+ * Volume
  */
+int VolumeManager::vol_list(list<volume_meta_t>& res_list, const string& vg_name, uint32_t offset, uint32_t limit) {
+    uint64_t vg_id = get_vg_id__(vg_name);
+    if (vg_id == 0) {
+        fct_->log()->lerror("vg not found");
+        return RC_OBJ_NOT_FOUND;
+    }
 
-int VolManager::volume_list(std::list<volume_meta_t>& res_list, const std::string& vg_name, const uint32_t& offset, const uint32_t& limit) {
-    uint64_t vg_id;
-    int r;
-
-    r = vg_map_find(vg_name, vg_id);
-    if (r) return r;
-
-    r = ms_->get_volume_ms()->list(res_list, vg_id, offset, limit);
-
-    return r;
+    return ms_->get_volume_ms()->list(res_list, vg_id, offset, limit);
 }
 
-// 在vg中增加volumes的计数
-int VolManager::volume_create(const std::string& vg_name, volume_meta_t& vol_req) {
-    uint64_t vg_id;
+int VolumeManager::vol_create(const string& vg_name, const string& vol_name, const vol_attr_t& attr) {
     int r;
+    // get_vg_id_add_vol__() 原子获取vg_id并增加vol计数，防止创建Volume过程中，VG被误删除
+    uint64_t vg_id = get_vg_id_add_vol__(vg_name);
+    if (vg_id == 0) {
+        fct_->log()->lerror("vg not found");
+        return RC_OBJ_NOT_FOUND;
+    }
 
-    r = vg_map_find(vg_name, vg_id);
-    if (r) return r;
+    spolicy::StorePolicy* sp = get_sp__(attr.spolicy);
+    if (sp == nullptr) {
+        fct_->log()->lerror("wrong store policy type: %d", attr.spolicy);
+        vg_sub_vol_cnt__(vg_id);
+        return RC_WRONG_PARAMETER;
+    }
 
     // 在数据库中创建volume，并get到vol_id
-    vol_req.vg_id = vg_id;
-    vol_req.stat = VOL_STAT_CREATING; // volume的状态为创建中！
-    r = ms_->get_volume_ms()->create_and_get(vol_req);
-    if (r) {
-        fct_->log()->lerror("insert volume into database faild vg(%s) volume(%s) ", vg_name, vol_req.name);
+    volume_meta_t vol;
+    vol.vg_id = vg_id;
+    vol.stat = VOL_STAT_CREATING; // volume的状态为创建中！
+    vol.chk_sz = attr.chk_sz;
+    vol.size = attr.size;
+    vol.flags = attr.flags;
+    vol.spolicy = attr.spolicy;
+    r = ms_->get_volume_ms()->create_and_get(vol);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("insert volume into database faild vg(%s) volume(%s) ", vg_name.c_str(), vol.name.c_str());
+        vg_sub_vol_cnt__(vg_id);
         return r;
     }
 
-    // 调用静态数据布局算法计算volume的chunk所属csd
-    std::map<uint64_t, std::list<uint64_t>> chk_res;
-    r = layout_->static_layout(chk_res, vol_req);
-    if (r) {
-        fct_->log()->lerror("static layout error vg(%s) volume(%s)", vg_name, vol_req.name);
-        return r;
-    }
-    
-    
-    r = chk_mgr_->create_chunk_bulk(chk_res, vol_req);
-    if (r) {
-        fct_->log()->lerror("create chunk bulk error vg(%s) volume(%s)", vg_name, vol_req.name);
-        return r;
+    chk_attr_t chka;
+    chka.spolicy = attr.spolicy;
+    chka.flags = attr.flags;
+    chka.size = sp->chk_size();
+
+    chunk_id_t chk_id;
+    chk_id.set_vol_id(vol.vol_id);
+    chk_id.set_index(0);
+
+    uint64_t cg_size = sp->cg_size(); // 每个CG的有效大小（不一定是实际占用空间）
+    uint8_t cgn = sp->cgn();
+    uint32_t grp = vol.size / cg_size;
+    grp += vol.size % cg_size ? 1 : 0;
+
+    r = chkm_->create_vol(chk_id, grp, cgn, chka);
+    if (r != RC_SUCCESS) {
+        // 暂时还没有处理Chunk创建失败的情况，直接返回Volume创建失败
+        fct_->log()->lerror("create chunk faild");
+        return RC_INTERNAL_ERROR;
     }
 
-    // todo: 在vg中增加volumes的计数
-    vol_req.stat = VOL_STAT_CREATED;
-    r = ms_->get_volume_ms()->update(vol_req);
-    if (r) {
-        fct_->log()->lerror("update volume stat to creating success error vg(%s) volume(%s)", vg_name, vol_req.name);
+    // 更新Volume信息与状态
+    vol.size = grp * cg_size; // 更新Volume实际大小
+    vol.stat = VOL_STAT_CREATED;
+    r = ms_->get_volume_ms()->update(vol);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("update volume stat to creating success error vg(%s) volume(%s)", vg_name.c_str(), vol.name.c_str());
         return r;
     }
     
-    volume_group_meta_t vg;
-    r = ms_->get_vg_ms()->get(vg, vg_id);
-    vg.volumes += 1;
-    r = ms_->get_vg_ms()->update(vg);
+    vg_add_vol_sz__(vol.vg_id, vol.size);
 
-    return SUCCESS;
+    return RC_SUCCESS;
 }
 
-// 在vg中减少volumes的计数
-int VolManager::volume_remove(const std::string& vg_name, const std::string& vol_name) {
-    uint64_t vg_id;
+int VolumeManager::vol_remove(const std::string& vg_name, const std::string& vol_name) {
+    uint64_t vg_id = get_vg_id__(vg_name);
+    if (vg_id == 0) {
+        fct_->log()->lerror("vg not found");
+        return RC_OBJ_NOT_FOUND;
+    }
+
     int r;
-
-    r = vg_map_find(vg_name, vg_id);
-    if (r) return r;
-
     volume_meta_t vol;
     r = ms_->get_volume_ms()->get(vol, vg_id, vol_name);
-    if (r) return r;
-    if (vol.stat == VOL_STAT_CREATING || vol.stat == VOL_STAT_DELETING) {
-        return FAILD;
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("get volume faild");
+        return r;
+    }
+
+    if (vol.stat == VOL_STAT_CREATING) {
+        fct_->log()->lerror("try to delete a creating volume");
+        return RC_OBJ_NOT_FOUND;
+    }
+    
+    // 当前的方案存在瑕疵，后期应该为Volume添加一个Handle防止重复删除的情况
+    // 目前，重复删除也不会到来严重的问题，但是会增加带宽占用
+    if (vol.stat == VOL_STAT_DELETING) {
+        fct_->log()->lerror("multiple delete same volume");
+        return RC_MULTIPLE_OPERATE;
     }
 
     // 将volume的状态改为deleting
     vol.stat = VOL_STAT_DELETING;
     r = ms_->get_volume_ms()->update(vol);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("change volume's status faild");
+        return r;
+    }
 
-    r = chk_mgmt_->chunk_remove_by_volid(vol.vol_id);
-    // 考虑volume的chunk数为0的时候也会返回错误，因为在数据库找不到chunk的列表
-    if (r) return r;
+    r = chkm_->remove_vol(vol.vol_id);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("remove volume's chunk faild");
+        return r;
+    }
 
-    // csd那边删除chunk成功之后再数据库中删除volume的记录
     r = ms_->get_volume_ms()->remove(vol.vol_id);
-    if (r) return r;
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("remove volume form metastore faild");
+        return r;
+    }
 
-    return SUCCESS;
+    return RC_SUCCESS;
 }
 
 
-int VolManager::volume_rename(const std::string& vg_name, const std::string& vol_old_name, const std::string& vol_new_name) {
-    uint64_t vg_id;
-    int r;
-
-    r = vg_map_find(vg_name, vg_id);
-    if (r) return r;
-
-   // 如果volume的状态为创建中或者删除中则不能进行重命名的操作
-    volume_meta_t vol;
-    r = ms_->get_volume_ms()->get(vol, vg_id, vol_old_name);
-    if (r) return r;
-    if (vol.stat == VOL_STAT_CREATING || vol.stat == VOL_STAT_DELETING) {
-        return FAILD;
-    }    
-
-    r = ms_->get_volume_ms()->rename(vg_id, vol_old_name, vol_new_name);
-    if (r) return r;
-
-    return SUCCESS;
+int VolumeManager::vol_rename(const std::string& vg_name, const std::string& vol_old_name, const std::string& vol_new_name) {
+    // @@@ don't support now
+    return RC_FAILD;
 }
 
-int VolManager::volume_get(volume_meta_t& vol_res, const std::string& vg_name, const std::string& vol_name) {
-    uint64_t vg_id;
-    int r;
+int VolumeManager::vol_info(volume_meta_t& vol_res, const std::string& vg_name, const std::string& vol_name) {
+    uint64_t vg_id = get_vg_id__(vg_name);
+    if (vg_id == 0) {
+        fct_->log()->lerror("vg not found");
+        return RC_OBJ_NOT_FOUND;
+    }
 
-    r = vg_map_find(vg_name, vg_id);
-    if (r) return r;
-
-    r = ms_->get_volume_ms()->get(vol_res, vg_id, vol_name);
-    if (r) return r;
-
-    return SUCCESS;
+    return ms_->get_volume_ms()->get(vol_res, vg_id, vol_name);
 }
 
-int VolManager::volume_resize(const std::string& vg_name, const std::string& vol_name, const uint64_t& new_size) {
-    uint64_t vg_id;
-    int r;
-
-    r = vg_map_find(vg_name, vg_id);
-    if (r) return r;
-
-    volume_meta_t vol;
-    r = ms_->get_volume_ms()->get(vol, vg_id, vol_name);
-    if (r) return r;
-    if (vol.stat == VOL_STAT_CREATING || vol.stat == VOL_STAT_DELETING) {
-        return FAILD;
-    }   
-
-    vol.size = new_size;
-    r = ms_->get_volume_ms()->update(vol);
-    if (r) return r;
-
-    return SUCCESS;
+int VolumeManager::vol_resize(const std::string& vg_name, const std::string& vol_name, uint64_t new_size) {
+    // @@@ don't support now
+    return RC_FAILD;
 }
 
-int VolManager::volume_open(const uint64_t& gw_id, const std::string& vg_name, const std::string& vol_name) {
-    return 0;
+int VolumeManager::vol_open(uint64_t gw_id, const std::string& vg_name, const std::string& vol_name) {
+    // @@@ don't support now
+    return RC_FAILD;
 }
 
-int VolManager::volume_close(const uint64_t& gw_id, const std::string& vg_name, const std::string& vol_name) {
-    return 0;
+int VolumeManager::vol_close(uint64_t gw_id, const std::string& vg_name, const std::string& vol_name) {
+    // @@@ don't support now
+    return RC_FAILD;
 }
 
-int VolManager::volume_lock(const uint64_t& gw_id, const std::string& vg_name, const std::string& vol_name) {
-    return 0;
+int VolumeManager::vol_lock(uint64_t gw_id, const std::string& vg_name, const std::string& vol_name) {
+    // @@@ don't support now
+    return RC_FAILD;
 }
 
-int VolManager::volume_unlock(const uint64_t& gw_id, const std::string& vg_name, const std::string& vol_name) {
-    return 0;
+int VolumeManager::vol_unlock(uint64_t gw_id, const std::string& vg_name, const std::string& vol_name) {
+    // @@@ don't support now
+    return RC_FAILD;
+}
+
+volume_group_meta_t* VolumeManager::get_vg__(uint64_t vg_id) {
+    return &vg_map_[vg_id];
+}
+
+uint64_t VolumeManager::get_vg_id__(const std::string& vg_name) {
+    ReadLocker locker(vg_lock_);
+    auto it = vg_idx_.find(vg_name);
+    if (it == vg_idx_.end())
+        return 0;
+    return it->second->vg_id;
+}
+
+uint64_t VolumeManager::get_vg_id_add_vol__(const std::string& vg_name) {
+    WriteLocker locker(vg_lock_);
+    auto it = vg_idx_.find(vg_name);
+    if (it == vg_idx_.end())
+        return 0;
+    it->second->volumes += 1;
+    return it->second->vg_id;
+}
+
+int VolumeManager::vg_add_vol_cnt__(uint64_t vg_id) {
+    WriteLocker locker(vg_lock_);
+    auto it = vg_map_.find(vg_id);
+    if (it == vg_map_.end())
+        return RC_OBJ_NOT_FOUND;
+    it->second.volumes += 1;
+    return RC_SUCCESS;
+}
+
+int VolumeManager::vg_add_vol_sz__(uint64_t vg_id, uint64_t sz) {
+    WriteLocker locker(vg_lock_);
+    auto it = vg_map_.find(vg_id);
+    if (it == vg_map_.end())
+        return RC_OBJ_NOT_FOUND;
+    it->second.size += sz;
+    
+    return ms_->get_vg_ms()->update(it->second);
+}
+
+int  VolumeManager::vg_sub_vol_cnt__(uint64_t vg_id) {
+    WriteLocker locker(vg_lock_);
+    auto it = vg_map_.find(vg_id);
+    if (it == vg_map_.end())
+        return RC_OBJ_NOT_FOUND;
+    it->second.volumes -= 1;
+    return RC_SUCCESS;
+}
+
+int VolumeManager::vg_sub_vol__(uint64_t vg_id, uint64_t sz) {
+    WriteLocker locker(vg_lock_);
+    auto it = vg_map_.find(vg_id);
+    if (it == vg_map_.end())
+        return RC_OBJ_NOT_FOUND;
+    it->second.volumes -= 1;
+    it->second.size -= sz;
+    
+    return ms_->get_vg_ms()->update(it->second);
+}
+
+int VolumeManager::init_vg__() {
+    list<volume_group_meta_t> vgs;
+    int r = ms_->get_vg_ms()->list(vgs, 0, 0);
+    if (r != RC_SUCCESS) {
+        fct_->log()->lerror("init vg faild");
+        return r;
+    }
+
+    for (auto it = vgs.begin(); it != vgs.end(); ++it) {
+        vg_map_[it->vg_id] = *it;
+        vg_idx_[it->name] = &(*it);
+        if (max_vg_id_ < it->vg_id)
+            max_vg_id_ = it->vg_id;
+    }
+    max_vg_id_ += 1;
+
+    return RC_SUCCESS;
+}
+
+spolicy::StorePolicy* VolumeManager::get_sp__(uint32_t sp_type) {
+    if (sp_type >= sp_tlb_.size())
+        return nullptr;
+    return sp_tlb_[sp_type];
+}
+
+int VolumeManager::init_sp__() {
+    create_spolicy_bulk(sp_tlb_);
+    return RC_SUCCESS;
 }
 
 } // namespace flame

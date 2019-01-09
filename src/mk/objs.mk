@@ -65,3 +65,7 @@ $(DCLUSTER)/clt_my/my_mgmt.o
 OBJ_LAYOUT = \
 $(DLAYOUT)/calculator.o \
 $(DLAYOUT)/poll_layout.o
+
+# /spolicy
+OBJ_SPOLICY = \
+$(DSPOLICY)/spolicy.o

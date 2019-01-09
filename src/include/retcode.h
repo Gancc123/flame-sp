@@ -27,7 +27,22 @@ enum RetCode {
     /**
      * 错误参数
      */
-    RC_WRONG_PARAMETER = 4
+    RC_WRONG_PARAMETER = 4,
+
+    /**
+     * 拒绝操作
+     */
+    RC_REFUSED = 5,
+
+    /**
+     * 内部错误
+     */
+    RC_INTERNAL_ERROR = 6,
+
+    /**
+     * 重复操作
+     */
+    RC_MULTIPLE_OPERATE = 7
 };
 
 } // namespace flame
