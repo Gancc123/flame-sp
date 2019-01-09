@@ -11,6 +11,7 @@
 #include "msg/msg_common.h"
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 
@@ -184,8 +185,9 @@ private:
     RdmaBufferAllocator *rdma_buffer_allocator;
 };
 
-}
-}
+} //namespace ib
+} //namespace msg
+} //namespace flame
 
 
 #endif 

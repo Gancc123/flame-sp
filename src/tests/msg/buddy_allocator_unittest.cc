@@ -6,6 +6,7 @@
 #include <ctime>
 
 namespace flame {
+namespace msg{
 namespace ib{
 
 struct mem_stat{
@@ -149,4 +150,5 @@ TEST_F(BuddyAllocatorTest, stat){
 }
 
 } //namespace ib
+} //namespace msg
 } //namespace flame

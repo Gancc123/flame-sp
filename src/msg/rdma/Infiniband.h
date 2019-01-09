@@ -17,6 +17,7 @@
 
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 class Infiniband;
@@ -68,6 +69,7 @@ public:
             int r = ibv_close_device(ctxt);
             assert(r == 0);
         }
+        delete device_attr;
     }
     const char* get_name() { return name;}
     uint16_t get_lid() { return active_port->get_lid(); }
@@ -321,8 +323,9 @@ public:
     static enum ibv_mtu ibv_mtu_enum(int mtu);
 };
 
-}
-}
+} //namespace ib
+} //namespace msg
+} //namespace flame
 
 
 #endif

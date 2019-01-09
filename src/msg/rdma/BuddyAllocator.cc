@@ -8,6 +8,7 @@
 #define FLAME_BUDDY_ALLOCAOTR_MAX_LEVELS    (32)
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 BuddyAllocator *BuddyAllocator::create(MsgContext *c,  
@@ -154,4 +155,5 @@ std::string BuddyAllocator::get_stat() const{
 }
 
 } // namespace ib
+} //namespace msg
 } // namespace flame

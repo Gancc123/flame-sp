@@ -4,10 +4,11 @@
 #include <string>
 #include <exception>
 
+namespace flame{
+namespace msg{
+
 /* Return a given error code as a string */
 std::string cpp_strerror(int err);
-
-namespace flame{
 
 class ErrnoException : public std::exception{
 public:
@@ -25,7 +26,7 @@ public:
     }
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

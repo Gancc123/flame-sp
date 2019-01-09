@@ -12,6 +12,7 @@
 #include <map>
 
 namespace flame{
+namespace msg{
 
 class MsgManager : public ListenPortListener, public ConnectionListener{
     MsgContext *mct;
@@ -31,7 +32,7 @@ public:
     :mct(c), is_running(false), m_mutex(MUTEX_TYPE_ADAPTIVE_NP){
         workers.reserve(worker_num);
         for(int i = 0;i < worker_num; ++i){
-            workers.push_back(new MsgWorker(mct, i));
+            workers.push_back(new ThrMsgWorker(mct, i));
         }
     }
 
@@ -87,7 +88,7 @@ private:
     void del_conn(Connection *conn);
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

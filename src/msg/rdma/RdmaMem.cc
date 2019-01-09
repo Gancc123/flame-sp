@@ -10,6 +10,7 @@
 #endif
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 RdmaBuffer::RdmaBuffer(void *ptr, BuddyAllocator *a)
@@ -249,5 +250,6 @@ int RdmaBufferAllocator::get_mr_num() const{
 }
 
 
-} //ib
-} //flame
+} //namespace ib
+} //namespace msg
+} //namespace flame

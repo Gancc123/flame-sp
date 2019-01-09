@@ -5,6 +5,7 @@
 #include "internal/node_addr.h"
 
 namespace flame{
+namespace msg{
 
 class NetHandler{
     MsgContext *mct;
@@ -20,6 +21,7 @@ public:
     int get_sockname(int fd, NodeAddr &addr);
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

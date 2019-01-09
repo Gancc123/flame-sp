@@ -12,6 +12,7 @@
 #include <memory>
 
 namespace flame{
+namespace msg{
 
 int NetHandler::create_socket(int domain, bool reuse){
     int sfd, r;
@@ -116,4 +117,5 @@ int NetHandler::get_sockname(int fd, NodeAddr &addr){
     return r;
 }
 
-}
+} //namespace msg
+} //namespace flame

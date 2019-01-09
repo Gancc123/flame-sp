@@ -11,6 +11,7 @@
 #endif
 
 namespace flame{
+namespace msg{
 
 MsgManager::~MsgManager(){
     MutexLocker l(m_mutex);
@@ -355,4 +356,5 @@ void MsgManager::on_conn_error(Connection *conn){
     this->del_connection(conn);
 }
 
-}
+} //namespace msg
+} //namespace flame

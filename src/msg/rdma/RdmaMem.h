@@ -11,6 +11,7 @@
 #include <infiniband/verbs.h>
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 class MemoryManager;
@@ -91,7 +92,8 @@ public:
     int get_mr_num() const;
 };
 
-} //ib
-} //flame
+} //namespace ib
+} //namespace msg
+} //namespace flame
 
 #endif //FLAME_MSG_RDMA_RDMA_MEM_H

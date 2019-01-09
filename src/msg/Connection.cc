@@ -2,6 +2,7 @@
 #include "Session.h"
 
 namespace flame{
+namespace msg{
 
 Connection::~Connection(){
 }
@@ -14,4 +15,5 @@ void Connection::set_session(Session *s){
     this->session = s;  //* 这里s->get()会造成循环引用
 }
 
-}
+} //namespace msg
+} //namespace flame
