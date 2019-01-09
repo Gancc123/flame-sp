@@ -14,9 +14,6 @@ int VolumeManager::init() {
     r = init_vg__();
     if (r != RC_SUCCESS) 
         return r;
-    r = init_sp__();
-    if (r != RC_SUCCESS)
-        return r;
     return RC_SUCCESS;
 }
 
@@ -47,7 +44,7 @@ int VolumeManager::vg_create(const string& name) {
     vg.ctime = utime_t::now().to_usec();
     int r = ms_->get_vg_ms()->create(vg);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("persist new vg faild: %d", r);
+        bct_->log()->lerror("persist new vg faild: %d", r);
         return r;
     }
 
@@ -63,18 +60,18 @@ int VolumeManager::vg_remove(const string& name) {
 
     auto it = vg_idx_.find(name);
     if (it == vg_idx_.end()) {
-        fct_->log()->lerror("vg object can't be found in vg_idx_");
+        bct_->log()->lerror("vg object can't be found in vg_idx_");
         return RC_OBJ_NOT_FOUND;
     }
 
     if (it->second->volumes > 0) {
-        fct_->log()->lerror("vg is not emptry");
+        bct_->log()->lerror("vg is not emptry");
         return RC_REFUSED;
     }
 
     int r = ms_->get_vg_ms()->remove(name);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("remove vg faild: %d", r);
+        bct_->log()->lerror("remove vg faild: %d", r);
         return r;
     }
 
@@ -89,13 +86,13 @@ int VolumeManager::vg_rename(const string& old_name, const string& new_name) {
     WriteLocker locker(vg_lock_);
     auto it = vg_idx_.find(old_name);
     if (it == vg_idx_.end()) {
-        fct_->log()->lerror("vg object not found");
+        bct_->log()->lerror("vg object not found");
         return RC_OBJ_NOT_FOUND;
     }
 
     auto nit = vg_idx_.find(new_name);
     if (nit != vg_idx_.end()) {
-        fct_->log()->lerror("new vg name have been existed");
+        bct_->log()->lerror("new vg name have been existed");
         return RC_OBJ_EXISTED;
     }
 
@@ -113,7 +110,7 @@ int VolumeManager::vg_rename(const string& old_name, const string& new_name) {
 int VolumeManager::vol_list(list<volume_meta_t>& res_list, const string& vg_name, uint32_t offset, uint32_t limit) {
     uint64_t vg_id = get_vg_id__(vg_name);
     if (vg_id == 0) {
-        fct_->log()->lerror("vg not found");
+        bct_->log()->lerror("vg not found");
         return RC_OBJ_NOT_FOUND;
     }
 
@@ -125,13 +122,13 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
     // get_vg_id_add_vol__() 原子获取vg_id并增加vol计数，防止创建Volume过程中，VG被误删除
     uint64_t vg_id = get_vg_id_add_vol__(vg_name);
     if (vg_id == 0) {
-        fct_->log()->lerror("vg not found");
+        bct_->log()->lerror("vg not found");
         return RC_OBJ_NOT_FOUND;
     }
 
-    spolicy::StorePolicy* sp = get_sp__(attr.spolicy);
+    spolicy::StorePolicy* sp = bct_->get_spolicy(attr.spolicy);
     if (sp == nullptr) {
-        fct_->log()->lerror("wrong store policy type: %d", attr.spolicy);
+        bct_->log()->lerror("wrong store policy type: %d", attr.spolicy);
         vg_sub_vol_cnt__(vg_id);
         return RC_WRONG_PARAMETER;
     }
@@ -146,7 +143,7 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
     vol.spolicy = attr.spolicy;
     r = ms_->get_volume_ms()->create_and_get(vol);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("insert volume into database faild vg(%s) volume(%s) ", vg_name.c_str(), vol.name.c_str());
+        bct_->log()->lerror("insert volume into database faild vg(%s) volume(%s) ", vg_name.c_str(), vol.name.c_str());
         vg_sub_vol_cnt__(vg_id);
         return r;
     }
@@ -168,7 +165,7 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
     r = chkm_->create_vol(chk_id, grp, cgn, chka);
     if (r != RC_SUCCESS) {
         // 暂时还没有处理Chunk创建失败的情况，直接返回Volume创建失败
-        fct_->log()->lerror("create chunk faild");
+        bct_->log()->lerror("create chunk faild");
         return RC_INTERNAL_ERROR;
     }
 
@@ -177,7 +174,7 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
     vol.stat = VOL_STAT_CREATED;
     r = ms_->get_volume_ms()->update(vol);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("update volume stat to creating success error vg(%s) volume(%s)", vg_name.c_str(), vol.name.c_str());
+        bct_->log()->lerror("update volume stat to creating success error vg(%s) volume(%s)", vg_name.c_str(), vol.name.c_str());
         return r;
     }
     
@@ -189,7 +186,7 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
 int VolumeManager::vol_remove(const std::string& vg_name, const std::string& vol_name) {
     uint64_t vg_id = get_vg_id__(vg_name);
     if (vg_id == 0) {
-        fct_->log()->lerror("vg not found");
+        bct_->log()->lerror("vg not found");
         return RC_OBJ_NOT_FOUND;
     }
 
@@ -197,19 +194,19 @@ int VolumeManager::vol_remove(const std::string& vg_name, const std::string& vol
     volume_meta_t vol;
     r = ms_->get_volume_ms()->get(vol, vg_id, vol_name);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("get volume faild");
+        bct_->log()->lerror("get volume faild");
         return r;
     }
 
     if (vol.stat == VOL_STAT_CREATING) {
-        fct_->log()->lerror("try to delete a creating volume");
+        bct_->log()->lerror("try to delete a creating volume");
         return RC_OBJ_NOT_FOUND;
     }
     
     // 当前的方案存在瑕疵，后期应该为Volume添加一个Handle防止重复删除的情况
     // 目前，重复删除也不会到来严重的问题，但是会增加带宽占用
     if (vol.stat == VOL_STAT_DELETING) {
-        fct_->log()->lerror("multiple delete same volume");
+        bct_->log()->lerror("multiple delete same volume");
         return RC_MULTIPLE_OPERATE;
     }
 
@@ -217,19 +214,19 @@ int VolumeManager::vol_remove(const std::string& vg_name, const std::string& vol
     vol.stat = VOL_STAT_DELETING;
     r = ms_->get_volume_ms()->update(vol);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("change volume's status faild");
+        bct_->log()->lerror("change volume's status faild");
         return r;
     }
 
     r = chkm_->remove_vol(vol.vol_id);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("remove volume's chunk faild");
+        bct_->log()->lerror("remove volume's chunk faild");
         return r;
     }
 
     r = ms_->get_volume_ms()->remove(vol.vol_id);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("remove volume form metastore faild");
+        bct_->log()->lerror("remove volume form metastore faild");
         return r;
     }
 
@@ -245,7 +242,7 @@ int VolumeManager::vol_rename(const std::string& vg_name, const std::string& vol
 int VolumeManager::vol_info(volume_meta_t& vol_res, const std::string& vg_name, const std::string& vol_name) {
     uint64_t vg_id = get_vg_id__(vg_name);
     if (vg_id == 0) {
-        fct_->log()->lerror("vg not found");
+        bct_->log()->lerror("vg not found");
         return RC_OBJ_NOT_FOUND;
     }
 
@@ -341,7 +338,7 @@ int VolumeManager::init_vg__() {
     list<volume_group_meta_t> vgs;
     int r = ms_->get_vg_ms()->list(vgs, 0, 0);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("init vg faild");
+        bct_->log()->lerror("init vg faild");
         return r;
     }
 
@@ -353,17 +350,6 @@ int VolumeManager::init_vg__() {
     }
     max_vg_id_ += 1;
 
-    return RC_SUCCESS;
-}
-
-spolicy::StorePolicy* VolumeManager::get_sp__(uint32_t sp_type) {
-    if (sp_type >= sp_tlb_.size())
-        return nullptr;
-    return sp_tlb_[sp_type];
-}
-
-int VolumeManager::init_sp__() {
-    create_spolicy_bulk(sp_tlb_);
     return RC_SUCCESS;
 }
 

@@ -17,13 +17,13 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
         return RC_SUCCESS;
 
     if (cgn <= 0 || cgn > 16) {
-        fct_->log()->lerror("wrong parameter (cgn): %d", cgn);
+        bct_->log()->lerror("wrong parameter (cgn): %d", cgn);
         return RC_WRONG_PARAMETER;
     }
 
     int chk_num = chk_ids.size();
     if (chk_num % cgn != 0) {
-        fct_->log()->lerror("wrong parameter (chd_ids.size): %u", chk_num);
+        bct_->log()->lerror("wrong parameter (chd_ids.size): %u", chk_num);
         return RC_WRONG_PARAMETER;
     }
 
@@ -43,7 +43,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     }
 
     if ((r = ms_->get_chunk_ms()->create_bulk(chk_list)) != RC_SUCCESS) {
-        fct_->log()->lerror("persist chunk bulk faild: %d", r);
+        bct_->log()->lerror("persist chunk bulk faild: %d", r);
         return RC_FAILD;
     }
     chk_list.clear(); // 避免占用过多内存
@@ -52,12 +52,12 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     int grp = chk_num / cgn;
     list<uint64_t> csd_list;
     if ((r = layout_->select_bulk(csd_list, grp, cgn, attr.size)) != RC_SUCCESS) {
-        fct_->log()->lerror("select csd faild: %d", r);
+        bct_->log()->lerror("select csd faild: %d", r);
         return RC_FAILD;
     }
 
     if (csd_list.size() != chk_ids.size()) {
-        fct_->log()->lerror("wrong result of chunk layout");
+        bct_->log()->lerror("wrong result of chunk layout");
         return RC_FAILD;
     }
 
@@ -75,21 +75,21 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
         CsdHandle* hdl = csdm_->find(it->first);
         if (hdl == nullptr) {
             // CSD宕机，暂时不做处理
-            fct_->log()->lerror("csd shutdown: %llu", it->first);
+            bct_->log()->lerror("csd shutdown: %llu", it->first);
             return RC_FAILD;
         }
 
         shared_ptr<CsdsClient> stub = hdl->get_client();
         if (stub.get() == nullptr) {
             // 连接断开
-            fct_->log()->lerror("stub shutdown: %llu", it->first);
+            bct_->log()->lerror("stub shutdown: %llu", it->first);
             return RC_FAILD;
         }
 
         list<chunk_bulk_res_t> res;
         r = stub->chunk_create(res, attr, it->second);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("csds chunk_create faild: %d", r);
+            bct_->log()->lerror("csds chunk_create faild: %d", r);
             return RC_FAILD;
         }
 
@@ -98,7 +98,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
         hlt.size = attr.size;
         for (auto rit = res.begin(); rit != res.end(); rit++) {
             if (rit->res != RC_SUCCESS) {
-                fct_->log()->lerror("csds chunk_create faild with chunk: %llu : %d", rit->chk_id, rit->res);
+                bct_->log()->lerror("csds chunk_create faild with chunk: %llu : %d", rit->chk_id, rit->res);
                 success = false;
             } else {
                 chunk_id_t cid(rit->chk_id);
@@ -117,14 +117,14 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
                 meta.stat = CHK_STAT_CREATED;
                 r = ms_->get_chunk_ms()->update(meta);
                 if (r != RC_SUCCESS) {
-                    fct_->log()->lerror("update chunk info faild: %llu", rit->chk_id);
+                    bct_->log()->lerror("update chunk info faild: %llu", rit->chk_id);
                     success = false;
                     continue;
                 }
                 hlt.chk_id = cid;
                 r = ms_->get_chunk_health_ms()->create(hlt);
                 if (r != RC_SUCCESS) {
-                    fct_->log()->lerror("create chunk health faild: %llu", rit->chk_id);
+                    bct_->log()->lerror("create chunk health faild: %llu", rit->chk_id);
                     success = false;
                 }
             }
@@ -135,7 +135,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     }
 
     if (!success) {
-        fct_->log()->lerror("create chunk faild");
+        bct_->log()->lerror("create chunk faild");
         return RC_FAILD;
     }
 
@@ -180,7 +180,7 @@ int ChunkManager::update_status(const list<chk_push_attr_t>& chk_list) {
         chunk_meta_t meta;
         r = ms_->get_chunk_ms()->get(meta, it->chk_id);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("chunk metastore get faild: %llu", it->chk_id);
+            bct_->log()->lerror("chunk metastore get faild: %llu", it->chk_id);
             success = false;
             continue;
         }
@@ -191,7 +191,7 @@ int ChunkManager::update_status(const list<chk_push_attr_t>& chk_list) {
 
         r = ms_->get_chunk_ms()->update(meta);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("chunk metastore update fiald: %llu", it->chk_id);
+            bct_->log()->lerror("chunk metastore update fiald: %llu", it->chk_id);
             success = false;
         }
     }
@@ -206,7 +206,7 @@ int ChunkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
         chunk_health_meta_t hlt;
         r = ms_->get_chunk_health_ms()->get(hlt, it->chk_id);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("chunk health metastore get faild: %llu", it->chk_id);
+            bct_->log()->lerror("chunk health metastore get faild: %llu", it->chk_id);
             success = false;
             continue;
         }
@@ -221,7 +221,7 @@ int ChunkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
 
         r = ms_->get_chunk_health_ms()->update(hlt);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("chunk metastore update fiald: %llu", it->chk_id);
+            bct_->log()->lerror("chunk metastore update fiald: %llu", it->chk_id);
             success = false;
         }
     }
@@ -229,12 +229,22 @@ int ChunkManager::update_health(const list<chk_hlt_attr_t>& chk_hlt_list) {
     return success ? RC_SUCCESS : RC_FAILD;
 }
 
-int ChunkManager::remove_bulk(const std::list<uint64_t>& chk_ids) {
+int ChunkManager::update_map(const list<chk_map_t>& chk_maps) {
+    int r;
+    for (auto it = chk_maps.begin(); it != chk_maps.end(); it++) {
+        // @@@ 缺乏事务机制
+        r = ms_->get_chunk_ms()->update_map(*it);
+        if (r != RC_SUCCESS) return r;
+    }
+    return RC_SUCCESS;
+}
+
+int ChunkManager::remove_bulk(const list<uint64_t>& chk_ids) {
     int r;
     list<chunk_meta_t> chks;
     r = ms_->get_chunk_ms()->list(chks, chk_ids);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("get chunks faild");
+        bct_->log()->lerror("get chunks faild");
         return r;
     }
 
@@ -246,7 +256,7 @@ int ChunkManager::remove_vol(uint64_t vol_id) {
     list<chunk_meta_t> chks;
     r = ms_->get_chunk_ms()->list(chks, vol_id);
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("get chunks faild");
+        bct_->log()->lerror("get chunks faild");
         return r;
     }
 
@@ -266,7 +276,7 @@ int ChunkManager::remove__(list<chunk_meta_t>& chks) {
         }
         r = ms_->get_chunk_ms()->update(*it);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("remove chunk from metastore faild: %llu", it->chk_id);
+            bct_->log()->lerror("remove chunk from metastore faild: %llu", it->chk_id);
             faild = true;
         }
     }
@@ -276,28 +286,28 @@ int ChunkManager::remove__(list<chunk_meta_t>& chks) {
         CsdHandle* hdl = csdm_->find(dit->first);
         if (hdl == nullptr) {
             // CSD宕机，暂时不做处理
-            fct_->log()->lerror("csd shutdown: %llu", dit->first);
+            bct_->log()->lerror("csd shutdown: %llu", dit->first);
             return RC_FAILD;
         }
 
         shared_ptr<CsdsClient> stub = hdl->get_client();
         if (stub.get() == nullptr) {
             // 连接断开
-            fct_->log()->lerror("stub shutdown: %llu", dit->first);
+            bct_->log()->lerror("stub shutdown: %llu", dit->first);
             return RC_FAILD;
         }
 
         list<chunk_bulk_res_t> res;
         r = stub->chunk_remove(res, dit->second);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("csds chunk_remove faild: %d", r);
+            bct_->log()->lerror("csds chunk_remove faild: %d", r);
             return RC_FAILD;
         }
 
         list<uint64_t> rm_chk_ids;
         for (auto rit = res.begin(); rit != res.end(); rit++) {
             if (rit->res != RC_SUCCESS) {
-                fct_->log()->lerror("csds chunk_remove faild with chunk: %llu : %d", rit->chk_id, rit->res);
+                bct_->log()->lerror("csds chunk_remove faild with chunk: %llu : %d", rit->chk_id, rit->res);
                 faild = true;
             } else {
                 rm_chk_ids.push_back(rit->chk_id);
@@ -306,14 +316,14 @@ int ChunkManager::remove__(list<chunk_meta_t>& chks) {
 
         r = ms_->get_chunk_ms()->remove_bulk(rm_chk_ids);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("remove chunks from metastore faild");
+            bct_->log()->lerror("remove chunks from metastore faild");
             faild = true;
             continue;
         }
 
         r = ms_->get_chunk_health_ms()->remove_bulk(rm_chk_ids);
         if (r != RC_SUCCESS) {
-            fct_->log()->lerror("remove chunk health from metastore faild");
+            bct_->log()->lerror("remove chunk health from metastore faild");
             faild = true;
         }
     }

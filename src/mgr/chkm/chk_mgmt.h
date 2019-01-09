@@ -1,7 +1,7 @@
 #ifndef FLAME_MGR_CHKM_H
 #define FLAME_MGR_CHKM_H
 
-#include "common/context.h"
+#include "mgr/mgr_context.h"
 #include "metastore/metastore.h"
 #include "include/meta.h"
 #include "mgr/csdm/csd_mgmt.h"
@@ -17,12 +17,11 @@ namespace flame {
 
 class ChunkManager final {
 public:
-    ChunkManager(FlameContext* fct, 
-        const std::shared_ptr<MetaStore>& ms, 
+    ChunkManager(MgrBaseContext* bct, 
         const std::shared_ptr<CsdManager>& csdm,
         const std::shared_ptr<layout::ChunkLayout>& layout,
         const std::shared_ptr<layout::ChunkHealthCaculator>& chk_hlt_calor)
-    : fct_(fct), ms_(ms), csdm_(csdm), layout_(layout), chk_hlt_calor_(chk_hlt_calor) {}
+    : bct_(bct), ms_(bct->ms()), csdm_(csdm), layout_(layout), chk_hlt_calor_(chk_hlt_calor) {}
 
     /**
      * @brief 批量创建Chunk
@@ -94,6 +93,14 @@ public:
      */
     int update_health(const std::list<chk_hlt_attr_t>& chk_hlt_list);
 
+    /**
+     * @brief 更新Chunk映射信息
+     * 
+     * @param chk_maps 
+     * @return int 
+     */
+    int update_map(const std::list<chk_map_t>& chk_maps);
+
     // // 获取指定csd的limit个写热点chunk的id和写次数
     // int chunk_get_hot(const std::map<uint64_t, uint64_t>& res, const uint64_t& csd_id, const uint16_t& limit, const uint32_t& spolicy_num);
 
@@ -105,7 +112,7 @@ public:
     int remove_vol(uint64_t vol_id);
     
 private:
-    FlameContext* fct_;
+    MgrBaseContext* bct_;
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdManager> csdm_;
     std::shared_ptr<layout::ChunkLayout> layout_;

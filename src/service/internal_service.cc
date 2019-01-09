@@ -1,5 +1,9 @@
 #include "internal_service.h"
 #include "include/retcode.h"
+#include "mgr/csdm/csd_mgmt.h"
+#include "mgr/chkm/chk_mgmt.h"
+#include "mgr/volm/vol_mgmt.h"
+#include "cluster/clt_mgmt.h"
 
 using grpc::ServerContext;
 using grpc::Status;
@@ -21,7 +25,7 @@ const RegisterRequest* request, RegisterReply* response)
     mt.admin_addr = request->admin_addr();
     mt.stat = request->stat();
 
-    mct_->log()->ldebug("internal_service", "csd register: csd_name(%s), size(%llu)",
+    mct_->log()->ltrace("internal_service", "csd register: csd_name(%s), size(%llu)",
         mt.csd_name.c_str(), mt.size
     );
 
@@ -45,7 +49,7 @@ const UnregisterRequest* request, InternalReply* response)
 {
     int r = mct_->csdm()->csd_unregister(request->csd_id());
     response->set_code(r);
-    mct_->log()->ldebug("internal_service", "csd (%llu) register: %d", request->csd_id(), r);
+    mct_->log()->ltrace("internal_service", "csd (%llu) register: %d", request->csd_id(), r);
     return Status::OK;
 }
     
@@ -60,7 +64,7 @@ const SignUpRequest* request, InternalReply* response)
     at.admin_addr = request->admin_addr();
     int r = mct_->csdm()->csd_sign_up(at); 
     response->set_code(r);
-    mct_->log()->ldebug("internal_service", "csd (%llu) sign up: %d", at.csd_id, r);
+    mct_->log()->ltrace("internal_service", "csd (%llu) sign up: %d", at.csd_id, r);
     return Status::OK;
 }
     
@@ -70,7 +74,7 @@ const SignOutRequest* request, InternalReply* response)
 {
     int r = mct_->csdm()->csd_sign_out(request->csd_id());
     response->set_code(r);
-    mct_->log()->ldebug("internal_service", "csd (%llu) sign out: %d", request->csd_id(), r);
+    mct_->log()->ltrace("internal_service", "csd (%llu) sign out: %d", request->csd_id(), r);
     return Status::OK;
 }
     
@@ -81,7 +85,7 @@ const HeartBeatRequest* request, InternalReply* response)
     // 心跳汇报改用pushStatus接口
     int r = mct_->cltm()->update_stat(request->csd_id(), CSD_STAT_ACTIVE);
     response->set_code(r);
-    mct_->log()->ldebug("internal_service", "csd (%llu) heart beat: %d", request->csd_id(), r);
+    mct_->log()->lprint("internal_service", "csd (%llu) heart beat: %d", request->csd_id(), r);
     return Status::OK;
 }
     
@@ -91,7 +95,7 @@ const StatusRequest* request, InternalReply* response)
 {
     int r = mct_->cltm()->update_stat(request->csd_id(), request->stat());
     response->set_code(r);
-    mct_->log()->ldebug("internal_service", "csd (%llu) push status (%u): %d", request->csd_id(), request->stat(), r);
+    mct_->log()->lprint("internal_service", "csd (%llu) push status (%u): %d", request->csd_id(), request->stat(), r);
     return Status::OK;
 }
     
@@ -111,6 +115,8 @@ const HealthRequest* request, InternalReply* response)
     csd_hlt.period.rd_cnt = request->last_read();
     csd_hlt.period.lat = request->last_latency();
     csd_hlt.period.alloc = request->last_alloc();
+
+    mct_->log()->ltrace("internal_service", "pushHealth csd(%llu)", csd_hlt.csd_id);
 
     // 更新csd的健康信息
     if ((r = mct_->csdm()->csd_health_update(csd_hlt.csd_id, csd_hlt)) != RC_SUCCESS) {
