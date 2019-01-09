@@ -6,6 +6,7 @@
 #include "internal/msg_buffer_list.h"
 #include "internal/node_addr.h"
 #include "internal/msg_config.h"
+#include "internal/types_helper.h"
 #include "internal/util.h"
 #include "msg_def.h"
 #include "msg_types.h"

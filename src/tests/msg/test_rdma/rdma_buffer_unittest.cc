@@ -20,6 +20,7 @@
 #define RDMA_MEM_MAX_LEVEL 21
 
 namespace flame {
+namespace msg{
 
 class RdmaBufferTest : public testing::Test{
     using RdmaBuffer = ib::RdmaBuffer;
@@ -39,7 +40,7 @@ protected:
         mct->config->rdma_mem_min_level = 10; // 1KB
         mct->config->rdma_mem_max_level = RDMA_MEM_MAX_LEVEL; 
 
-        if(mct->init(nullptr)){
+        if(mct->init(nullptr, nullptr)){
             return ;
         }
 
@@ -162,4 +163,5 @@ TEST_F(RdmaBufferTest, multi_thr_expand){
     MSTRM << "mr num: " << allocator->get_mr_num() << std::endl;
 }
 
+} //namespace msg
 } //namespace flame

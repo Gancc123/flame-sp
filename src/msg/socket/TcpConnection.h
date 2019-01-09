@@ -12,6 +12,7 @@
 #include <list>
 
 namespace flame{
+namespace msg{
 
 class TcpConnection : public Connection{
     std::list<Msg *> msg_list;
@@ -65,7 +66,7 @@ public:
     
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

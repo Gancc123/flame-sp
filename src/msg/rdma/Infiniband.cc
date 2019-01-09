@@ -9,6 +9,7 @@
 #include <sys/resource.h>
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 static const uint32_t MAX_SHARED_RX_SGE_COUNT = 1;
@@ -477,7 +478,7 @@ bool Infiniband::verify_prereq(MsgContext *mct) {
         init_prereq = false;
         return false;
     }
-    ML(mct, info, " rdma_enable_hugepage value is: {}", 
+    ML(mct, info, "rdma_enable_hugepage value is: {}", 
                                     mct->config->rdma_enable_hugepage);
     if(mct->config->rdma_enable_hugepage){
         rc =  setenv("RDMAV_HUGEPAGES_SAFE","1",1);
@@ -915,6 +916,6 @@ enum ibv_mtu Infiniband::ibv_mtu_enum(int mtu){
     }
 }
 
-
-}
-}
+} //namespace ib
+} //namespace msg
+} //namespace flame

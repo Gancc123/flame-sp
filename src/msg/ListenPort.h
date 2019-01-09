@@ -7,6 +7,7 @@
 #include "msg/event/event.h"
 
 namespace flame{
+namespace msg{
 
 class ListenPort : public EventCallBack{
     ListenPortListener *m_listener;
@@ -69,6 +70,7 @@ public:
     }
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

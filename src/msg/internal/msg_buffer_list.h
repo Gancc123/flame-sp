@@ -1,5 +1,5 @@
-#ifndef FLAME_MSG_INTERNAL_BUFFER_LIST_H
-#define FLAME_MSG_INTERNAL_BUFFER_LIST_H
+#ifndef FLAME_MSG_INTERNAL_MSG_BUFFER_LIST_H
+#define FLAME_MSG_INTERNAL_MSG_BUFFER_LIST_H
 
 #include "msg_buffer.h"
 #include <cstring>
@@ -9,9 +9,8 @@
 #include <algorithm>
 #include <iterator>
 
-#define FLAME_BUFFER_LIST_UNIT_SIZE 1024
-
 namespace flame{
+namespace msg{
 
 class MsgBufferList{
     std::list<MsgBuffer> m_buffer_list;
@@ -331,7 +330,7 @@ public:
         end_it = m_buffer_list.begin();
     };
 
-    explicit FixedMsgBufferList() : FixedMsgBufferList(FLAME_BUFFER_LIST_UNIT_SIZE){};
+    explicit FixedMsgBufferList() : FixedMsgBufferList(1024){};
 
     explicit FixedMsgBufferList(FixedMsgBufferList &&o) noexcept{
         m_buffer_list.swap(o.m_buffer_list);
@@ -603,6 +602,7 @@ public:
 
 };
 
+} // namespace msg
 } // namespace flame
 
-#endif
+#endif //FLAME_MSG_INTERNAL_MSG_BUFFER_LIST_H

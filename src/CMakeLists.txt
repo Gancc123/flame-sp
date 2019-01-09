@@ -1,5 +1,7 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-security")
+
 # requeired by spdlog
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
@@ -60,10 +62,10 @@ set(msg_common_srcs
     msg/internal/errno.cc
     msg/internal/node_addr.cc
     msg/internal/msg_config.cc
+    msg/internal/types_helper.cc
     msg/internal/util.cc
     msg/NetHandler.cc
     msg/event/EventPoller.cc
-    msg/msg_types.cc
     msg/Msg.cc
     msg/MsgWorker.cc
     msg/Connection.cc
@@ -71,7 +73,8 @@ set(msg_common_srcs
     msg/MsgManager.cc
     msg/socket/TcpListenPort.cc
     msg/socket/TcpConnection.cc
-    msg/socket/TcpStack.cc)
+    msg/socket/TcpStack.cc
+    msg/dispatcher/MsgDispatcher.cc)
 
 set(msg_rdma_common_srcs)
 if(HAVE_RDMA)

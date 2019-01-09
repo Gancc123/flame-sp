@@ -8,6 +8,7 @@
 #include <algorithm>
 
 namespace flame{
+namespace msg{
 
 void RdmaConnection::read_cb(){
     // if(!this->get_owner()->am_self()){
@@ -780,5 +781,5 @@ void RdmaConnection::fault(){
     
 }
 
-
-}
+} //namespace msg
+} //namespace flame

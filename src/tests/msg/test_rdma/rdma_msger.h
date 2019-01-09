@@ -5,6 +5,7 @@
 #include "util/clog.h"
 
 namespace flame{
+namespace msg{
 
 class RdmaMsger : public MsgerCallback{
     MsgContext *mct;
@@ -55,6 +56,7 @@ void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
     return;
 }
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif 

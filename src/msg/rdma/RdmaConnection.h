@@ -11,6 +11,7 @@
 #include <functional>
 
 namespace flame{
+namespace msg{
 
 class RdmaWorker;
 struct RdmaRwWork;
@@ -132,6 +133,7 @@ public:
 
 };
 
-} // flame
+} //namespace msg
+} //namespace flame
 
 #endif

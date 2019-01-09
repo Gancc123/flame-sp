@@ -5,6 +5,7 @@
 #include "Message.h"
 #include "Stack.h"
 #include "MsgManager.h"
+#include "msg/dispatcher/MsgDispatcher.h"
 
 #ifdef HAVE_RDMA
     #include "msg/rdma/RdmaStack.h"
@@ -15,6 +16,7 @@
 #include <string>
 
 namespace flame{
+namespace msg{
 
 msg_log_level_t g_msg_log_level = msg_log_level_t::print;
 
@@ -28,7 +30,7 @@ int MsgContext::load_config(){
     return 0;
 }
 
-int MsgContext::init(MsgerCallback *msger_cb){
+int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
     //fct can't be null.
     if(fct == nullptr) return -1;
 
@@ -39,6 +41,19 @@ int MsgContext::init(MsgerCallback *msger_cb){
     }
 
     g_msg_log_level = config->msg_log_level;
+
+    if(msger_cb == nullptr){
+        ML(this, info, "init MsgDispatcher");
+        dispatcher = new MsgDispatcher(this);
+        msger_cb = dispatcher;
+    }else{
+        ML(this, info, "use custome MsgerCallback, not init MsgDispatcher.");
+    }
+
+    csd_addr_resolver = r;
+    if(csd_addr_resolver == nullptr){
+        ML(this, warn, "CsdAddrResolver is null, can't resolve csd addrs!");
+    }
 
     MsgManager *msg_manager = new MsgManager(this);
     msg_manager->set_msger_cb(msger_cb);
@@ -107,13 +122,24 @@ int MsgContext::fin(){
     Stack::fin_all_stack();
     ML(this, trace, "after fin all stack.");
 
-    delete manager;
-    manager = nullptr;
-    delete config;
-    config = nullptr;
+    if(manager){
+        delete manager;
+        manager = nullptr;
+    }
+
+    if(dispatcher){
+        delete dispatcher;
+        dispatcher = nullptr;
+    }
+    
+    if(config){
+        delete config;
+        config = nullptr;
+    }
 
     return 0;
 }
 
 
-}
+} //namespace msg
+} //namespace flame

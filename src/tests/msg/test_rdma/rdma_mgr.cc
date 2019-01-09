@@ -7,7 +7,8 @@
 #include <unistd.h>
 #include <cstdio>
 
-using namespace flame;
+using FlameContext = flame::FlameContext;
+using namespace flame::msg;
 
 #define CFG_PATH "flame_mgr.cfg"
 
@@ -30,7 +31,7 @@ int main(){
     auto incre_msger = new IncreMsger(mct);
 
     ML(mct, info, "before msg module init");
-    mct->init(incre_msger);
+    mct->init(incre_msger, nullptr);
     ML(mct, info, "after msg module init");
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,

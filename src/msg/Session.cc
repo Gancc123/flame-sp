@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 namespace flame{
+namespace msg{
 
 Connection* Session::get_conn(msg_ttype_t ttype, uint8_t sl){
     MutexLocker l(conns_mutex);
@@ -76,5 +77,5 @@ std::string Session::to_string() const {
     return s;
 }
 
-
-}
+} //namespace msg
+} //namespace flame

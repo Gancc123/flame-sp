@@ -8,6 +8,7 @@
 #include "msg/internal/errno.h"
 
 namespace flame{
+namespace msg{
 
 EventPoller::EventPoller(MsgContext *c, int nevent)
 :mct(c), events(new struct epoll_event[nevent]), size(nevent), ecb_map(),
@@ -126,5 +127,5 @@ int EventPoller::process_events(std::vector<FiredEvent> &fired_events,
     return numevents;
 }
 
-
-}
+} //namespace msg
+} //namespace flame

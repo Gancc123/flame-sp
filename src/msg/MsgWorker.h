@@ -12,8 +12,8 @@
 #include <functional>
 #include <chrono>
 
-
 namespace flame{
+namespace msg{
 
 typedef std::function<void(void)> work_fn_t;
 
@@ -36,12 +36,57 @@ struct HandleNotifyCallBack : public EventCallBack{
     virtual void read_cb() override;
 };
 
+enum class msg_worker_type_t{
+    UNKNOWN = 0,
+    THREAD = 1,
+    SPDK = 2
+};
 
 class MsgWorker{
+protected:
+    int index;
+    MsgContext *mct;
+public:
+    explicit MsgWorker(MsgContext *c, int i)
+    : mct(c), index(i) {};
+    virtual ~MsgWorker() {};
+
+    virtual msg_worker_type_t type() const { 
+        return msg_worker_type_t::UNKNOWN; 
+    }
+
+    virtual int get_job_num() = 0;
+    virtual void update_job_num(int v) = 0;
+
+    virtual int get_event_num() = 0;
+    virtual int add_event(EventCallBack *ecb) = 0;
+    virtual int del_event(int fd) = 0;
+
+    virtual void wakeup() = 0;
+
+    virtual bool am_self() const = 0;
+
+    int get_id() const{ return index; }
+    virtual std::string get_name() const = 0;
+
+    virtual uint64_t post_time_work(uint64_t microseconds, 
+                                    work_fn_t work_fn) = 0;
+    virtual void cancel_time_work(uint64_t time_work_id) = 0;
+    virtual void post_work(work_fn_t work) = 0;
+
+    virtual void start() = 0;
+    virtual void stop() = 0;
+    
+    virtual bool running() const = 0;
+
+    virtual void process() = 0;
+    virtual void drain() = 0;
+};
+
+
+class ThrMsgWorker : public MsgWorker{
     using time_point = std::chrono::steady_clock::time_point;
     using clock_type = std::chrono::steady_clock;
-    MsgContext *mct;
-    int index;
     std::string name;
 
     EventPoller event_poller;
@@ -72,50 +117,52 @@ class MsgWorker{
 public:
     friend class MsgWorkerThread;
 
-    explicit MsgWorker(MsgContext *c, int i);
-    ~MsgWorker();
+    explicit ThrMsgWorker(MsgContext *c, int i);
+    ~ThrMsgWorker();
 
-    int get_job_num();
-    void update_job_num(int v);
+    virtual msg_worker_type_t type() const override{
+        return msg_worker_type_t::THREAD;
+    }
 
-    int get_event_num();
-    int add_event(EventCallBack *ecb);
-    int del_event(int fd);
+    virtual int get_job_num() override;
+    virtual void update_job_num(int v) override;
 
-    void wakeup();
-    bool am_self() const{
+    virtual int get_event_num() override;
+    virtual int add_event(EventCallBack *ecb) override;
+    virtual int del_event(int fd) override;
+
+    virtual void wakeup() override;
+    virtual bool am_self() const override{
         return worker_thread.am_self();
     }
-    int get_id() const{
-        return index;
-    }
 
-    std::string get_name() const{
+    virtual std::string get_name() const override{
         return name;
     }
 
-    uint64_t post_time_work(uint64_t microseconds, work_fn_t work_fn);
+    virtual uint64_t post_time_work(uint64_t microseconds, 
+                                    work_fn_t work_fn) override;
     
     /***
      * 不保证一定能及时取消掉time_work
      */
-    void cancel_time_work(uint64_t time_work_id);
+    virtual void cancel_time_work(uint64_t time_work_id) override;
 
-    void post_work(work_fn_t work);
+    virtual void post_work(work_fn_t work) override;
 
-    void start();
-    void stop();
-    bool running() const{
+    virtual void start() override;
+    virtual void stop() override;
+    virtual bool running() const override{
         return is_running.load();
     }
 
-    void process();
-    void drain();
+    virtual void process() override;
+    virtual void drain() override;
 
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 
 #endif

@@ -10,6 +10,7 @@
 #include <cassert>
 
 namespace flame{
+namespace msg{
 
 void RdmaTxCqNotifier::read_cb() {
     worker->process_cq_dry_run();
@@ -672,4 +673,5 @@ ib::RdmaBufferAllocator *RdmaStack::get_rdma_allocator() {
     return manager->get_ib().get_memory_manager()->get_rdma_allocator();
 }
 
-}
+} //namespace msg
+} //namespace flame

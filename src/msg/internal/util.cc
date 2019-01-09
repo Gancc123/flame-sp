@@ -4,6 +4,7 @@
 #include <regex>
 
 namespace flame{
+namespace msg{
 
 std::string str2upper(const std::string &v){
     std::string r_str = v;
@@ -53,4 +54,5 @@ uint32_t gen_rand_seq(){
     return (uint32_t)std::rand();
 }
 
+} //namespace msg
 } //namespace flame

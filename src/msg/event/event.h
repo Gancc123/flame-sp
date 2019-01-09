@@ -12,6 +12,7 @@
 #define FLAME_EVENT_ERROR      0x4
 
 namespace flame{
+namespace msg{
 
 struct EventCallBack : public RefCountedObject{
     uint64_t fd;
@@ -32,6 +33,7 @@ struct FiredEvent{
     struct EventCallBack *ecb;
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif //FLAME_MSG_EVENT_EVENT_H

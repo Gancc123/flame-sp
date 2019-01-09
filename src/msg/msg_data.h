@@ -18,6 +18,7 @@
 #define M_DECODE(it, data) (it).copy(&(data), sizeof(data))
 
 namespace flame{
+namespace msg{
 
 #ifdef HAVE_RDMA
 struct msg_rdma_header_d : public MsgData{
@@ -89,11 +90,13 @@ struct msg_declare_id_d : public MsgData{
     msger_id_t msger_id;
     bool has_tcp_lp = false;
     bool has_rdma_lp = false;
-    node_addr_t tcp_listen_addr;
-    node_addr_t rdma_listen_addr;
+    msg_node_addr_t tcp_listen_addr;
+    msg_node_addr_t rdma_listen_addr;
 
     virtual size_t size() override {
-        return sizeof(msger_id_t) + sizeof(bool) * 2 + sizeof(node_addr_t) * 2;
+        return sizeof(msger_id_t) 
+                + sizeof(bool) * 2 
+                + sizeof(msg_node_addr_t) * 2;
     }
 
     virtual int encode(MsgBufferList& bl) override{
@@ -127,8 +130,8 @@ struct msg_declare_id_d : public MsgData{
 };
 
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #undef M_ENCODE
 #undef M_DECODE

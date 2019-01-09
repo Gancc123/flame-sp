@@ -5,6 +5,7 @@
 #include <functional>
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 typedef std::function<void(void *)> lfl_del_cb_t;
@@ -67,7 +68,8 @@ public:
 
 };
 
-}// ib
-}// flame
+}// namespace ib
+}// namespace msg
+}// namespace flame
 
 #endif //FLAME_MSG_RDMA_LOCK_FREE_LIST_H

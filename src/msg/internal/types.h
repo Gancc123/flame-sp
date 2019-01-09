@@ -3,10 +3,13 @@
 
 #include "int_types.h"
 
+namespace flame{
+namespace msg{
+
 /**
  * Node Addr
  */
-struct node_addr_t {
+struct msg_node_addr_t {
     uint8_t     ttype;      // transport type
     uint8_t     addr_type;
     uint16_t    port;
@@ -67,9 +70,14 @@ struct flame_msg_rdma_mr_t{
     __le32 len;
 } __attribute__ ((packed));
 
+
 struct msger_id_t {
-    unsigned long ip; // just for ipv4
-    unsigned short port; // port
+    uint32_t ip; // just for ipv4
+    uint16_t port; // port
 } __attribute__((packed));
+
+
+} //namespace msg
+} //namespace flame
 
 #endif //FLAME_MSG_INTERNAL_TYPES_H

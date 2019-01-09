@@ -6,15 +6,14 @@
 
 #include "util/fmt.h"
 
+#include <memory>
+
 #define MESSAGE_RESERVED_LEN 32
 #define MESSAGE_COMPID_BITLEN 48
 #define MESSAGE_COMPID_MASK 0xFFFFFFFFFFFFULL
 
 namespace flame {
-
-#ifdef HAVE_RDMA
-class RdmaBuffer;
-#endif
+namespace msg{
 
 struct message_header_t {
     // component addr
@@ -60,8 +59,6 @@ enum MessageFlags {
     // and len include the size of reserved space.
     // 0 means that len don't include the size of reserved space.
     RESERVED = 0x2,
-    // has rdma buffer
-    RDMA = 0x3,
 
 }; // enum ReqFlags
 
@@ -142,7 +139,6 @@ public:
     bool is_req() const { return !flags(MessageFlags::REQ_RES); }
     bool is_res() const { return flags(MessageFlags::REQ_RES); }
     bool reserved_used() const { return flags(MessageFlags::RESERVED); }
-    bool has_rdma() const { return flags(MessageFlags::RDMA); }
 
     // arg
     uint16_t arg() const { return header_.arg; }
@@ -164,21 +160,10 @@ public:
     //     bytes_reverse_32(header_.len);
     // }
 
-    //MsgBufferList buff_header() const { return MsgBufferList(BufferPtr(&header_, sizeof(header_))); }
-    //virtual MsgBufferList buff_content() { return MsgBufferList(); }
+    //BufferList buff_header() const { return BufferList(BufferPtr(&header_, sizeof(header_))); }
+    //virtual BufferList buff_content() { return BufferList(); }
 
     message_header_t &get_header() { return header_; }
-
-#ifdef HAVE_RDMA
-private:
-    bool rdma_fetch = false;
-public:
-    bool is_rdma_fetch() const { return rdma_fetch; }
-    void set_rdma_fetch(bool v) { rdma_fetch = v; }
-    uint32_t imm_data;
-    std::vector<RdmaBuffer *> rdma_rbufs;
-    std::vector<RdmaBuffer *> rdma_lbufs;
-#endif 
 
     std::string to_string() const{
         auto s = fmt::format("[Message src {:x} dst{:x} {}[({:p})]",
@@ -194,6 +179,9 @@ protected:
     message_header_t header_;
 }; 
 
-} // namespace flame
+typedef std::shared_ptr<Message> MessagePtr;
+
+} //namespace msg
+} //namespace flame
 
 #endif // FLAME_MSG_MESSAGE_h

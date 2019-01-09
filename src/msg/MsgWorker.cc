@@ -10,6 +10,7 @@
 
 
 namespace flame{
+namespace msg{
 
 void MsgWorkerThread::entry(){
     worker->process();
@@ -32,7 +33,7 @@ void HandleNotifyCallBack::read_cb(){
 }
 
 
-int MsgWorker::set_nonblock(int sd){
+int ThrMsgWorker::set_nonblock(int sd){
     int flags;
     int r = 0;
 
@@ -55,12 +56,12 @@ int MsgWorker::set_nonblock(int sd){
     return 0;
 }
 
-MsgWorker::MsgWorker(MsgContext *c, int i)
-: mct(c), index(i), event_poller(c, 128), worker_thread(this), 
+ThrMsgWorker::ThrMsgWorker(MsgContext *c, int i)
+: MsgWorker(c, i), event_poller(c, 128), worker_thread(this), 
     is_running(false), extra_job_num(0), external_mutex(), external_num(0),
     time_work_next_id(1){
     int r;
-    name = "MsgWorker" + std::to_string(i);
+    name = "ThrMsgWorker" + std::to_string(i);
 
     int fds[2];
     if (pipe(fds) < 0) {
@@ -86,37 +87,37 @@ MsgWorker::MsgWorker(MsgContext *c, int i)
     notify_cb->put();
 }
 
-MsgWorker::~MsgWorker(){
+ThrMsgWorker::~ThrMsgWorker(){
     if (notify_receive_fd >= 0)
         ::close(notify_receive_fd);
     if (notify_send_fd >= 0)
         ::close(notify_send_fd);
 }
 
-int MsgWorker::get_job_num(){
+int ThrMsgWorker::get_job_num(){
     return event_poller.get_event_num() + extra_job_num;
 }
 
-void MsgWorker::update_job_num(int v){
+void ThrMsgWorker::update_job_num(int v){
     extra_job_num += v;
     if(extra_job_num < 0)
         extra_job_num = 0;
 }
 
-int MsgWorker::get_event_num() {
+int ThrMsgWorker::get_event_num() {
     return event_poller.get_event_num();
 }
 
-int MsgWorker::add_event(EventCallBack *ecb){
+int ThrMsgWorker::add_event(EventCallBack *ecb){
     return event_poller.set_event(ecb->fd, ecb);
 }
 
-int MsgWorker::del_event(int fd){
+int ThrMsgWorker::del_event(int fd){
     return event_poller.del_event(fd);
 }
 
 
-void MsgWorker::wakeup(){
+void ThrMsgWorker::wakeup(){
     char buf = 'c';
     // wake up "event_wait"
     int n = write(notify_send_fd, &buf, sizeof(buf));
@@ -128,7 +129,7 @@ void MsgWorker::wakeup(){
     }
 }
 
-void MsgWorker::add_time_work(time_point expire, work_fn_t work_fn, 
+void ThrMsgWorker::add_time_work(time_point expire, work_fn_t work_fn, 
                                                                 uint64_t id){
     assert(worker_thread.am_self());
     std::multimap<time_point, std::pair<uint64_t, work_fn_t>>::value_type 
@@ -137,7 +138,7 @@ void MsgWorker::add_time_work(time_point expire, work_fn_t work_fn,
     tw_map[id] = it;
 }
 
-void MsgWorker::del_time_work(uint64_t time_work_id){
+void ThrMsgWorker::del_time_work(uint64_t time_work_id){
     assert(worker_thread.am_self());
     ML(mct, trace, "id={}", time_work_id);
     auto it = tw_map.find(time_work_id);
@@ -149,7 +150,7 @@ void MsgWorker::del_time_work(uint64_t time_work_id){
     tw_map.erase(it);
 }
 
-uint64_t MsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
+uint64_t ThrMsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
     uint64_t id = time_work_next_id++;
     auto now = clock_type::now();
     ML(mct, trace, "id={} trigger after {} us", id, microseconds);
@@ -164,7 +165,7 @@ uint64_t MsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
     return id;
 }
 
-void MsgWorker::cancel_time_work(uint64_t id){
+void ThrMsgWorker::cancel_time_work(uint64_t id){
     if(worker_thread.am_self()){
         del_time_work(id);
     }else{
@@ -174,7 +175,7 @@ void MsgWorker::cancel_time_work(uint64_t id){
     }
 }
 
-void MsgWorker::post_work(work_fn_t work_fn){
+void ThrMsgWorker::post_work(work_fn_t work_fn){
     bool wake = false;
     uint64_t num = 0;
     {
@@ -188,13 +189,13 @@ void MsgWorker::post_work(work_fn_t work_fn){
     ML(mct, debug, "{} pending {}", this->name, num);
 }
 
-void MsgWorker::start(){
+void ThrMsgWorker::start(){
     is_running = true;
     worker_thread.create(name.c_str());
     ML(mct, debug, "{} worker thread created", this->name);
 }
 
-void MsgWorker::stop(){
+void ThrMsgWorker::stop(){
     is_running = false;
     wakeup();
     worker_thread.join();
@@ -204,7 +205,7 @@ void MsgWorker::stop(){
     external_num = 0;
 }
 
-int MsgWorker::process_time_works(){
+int ThrMsgWorker::process_time_works(){
     int processed = 0;
     time_point now = clock_type::now();
     // ML(mct, trace, "cur time is {} us", 
@@ -230,7 +231,7 @@ int MsgWorker::process_time_works(){
     return processed;
 }
 
-void MsgWorker::process(){
+void ThrMsgWorker::process(){
     ML(mct, debug, "{} start", this->name);
     std::vector<FiredEvent> fevents;
     struct timeval timeout;
@@ -321,7 +322,7 @@ void MsgWorker::process(){
 
 }
 
-void MsgWorker::drain(){
+void ThrMsgWorker::drain(){
     // only executed when stop.
     if(is_running) return;
     int total = 0;
@@ -352,5 +353,5 @@ void MsgWorker::drain(){
     ML(mct, trace, "{} drain done. total: {}", this->name, total);
 }
 
-
-}
+} //namespace msg
+} //namespace flame

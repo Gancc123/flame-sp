@@ -1,10 +1,11 @@
-#ifndef FLAME_MSG_INTERNAL_BUFFER_H
-#define FLAME_MSG_INTERNAL_BUFFER_H
+#ifndef FLAME_MSG_INTERNAL_MSG_BUFFER_H
+#define FLAME_MSG_INTERNAL_MSG_BUFFER_H
 
 #include <stdlib.h>
 #include <functional>
 
 namespace flame{
+namespace msg{
 
 class MsgBuffer{
     char *m_data;
@@ -93,6 +94,7 @@ public:
     }
 };
 
+} //namespace msg
 } //namespace flame
 
-#endif //FLAME_MSG_INTERNAL_BUFFER_H
+#endif //FLAME_MSG_INTERNAL_MSG_BUFFER_H
