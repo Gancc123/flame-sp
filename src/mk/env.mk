@@ -19,6 +19,7 @@ DSPOLICY = $(ROOT)/spolicy
 CC = gcc
 CXX = g++
 
+AIOLIBS = -laio
 THREADLIBS	= -lpthread
 CXXFLAGS = -std=c++11
 DBGFLAGS = -g -std=c++11

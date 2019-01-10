@@ -15,7 +15,7 @@ $(DSERVICE)/csds_service.o
 all: csd
 
 csd: $(OBJ_CSD) $(OBJ_COMMON) $(OBJ_CHUNKSTORE) $(OBJ_PROTO) $(OBJ_UTIL) $(OBJ_WORK) $(OBJ_DEPS)
-	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(GRPC_LDFLAGS)  
+	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(GRPC_LDFLAGS) $(AIOLIBS)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -c $(ISRC) $(GRPC_LDFLAGS)
