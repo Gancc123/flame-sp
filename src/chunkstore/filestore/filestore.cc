@@ -112,6 +112,17 @@ int FileStore::get_info(cs_info_t &info) const {
     info.chk_num = total_chunks.load(std::memory_order_relaxed);
 }
 
+int FileStore::set_info(const cs_info_t& info) {
+    id = info.id;
+    cluster_name = info.cluster_name;
+    name = info.name;
+    ftime = info.ftime;
+
+    size.store(info.size, std::memory_order_relaxed);
+    used.store(info.used, std::memory_order_relaxed);
+    total_chunks.store(info.chk_num, std::memory_order_relaxed);
+}
+
 FileStore* FileStore::create_filestore(FlameContext *fct, const std::string& url) {
     std::string pstr = "^(\\w+)://(.+)";
     std::regex pattern(pstr);

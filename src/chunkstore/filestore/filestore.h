@@ -83,8 +83,8 @@
 #define CHUNK_OP_READ   0x01
 #define CHUNK_OP_WRITE  0x02
 
-#define CHUNKSTORE_IO_MODE_SYNC     0x01
-#define CHUNKSTORE_IO_MODE_ASYNC    0x02
+#define CHUNKSTORE_IO_MODE_SYNC     0x00
+#define CHUNKSTORE_IO_MODE_ASYNC    0x01
 
 #define CHUNK_CREATE_WITH_OPEN      0x01
 
@@ -303,6 +303,7 @@ public:
 
     //接口函数
     int get_info(cs_info_t& info) const;
+    int set_info(const cs_info_t& info);
     std::string get_driver_name() const;
     std::string get_config_info() const;
     std::string get_runtime_info() const;
