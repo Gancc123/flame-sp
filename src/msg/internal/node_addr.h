@@ -14,6 +14,7 @@
 #include <cassert>
 
 namespace flame{
+namespace msg{
 
 template<class T>
 struct compare_in_ptr{
@@ -37,10 +38,18 @@ public:
     : RefCountedObject(mct){
         std::memset(&u, 0, sizeof(u)); // !important for compare
     }
-    explicit NodeAddr(MsgContext *mct, struct node_addr_t &addr)
+    explicit NodeAddr(MsgContext *mct, struct msg_node_addr_t &addr)
     : RefCountedObject(mct){
         // will clean this->u.
         decode(&addr, sizeof(addr));
+    }
+
+    explicit NodeAddr(MsgContext *mct, uint64_t na){
+        node_addr_t addr(na);
+        std::memset(&u, 0, sizeof(u)); // !important for compare
+        u.sa.sa_family = AF_INET;
+        u.sin.sin_port = htons(addr.get_port());
+        u.sin.sin_addr.s_addr = addr.get_ip();
     }
 
     explicit NodeAddr(MsgContext *mct, NodeAddr &addr)
@@ -235,7 +244,7 @@ public:
 };
 
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

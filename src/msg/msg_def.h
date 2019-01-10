@@ -5,6 +5,7 @@
 #include "util/fmt.h"
 
 namespace flame{
+namespace msg{
 
 enum class msg_log_level_t : uint8_t{
     dead      = 0,
@@ -22,7 +23,8 @@ enum class msg_log_level_t : uint8_t{
 
 extern msg_log_level_t g_msg_log_level;
 
-}
+} //namespace msg
+} //namespace flame
 
 #define MSG_LOG_COMMON(level, s)  l##level("msg", "%s", s)
 #define MSG_KLOG_COMMON(level, s) k##level("msg", "%s", s)
@@ -36,7 +38,7 @@ extern msg_log_level_t g_msg_log_level;
 
     #define ML(mct, level, fmt_, ...)\
             do{\
-                using flame::g_msg_log_level;\
+                using flame::msg::g_msg_log_level;\
                 if((mct) && g_msg_log_level >= msg_log_level_t::level)\
                     (mct)->fct->log()->MSG_LOG_COMMON(level, \
                                     fmt::format(fmt_, ## __VA_ARGS__).c_str());\
@@ -44,7 +46,7 @@ extern msg_log_level_t g_msg_log_level;
 
     #define MLI(mct, level, fmt_, ...)\
             do{\
-                using flame::g_msg_log_level;\
+                using flame::msg::g_msg_log_level;\
                 if((mct) && g_msg_log_level >= msg_log_level_t::level)\
                     (mct)->fct->log()->MSG_LOG_COMMON(level, \
                                 fmt::format("{:p} " fmt_, (void *)this, \
@@ -53,7 +55,7 @@ extern msg_log_level_t g_msg_log_level;
 
     #define MKL(mct, level, fmt_, ...)\
             do{\
-                using flame::g_msg_log_level;\
+                using flame::msg::g_msg_log_level;\
                 if((mct) && g_msg_log_level >= msg_log_level_t::level)\
                     (mct)->fct->log()->MSG_KLOG_COMMON(level, \
                                     fmt::format(fmt_, ## __VA_ARGS__).c_str());\
@@ -61,7 +63,7 @@ extern msg_log_level_t g_msg_log_level;
 
     #define MKLI(mct, level, fmt_, ...)\
             do{\
-                using flame::g_msg_log_level;\
+                using flame::msg::g_msg_log_level;\
                 if((mct) && flame::g_msg_log_level >= msg_log_level_t::level)\
                     (mct)->fct->log()->MSG_KLOG_COMMON(level, \
                                 fmt::format("{:p} " fmt_, (void *)this, \

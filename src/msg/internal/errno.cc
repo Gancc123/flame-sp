@@ -4,6 +4,9 @@
 #include <sstream>
 #include <string.h>
 
+namespace flame{
+namespace msg{
+
 std::string cpp_strerror(int err)
 {
   char buf[128];
@@ -26,3 +29,6 @@ std::string cpp_strerror(int err)
 
   return oss.str();
 }
+
+} //namespace msg
+} //namespace flame

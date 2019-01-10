@@ -5,6 +5,7 @@
 #include "msg/ListenPort.h"
 
 namespace flame{
+namespace msg{
 
 class TcpListenPort : public ListenPort{
     TcpListenPort(MsgContext *mct, NodeAddr *listen_addr);
@@ -21,6 +22,7 @@ public:
     virtual void error_cb() override;
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

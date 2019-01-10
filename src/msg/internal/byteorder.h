@@ -5,6 +5,8 @@
 #include "int_types.h"
 #include <arpa/inet.h>
 
+namespace flame{
+namespace msg{
 
 #ifdef __GNUC__
 template<typename T>
@@ -92,6 +94,9 @@ inline __u16 init_le16(__u16 x) {
     return mswab<__u16>(x);
 }
 
+} //namespace msg
+} //namespace flame
+
   
 #define cpu_to_le64(x) (mswab((uint64_t)x))
 #define cpu_to_le32(x) (mswab((__u32)x))
@@ -100,3 +105,4 @@ inline __u16 init_le16(__u16 x) {
 #define le64_to_cpu(x) (mswab((uint64_t)x))
 #define le32_to_cpu(x) (mswab((__u32)x))
 #define le16_to_cpu(x) (mswab((__u16)x))
+

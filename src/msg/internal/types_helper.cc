@@ -1,13 +1,18 @@
-#include "msg_types.h"
-#include "msg_def.h"
+#include "types_helper.h"
+
+#include "msg/msg_def.h"
 #include "util/fmt.h"
 
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
 #include <cstdlib>
+#include <cstring>
+
 
 namespace flame{
+namespace msg{
 
 std::string msger_id_to_str(msger_id_t msger_id){
     auto s = fmt::format("[msger_id {} {}]", msger_id.ip, msger_id.port);
@@ -24,7 +29,7 @@ NodeAddr *node_addr_from_msger_id(MsgContext *mct, msger_id_t id){
     return node_addr;
 }
 
-msger_id_t msger_id_from_node_addr(NodeAddr *addr){
+msger_id_t msger_id_from_msg_node_addr(NodeAddr *addr){
     msger_id_t msger_id;
     std::memcpy(&msger_id.ip, &addr->in4_addr().sin_addr,
                                              sizeof(msger_id.ip));
@@ -55,4 +60,5 @@ std::string conn_id_t::to_string() const{
     return s;
 }
 
-}
+} //namespace msg
+} //namespace flame

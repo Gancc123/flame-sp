@@ -6,6 +6,7 @@
 #define M_DECODE(it, data) (it).copy(&(data), sizeof(data))
 
 namespace flame {
+namespace msg{
 
 struct msg_incre_d : public MsgData{
     int num;
@@ -49,6 +50,7 @@ void IncreMsger::on_conn_recv(Connection *conn, Msg *msg){
     return;
 }
 
+} //namespace msg
 } //namespace flame
 
 #undef M_ENCODE

@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 namespace flame{
+namespace msg{
 
 TcpListenPort::TcpListenPort(MsgContext *mct, NodeAddr *listen_addr)
 :ListenPort(mct, listen_addr){
@@ -113,4 +114,5 @@ void TcpListenPort::error_cb(){
     }
 }
 
-}
+} //namespace msg
+} //namespace flame

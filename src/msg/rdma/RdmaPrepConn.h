@@ -10,6 +10,7 @@
 #include <string>
 
 namespace flame{
+namespace msg{
 
 class RdmaConnection;
 class RdmaListenPort;
@@ -60,7 +61,7 @@ public:
 };
 
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

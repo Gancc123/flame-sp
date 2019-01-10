@@ -12,6 +12,7 @@
 #include "msg/event/event.h"
 
 namespace flame{
+namespace msg{
 
 class Session;
 
@@ -115,6 +116,7 @@ public:
 
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

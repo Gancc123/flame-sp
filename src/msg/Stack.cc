@@ -9,6 +9,7 @@
 #endif
 
 namespace flame{
+namespace msg{
 
 MsgContext *Stack::mct = nullptr;
 
@@ -66,4 +67,5 @@ RdmaStack* Stack::get_rdma_stack(){
 }
 #endif
 
-}
+} //namespace msg
+} //namespace flame

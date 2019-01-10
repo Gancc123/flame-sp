@@ -16,6 +16,7 @@
   (((x) + HUGE_PAGE_SIZE -1) / HUGE_PAGE_SIZE * HUGE_PAGE_SIZE)
 
 namespace flame{
+namespace msg{
 namespace ib{
 
 Chunk::Chunk(uint32_t len)
@@ -288,5 +289,6 @@ uint64_t MemoryManager::calcu_init_space(MsgContext *mct){
 }
 
 
-}
-}
+} //namespace ib
+} //namespace msg
+} //namespace flame

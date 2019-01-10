@@ -12,6 +12,7 @@
 #include "msg/msg_context.h"
 
 namespace flame{
+namespace msg{
 
 class EventPoller{
     MsgContext *mct;
@@ -31,6 +32,7 @@ public:
     ~EventPoller();
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif //FLAME_MSG_EVENT_EVENT_POLLER_H

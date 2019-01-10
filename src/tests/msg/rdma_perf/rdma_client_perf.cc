@@ -9,7 +9,8 @@
 #include <cstdio>
 #include <string>
 
-using namespace flame;
+using FlameContext = flame::FlameContext;
+using namespace flame::msg;
 
 perf_config_t global_config;
 
@@ -17,7 +18,7 @@ void send_first_msg(MsgContext *mct){
     NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(6666);
-    msger_id_t msger_id = msger_id_from_node_addr(addr);
+    msger_id_t msger_id = msger_id_from_msg_node_addr(addr);
     auto session = mct->manager->get_session(msger_id);
     NodeAddr *rdma_addr = new NodeAddr(mct);
     rdma_addr->set_ttype(NODE_ADDR_TTYPE_RDMA);
@@ -155,7 +156,7 @@ int main(int argc, char *argv[]){
     mct->config->set_msg_log_level(std::string(options.get("log_level")));
 
     ML(mct, info, "before msg module init");
-    mct->init(msger);
+    mct->init(msger, nullptr);
     ML(mct, info, "after msg module init");
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,

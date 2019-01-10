@@ -16,6 +16,7 @@
 #define M_DECODE(it, data) (it).copy(&(data), sizeof(data))
 
 namespace flame{
+namespace msg{
 
 enum class perf_type_t {
     NONE,
@@ -417,7 +418,8 @@ void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
     return;
 }
 
-}
+} //namespace msg
+} //namespace flame
 
 #undef M_ENCODE
 #undef M_DECODE

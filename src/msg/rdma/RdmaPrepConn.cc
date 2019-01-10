@@ -11,6 +11,7 @@
 #include <cassert>
 
 namespace flame{
+namespace msg{
 
 RdmaPrepConn::RdmaPrepConn(MsgContext *mct)
 :EventCallBack(mct, FLAME_EVENT_READABLE | FLAME_EVENT_WRITABLE),
@@ -380,4 +381,5 @@ std::string RdmaPrepConn::prep_status_str(PrepStatus s){
     }
 }
 
-}
+} //namespace msg
+} //namespace flame

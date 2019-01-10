@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 namespace flame{
+namespace msg{
 
 RdmaListenPort::RdmaListenPort(MsgContext *mct, NodeAddr *listen_addr)
 :ListenPort(mct, listen_addr){
@@ -131,4 +132,5 @@ void RdmaListenPort::error_cb(){
     }
 }
 
-}
+} //namespace msg
+} //namespace flame

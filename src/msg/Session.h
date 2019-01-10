@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace flame{
+namespace msg{
 
 class Session : public RefCountedObject{
 
@@ -58,6 +59,10 @@ public:
         conns.clear();
     }
 
+    bool ready() const {
+        return (tcp_listen_addr != nullptr) && (rdma_listen_addr != nullptr);
+    }
+
     NodeAddr *get_listen_addr(msg_ttype_t ttype=msg_ttype_t::TCP){
         MutexLocker l(lp_mutex);
         switch(ttype){
@@ -68,6 +73,14 @@ public:
         default:
             return nullptr;
         }
+    }
+
+    void set_listen_addr(uint64_t na, msg_ttype_t ttype=msg_ttype_t::TCP){
+        node_addr_t addr(na);
+        NodeAddr *nap = new NodeAddr(mct, addr);
+        nap->set_ttype((uint8_t)ttype);
+        set_listen_addr(nap, ttype);
+        nap->put();
     }
 
     void set_listen_addr(NodeAddr *addr, msg_ttype_t ttype=msg_ttype_t::TCP){
@@ -102,7 +115,7 @@ public:
     std::string to_string() const;
 };
 
-
-}
+} //namespace msg
+} //namespace flame
 
 #endif

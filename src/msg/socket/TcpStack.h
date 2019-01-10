@@ -14,6 +14,7 @@
 #include <time.h>
 
 namespace flame{
+namespace msg{
 
 struct sigpipe_stopper {
     bool blocked;
@@ -53,6 +54,7 @@ public:
     virtual Connection* connect(NodeAddr *addr) override;
 };
 
-}
+} //namespace msg
+} //namespace flame
 
 #endif

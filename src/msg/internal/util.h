@@ -5,6 +5,7 @@
 #include <ctime>
 
 namespace flame{
+namespace msg{
 
 /**
  * string
@@ -30,6 +31,7 @@ public:
 
 uint32_t gen_rand_seq();
 
+} //namespace msg
 } //namespace flame
 
 #endif //FLAME_MSG_INTERNAL_UTIL_H

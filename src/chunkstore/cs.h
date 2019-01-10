@@ -3,6 +3,7 @@
 
 #include "chunkstore/chunkstore.h"
 #include "chunkstore/simstore/simstore.h"
+#include "chunkstore/filestore/filestore.h"
 
 #include <string>
 #include <memory>
