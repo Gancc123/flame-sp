@@ -114,9 +114,10 @@ int FileStore::get_info(cs_info_t &info) const {
 
 int FileStore::set_info(const cs_info_t& info) {
     id = info.id;
-    cluster_name = info.cluster_name;
-    name = info.name;
     ftime = info.ftime;
+
+    sprintf(cluster_name, "%s", info.cluster_name.c_str());
+    sprintf(name, "%s", info.name.c_str());
 
     size.store(info.size, std::memory_order_relaxed);
     used.store(info.used, std::memory_order_relaxed);
@@ -129,13 +130,13 @@ FileStore* FileStore::create_filestore(FlameContext *fct, const std::string& url
     std::smatch result;
 
     if(!regex_match(url, result, pattern)) {
-        fct->log()->error("format error for url: %s", url.c_str());
+        fct->log()->lerror("format error for url: %s", url.c_str());
         return nullptr;
     }
 
     std::string driver = result[1];
     if(driver != "filestore" && driver != "FileStore") {
-        fct->log()->error("unknown driver: %s", driver.c_str());
+        fct->log()->lerror("unknown driver: %s", driver.c_str());
         return nullptr;
     }
 
@@ -169,7 +170,7 @@ int FileStore::dev_check() {
     int ret;
     ret = config_file.load();
     if(ret != FILESTORE_CONF_VALID) {
-        fct_->log()->error("load config file <%s> failed.", config_file.get_config_path());
+        fct_->log()->lerror("load config file <%s> failed.", config_file.get_config_path());
         return NONE;
     }
 
@@ -178,28 +179,28 @@ int FileStore::dev_check() {
     if((ret = config_file.is_valid()) != FILESTORE_CONF_VALID) {
         switch(ret) {
             case FILESTORE_CONF_NO_BASE:
-                fct_->log()->error("config_file is invalid: no base_path: %s", config_file.get_base_path());
+                fct_->log()->lerror("config_file is invalid: no base_path: %s", config_file.get_base_path());
                 break;
             case FILESTORE_CONF_NO_DATA:
-                fct_->log()->error("config_file is invalid: no data_path: %s", config_file.get_data_path());
+                fct_->log()->lerror("config_file is invalid: no data_path: %s", config_file.get_data_path());
                 break;
             case FILESTORE_CONF_NO_META:
-                fct_->log()->error("config_file is invalid: no meta_path: %s", config_file.get_meta_path());
+                fct_->log()->lerror("config_file is invalid: no meta_path: %s", config_file.get_meta_path());
                 break;
             case FILESTORE_CONF_NO_JOURNAL:
-                fct_->log()->error("config file is invalid: no journal_path: %s", config_file.get_journal_path());
+                fct_->log()->lerror("config file is invalid: no journal_path: %s", config_file.get_journal_path());
                 break;
             case FILESTORE_CONF_NO_BACKUP:
-                fct_->log()->error("config file is invalid: no backup_path: %s", config_file.get_backup_path());
+                fct_->log()->lerror("config file is invalid: no backup_path: %s", config_file.get_backup_path());
                 break;
             case FILESTORE_CONF_INVALID_SIZE:
-                fct_->log()->error("config file is invalid: invalid size.");
+                fct_->log()->lerror("config file is invalid: invalid size.");
                 break;
             case FILESTORE_CONF_INVALID_MODE:
-                fct_->log()->error("config file is invalid: invalid mode");
+                fct_->log()->lerror("config file is invalid: invalid mode");
                 break;
             default:
-                fct_->log()->error("config file is invalid.");
+                fct_->log()->lerror("config file is invalid.");
                 break;
         }
 
@@ -238,7 +239,7 @@ int FileStore::remove_all_chunks(const char *meta_dir) {
                     if(access(chunk_data_dir, F_OK) == 0) {
                         if(util::remove_dir(chunk_data_dir) == 0) {
                             if(util::xremove(chunk_meta_obj) != 0) {
-                                fct_->log()->error("remove chunk_meta_obj %s failed: %s", chunk_meta_obj, strerror(errno));
+                                fct_->log()->lerror("remove chunk_meta_obj %s failed: %s", chunk_meta_obj, strerror(errno));
                                 sprintf(chunk_meta_temp, "%s/.%s", meta_dir, dir_info->d_name);
                                 util::xrename(chunk_meta_obj, chunk_meta_temp);
                             }
@@ -274,7 +275,7 @@ int FileStore::persist_super() {
 
     int fd = open(super_path, open_flags, util::def_fmode);
     if(fd < 0) {
-        fct_->log()->error("open super file <%s> failed: %s", super_path, strerror(errno));
+        fct_->log()->lerror("open super file <%s> failed: %s", super_path, strerror(errno));
         return FILESTORE_PERSIST_ERR;
     }
 
@@ -298,7 +299,7 @@ int FileStore::persist_super() {
 
     ret = write(fd, &csdesc, sizeof(struct chunk_store_descriptor));
     if(ret < sizeof(struct chunk_store_descriptor)) {
-        fct_->log()->error("write super file: %s failed: %s", super_path, strerror(errno));
+        fct_->log()->lerror("write super file: %s failed: %s", super_path, strerror(errno));
         close(fd);
         return FILESTORE_PERSIST_ERR;
     }
@@ -315,17 +316,17 @@ int FileStore::load_super() {
     int ret;
     sprintf(super_path, "%s/%s", get_base_path(), get_super_path());
     if(util::xaccess(super_path, F_OK) != 0) {
-        fct_->log()->error("super block is not existed.");
+        fct_->log()->lerror("super block is not existed.");
         return FILESTORE_NO_SUPER;
     }
 
     int fd = open(super_path, O_RDONLY, util::def_fmode);
     if(fd < 0) {
         if(errno == ENOENT) {
-            fct_->log()->warn("open super file %s failed: %s", super_path, strerror(errno));
+            fct_->log()->lwarn("open super file %s failed: %s", super_path, strerror(errno));
             return FILESTORE_NO_SUPER;
         } else {
-            fct_->log()->error("open super file %s failed: %s", super_path, strerror(errno));
+            fct_->log()->lerror("open super file %s failed: %s", super_path, strerror(errno));
             return FILESTORE_INIT_ERR;
         }
     }
@@ -333,7 +334,7 @@ int FileStore::load_super() {
     struct chunk_store_descriptor csdesc;
     ret = read(fd, &csdesc, sizeof(struct chunk_store_descriptor));
     if(ret < sizeof(struct chunk_store_descriptor)) {
-        fct_->log()->error("read super file %s failed: %s", super_path, strerror(errno));
+        fct_->log()->lerror("read super file %s failed: %s", super_path, strerror(errno));
         close(fd);
         return FILESTORE_INIT_ERR;
     }
@@ -388,25 +389,25 @@ int FileStore::dev_format() {
             
             if(strcmp(dir_info->d_name, get_backup_path()) == 0) {
                 if(util::remove_dir(backup_dir) != 0) {
-                    fct_->log()->error("format filestore failed: format backup_path <%s> failed.", backup_dir);
+                    fct_->log()->lerror("format filestore failed: format backup_path <%s> failed.", backup_dir);
                     closedir(dir);
                     return FILESTORE_FORMAT_ERR;
                 }
             } else if(strcmp(dir_info->d_name, get_journal_path()) == 0) {
                 if(util::remove_dir(journal_dir) != 0) {
-                    fct_->log()->error("format filestore failed: format journal_path <%s> failed", journal_dir);
+                    fct_->log()->lerror("format filestore failed: format journal_path <%s> failed", journal_dir);
                     closedir(dir);
                     return FILESTORE_FORMAT_ERR;
                 }
             } else if(strcmp(dir_info->d_name, get_meta_path()) == 0) {
                 if(this->remove_all_chunks(meta_dir) != FILESTORE_OP_SUCCESS) {
-                    fct_->log()->error("format filestore failed: format meta_path <%s> failed.", meta_dir);
+                    fct_->log()->lerror("format filestore failed: format meta_path <%s> failed.", meta_dir);
                     closedir(dir);
                     return FILESTORE_FORMAT_ERR;
                 }
             } else if(strcmp(dir_info->d_name, get_data_path()) == 0) {
                 if(util::remove_dir(data_dir) != 0) {
-                    fct_->log()->error("format filestore failed: format data_path <%s> failed", data_dir);
+                    fct_->log()->lerror("format filestore failed: format data_path <%s> failed", data_dir);
                     closedir(dir);
                     return FILESTORE_FORMAT_ERR;
                 }
@@ -427,28 +428,28 @@ int FileStore::dev_format() {
 
     if(access(backup_dir, F_OK) != 0) {
         if(util::xmkdir(backup_dir, util::def_dmode) != 0) {
-            fct_->log()->error("create backup_path <%s> failed: %s", backup_dir, strerror(errno));
+            fct_->log()->lerror("create backup_path <%s> failed: %s", backup_dir, strerror(errno));
             return FILESTORE_FORMAT_ERR;
         }
     }
 
     if(access(journal_dir, F_OK) != 0) {
         if(util::xmkdir(journal_dir, util::def_dmode) != 0) {
-            fct_->log()->error("create journal_path <%s> failed: %s", journal_dir, strerror(errno));
+            fct_->log()->lerror("create journal_path <%s> failed: %s", journal_dir, strerror(errno));
             return FILESTORE_FORMAT_ERR;
         }
     }
 
     if(access(meta_dir, F_OK) != 0) {
         if(util::xmkdir(meta_dir, util::def_dmode) != 0) {
-            fct_->log()->error("create meta_path <%s> failed: %s", meta_dir, strerror(errno));
+            fct_->log()->lerror("create meta_path <%s> failed: %s", meta_dir, strerror(errno));
             return FILESTORE_FORMAT_ERR;
         }
     }
 
     if(access(data_dir, F_OK) != 0) {
         if(util::xmkdir(data_dir, util::def_dmode) != 0) {
-            fct_->log()->error("create data_path <%s> failed: %s", data_dir, strerror(errno));
+            fct_->log()->lerror("create data_path <%s> failed: %s", data_dir, strerror(errno));
             return FILESTORE_FORMAT_ERR;
         }
     }
@@ -467,7 +468,7 @@ int FileStore::dev_mount() {
 
     this->chunk_map = new FileChunkMap(this);
     if(this->chunk_map == nullptr) {
-        fct_->log()->error("new ChunkMap failed.");
+        fct_->log()->lerror("new ChunkMap failed.");
         return FILESTORE_MOUNT_ERR;
     }
 
@@ -478,13 +479,13 @@ int FileStore::dev_mount() {
 
     if(io_mode == CHUNKSTORE_IO_MODE_ASYNC) {
         if((epfd = epoll_create(1)) == -1) {
-            fct_->log()->error("epoll create fialed: %s", strerror(errno));
+            fct_->log()->lerror("epoll create fialed: %s", strerror(errno));
             delete this->chunk_map;
             return FILESTORE_INIT_ERR;
         }
 
         if(pthread_create(&complete_thread, NULL, completeLoopFunc, (void *)this) != 0) {
-            fct_->log()->error("create complete thread failed: %s", strerror(errno));
+            fct_->log()->lerror("create complete thread failed: %s", strerror(errno));
             delete this->chunk_map;
             close(epfd);
             return FILESTORE_INIT_ERR;
@@ -511,7 +512,7 @@ bool FileStore::chunk_exist(const uint64_t chk_id) {
 int FileStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
     int ret = 0;
     if(chunk_exist(chk_id)) {
-        fct_->log()->error("chunk <%" PRIx64 "> has already existed.", chk_id);
+        fct_->log()->lerror("chunk <%" PRIx64 "> has already existed.", chk_id);
         return FILESTORE_CHUNK_EXIST;
     }
 
@@ -521,7 +522,7 @@ int FileStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
     ret = chunk->create(opts);
 
     if(ret != CHUNK_OP_SUCCESS) {
-        fct_->log()->error("the chunk %" PRIx64 "create failed.", chk_id);
+        fct_->log()->lerror("the chunk %" PRIx64 "create failed.", chk_id);
         return FILESTORE_CHUNK_CREATE_ERR;
     }
 
@@ -529,7 +530,7 @@ int FileStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
         delete chunk;
     }
 
-    fct_->log()->info("the chunk %" PRIx64 " create successfully.", chk_id);
+    fct_->log()->linfo("the chunk %" PRIx64 " create successfully.", chk_id);
 
     total_chunks.fetch_add(1, std::memory_order_relaxed);
     used.fetch_add(opts.size, std::memory_order_relaxed);
@@ -552,13 +553,13 @@ int FileStore::chunk_remove(uint64_t chk_id) {
         sprintf(chunk_data_dest, "%s/%s/.%" PRIx64, get_base_path(), get_data_path(), chk_id);
 
         if(util::xrename(chunk_data_sour, chunk_data_dest) != 0) {
-            fct_->log()->error("remove chunk data failed.");
+            fct_->log()->lerror("remove chunk data failed.");
             return FILESTORE_CHUNK_REMOVE_ERR;
         }
 
         sprintf(chunk_path, "%s/%s/%" PRIx64, get_base_path(), get_meta_path(), chk_id);
         if(util::xremove(chunk_path) != 0) {
-            fct_->log()->error("chunk remove failed.");
+            fct_->log()->lerror("chunk remove failed.");
             util::xrename(chunk_data_dest, chunk_data_sour);
             return FILESTORE_CHUNK_REMOVE_ERR;
         }
@@ -569,7 +570,7 @@ int FileStore::chunk_remove(uint64_t chk_id) {
         used.fetch_sub(chunk_size, std::memory_order_relaxed);
 
     } else {
-        fct_->log()->error("this chunk <% " PRIx64 "> is using.", chk_id);
+        fct_->log()->lerror("this chunk <% " PRIx64 "> is using.", chk_id);
         return FILESTORE_CHUNK_USING;
     }
 
@@ -591,19 +592,19 @@ std::shared_ptr<Chunk> FileStore::chunk_open(uint64_t chk_id) {
         sprintf(chunk_path, "%s/%s/%" PRIx64, get_base_path(), get_meta_path(), chk_id);
         chunk = new FileChunk(this, fct_);
         if(chunk->load(chunk_path) != 0) {
-            fct_->log()->error("open chunk failed.");
+            fct_->log()->lerror("open chunk failed.");
             return nullptr;
         }
 
         if(io_mode == CHUNKSTORE_IO_MODE_ASYNC) {
             if(chunk->init_chunk_async_env() != CHUNK_OP_SUCCESS) {
-                fct_->log()->error("init chunk async env failed.");
+                fct_->log()->lerror("init chunk async env failed.");
                 return nullptr;
             }
-            fct_->log()->error("init chunk async env successed.");
+            fct_->log()->lerror("init chunk async env successed.");
         }
 
-        fct_->log()->info("open chunk %" PRIx64 "success.", chk_id);
+        fct_->log()->linfo("open chunk %" PRIx64 " success.", chk_id);
         chunk->ref_counter_add(1);
         chunk_map->insert_chunk(chunk);
     }
@@ -628,18 +629,18 @@ int FileStore::chunk_close(Chunk* chunk) {
         char store_path[256];
         sprintf(store_path, "%s/%s/%" PRIx64, get_base_path(), get_meta_path(), chunk_ptr->get_chunk_id());
         if((chunk_ptr->store(store_path)) != 0) {
-            fct_->log()->error("close chunk failed.");
+            fct_->log()->lerror("close chunk failed.");
             return FILESTORE_CHUNK_CLOSE_ERR;
         }
 
         if((chunk_ptr->close_active_objects()) != CHUNK_OP_SUCCESS) {
-            fct_->log()->error("close active list failed.");
+            fct_->log()->lerror("close active list failed.");
             return FILESTORE_CHUNK_CLOSE_ERR;
         }
 
         if(io_mode == CHUNKSTORE_IO_MODE_ASYNC) {
             if(chunk_ptr->destroy_chunk_async_env() != CHUNK_OP_SUCCESS) {
-                fct_->log()->error("destroy chunk aync env failed.");
+                fct_->log()->lerror("destroy chunk aync env failed.");
                 return FILESTORE_CHUNK_CLOSE_ERR;
             }
         }
@@ -651,7 +652,7 @@ int FileStore::chunk_close(Chunk* chunk) {
         }
     } else {
         //这是一个无效的chunk_ptr，不应该出现在chunk_map中，所以需要从chunk_map中删除，并释放它
-        fct_->log()->error("invalid chunk ptr.");
+        fct_->log()->lerror("invalid chunk ptr.");
         chunk_map->remove_chunk(chunk_ptr->get_chunk_id());
         if(chunk_ptr != nullptr) {
             delete chunk_ptr;
@@ -664,7 +665,7 @@ int FileStore::chunk_close(Chunk* chunk) {
 
 int FileStore::stop(void) {
     if(pthread_join(complete_thread, NULL) != 0) {
-        fct_->log()->error("pthread_join failed: %s", strerror(errno));
+        fct_->log()->lerror("pthread_join failed: %s", strerror(errno));
         return FILESTORE_STOP_FAILED;
     }
 
@@ -702,7 +703,7 @@ void *FileStore::completeLoopFunc(void *arg) {
             efd = eplevs[i].data.fd;
 
             if(read(efd, &finished_aio, sizeof(finished_aio)) != sizeof(finished_aio)) {
-                filestore->get_flame_context()->log()->warn("read efd faild: %s", strerror(errno));
+                filestore->get_flame_context()->log()->lwarn("read efd faild: %s", strerror(errno));
                 break;
             }
 #ifdef DEBUG
@@ -735,14 +736,14 @@ void *FileStore::completeLoopFunc(void *arg) {
 
 int FileStore::dev_unmount() {
     if(chunk_map->get_chunk_nums() > 0) {
-        fct_->log()->error("dev could not umount, because filestore is wroking.");
+        fct_->log()->lerror("dev could not umount, because filestore is wroking.");
         return FILESTORE_UNMOUNT_ERR;
     }
 
     state = FILESTORE_DOWN;
     if(io_mode == CHUNKSTORE_IO_MODE_ASYNC) {
         if(pthread_cancel(complete_thread) != 0) {
-            fct_->log()->error("complted thread cancel failed.");
+            fct_->log()->lerror("complted thread cancel failed.");
             return FILESTORE_UNMOUNT_ERR;
         }
 
@@ -762,7 +763,7 @@ int FileStore::dev_unmount() {
 FileChunk* FileStore::get_chunk_by_efd(const int efd) {
     FileChunk *chunk = chunk_map->get_chunk_by_efd(efd);
     if(chunk == nullptr) {
-        fct_->log()->error("unknown efd: there is no corresponding chunk.");
+        fct_->log()->lerror("unknown efd: there is no corresponding chunk.");
     }
     
     return chunk;
@@ -805,7 +806,7 @@ uint64_t FileStore::get_chunk_size_by_xattr(const uint64_t chk_id) {
 
     sprintf(chunk_path, "%s/%s/%" PRIx64, get_base_path(), get_meta_path(), chk_id);
     if(util::get_xattr(chunk_path, "user.chunk_size", &chunk_size, sizeof(uint64_t)) != 0) {
-        fct_->log()->error("get chunk_size failed: %s", strerror(errno));
+        fct_->log()->lerror("get chunk_size failed: %s", strerror(errno));
         return 0;
     }
 

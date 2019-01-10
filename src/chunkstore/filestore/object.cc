@@ -34,7 +34,7 @@ int Object::init() {
     state = OBJECT_LOADING;
     fd = open(obj_path, open_flags, util::def_fmode);
     if(fd < 0) {
-        fct->log()->error("open object file failed: %s", strerror(errno));
+        fct->log()->lerror("open object file failed: %s", strerror(errno));
         return -1;
     }
     open_time = (unsigned long long)time(NULL);
@@ -58,7 +58,7 @@ int Object::get_fd() const {
     if(is_open())
         return fd;
     else {
-        fct->log()->error("object is not open");
+        fct->log()->lerror("object is not open");
         return -1;
     }
 }

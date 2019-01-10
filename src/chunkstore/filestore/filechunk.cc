@@ -65,7 +65,7 @@ uint64_t FileChunk::used() const {
 }
 
 bool FileChunk::is_preallocated() const {
-    return flags & ChunkFlags::PREALLOC;
+    return flags & CHK_FLG_PREALLOC;
 }
 
 int FileChunk::chunk_serial_base(struct chunk_base_descriptor *desc) {
@@ -106,7 +106,7 @@ int FileChunk::chunk_serial_xattrs(struct chunk_xattr_descriptor **chunk_xattr_d
 
         chunk_xattr_descs[i] = (struct chunk_xattr_descriptor *)malloc(new_len);
         if(chunk_xattr_descs[i] == nullptr) {
-            fct_->log()->error("malloc failed: %s", strerror(errno));
+            fct_->log()->lerror("malloc failed: %s", strerror(errno));
             return -1;
         }
 
@@ -148,7 +148,7 @@ int FileChunk::store(const char *store_path) {
 
     ret = pwrite(fd, &cdesc, sizeof(cdesc), 0);
     if(ret < sizeof(struct chunk_base_descriptor)) {
-        fct_->log()->error("persist chunk base info failed: %s", strerror(errno));
+        fct_->log()->lerror("persist chunk base info failed: %s", strerror(errno));
         goto close_fd;
     }
 
@@ -158,14 +158,14 @@ int FileChunk::store(const char *store_path) {
     for(int i = 0; i < this->xattr_num; i++) {
         ret = pwrite(fd, cxdescs[i], sizeof(struct chunk_xattr_descriptor), offset);
         if(ret < sizeof(struct chunk_xattr_descriptor)) {
-            fct_->log()->error("persist chunk xattr info failed: %s", strerror(errno));
+            fct_->log()->lerror("persist chunk xattr info failed: %s", strerror(errno));
             goto close_fd;
         }
 
         offset += sizeof(struct chunk_xattr_descriptor);
         ret = pwrite(fd, cxdescs[i]->key_value, cxdescs[i]->name_length + cxdescs[i]->value_length, offset);
         if(ret < cxdescs[i]->name_length + cxdescs[i]->value_length) {
-            fct_->log()->error("persist chunk xattr info failed: %s", strerror(errno));
+            fct_->log()->lerror("persist chunk xattr info failed: %s", strerror(errno));
             goto close_fd;
         }
         offset += (cxdescs[i]->name_length + cxdescs[i]->value_length);
@@ -180,7 +180,7 @@ int FileChunk::store(const char *store_path) {
 
     if(util::set_xattr(temp_path, "user.chunk_size", 
                 chunk_size_str, sizeof(chunk_size_str), 0) != 0) {
-        fct_->log()->error("set chunk_size failed: %s", strerror(errno));
+        fct_->log()->lerror("set chunk_size failed: %s", strerror(errno));
     }
 
     if(cxdescs != nullptr) {
@@ -191,7 +191,7 @@ int FileChunk::store(const char *store_path) {
 
     //将新写入的临时文件替换旧文件，这样就可以保证元数据的一致性了。
     if(util::xrename(temp_path, store_path) != 0) {
-        fct_->log()->error("rename failed: %s", strerror(errno));
+        fct_->log()->lerror("rename failed: %s", strerror(errno));
         goto remove_temp; 
     }
 
@@ -265,7 +265,7 @@ int FileChunk::load(const char *load_path) {
     off_t offset = 0;
 
     if((fd = open(load_path, open_flag, util::def_fmode)) < 0) {
-        fct_->log()->error("load chunk failed: %s", strerror(errno));
+        fct_->log()->lerror("load chunk failed: %s", strerror(errno));
         return CHUNK_OP_LOAD_ERR;
     }
 
@@ -273,13 +273,13 @@ int FileChunk::load(const char *load_path) {
 
     ret = pread(fd, &cbdesc, sizeof(struct chunk_base_descriptor), 0);
     if(ret < sizeof(struct chunk_base_descriptor)) {
-        fct_->log()->error("load chunk base info failed: %s", strerror(errno));
+        fct_->log()->lerror("load chunk base info failed: %s", strerror(errno));
         close(fd);
         return CHUNK_OP_LOAD_ERR;
     }
 
     if(chunk_deserial_base(&cbdesc) != 0) {
-        fct_->log()->error("deserial chunk base info failed");
+        fct_->log()->lerror("deserial chunk base info failed");
         close(fd);
         return CHUNK_OP_LOAD_ERR;
     }
@@ -293,7 +293,7 @@ int FileChunk::load(const char *load_path) {
         char *kv = nullptr;
         ret = pread(fd, &xattr_descs[i], sizeof(struct chunk_xattr_descriptor), offset);
         if(ret < sizeof(struct chunk_xattr_descriptor)) {
-            fct_->log()->error("load chunk xattr info faild: %s", strerror(errno));
+            fct_->log()->lerror("load chunk xattr info faild: %s", strerror(errno));
             goto close_fd;
         }
         offset += sizeof(struct chunk_xattr_descriptor);
@@ -302,19 +302,19 @@ int FileChunk::load(const char *load_path) {
         kv = (char *)malloc(sizeof(char) * kv_len);
 
         if(kv == nullptr) {
-            fct_->log()->error("load chunk xattr kv info failed: %s", strerror(errno));
+            fct_->log()->lerror("load chunk xattr kv info failed: %s", strerror(errno));
             goto close_fd;
         }
 
         ret = pread(fd, kv, kv_len, offset);
         if(ret < kv_len) {
-            fct_->log()->error("load chunk xattr kv failed: %s", strerror(errno));
+            fct_->log()->lerror("load chunk xattr kv failed: %s", strerror(errno));
             goto close_fd;
         }
         offset += kv_len;
 
         if(chunk_deserial_xattr(&xattr, &xattr_descs[i], kv, i) != 0) {
-            fct_->log()->error("deserial chunk xattr info failed.");
+            fct_->log()->lerror("deserial chunk xattr info failed.");
             goto close_fd;
         }
 
@@ -395,12 +395,12 @@ int FileChunk::init_chunk_async_env() {
 
     bzero(&ioctx, sizeof(io_context_t));
     if(io_setup(1024, &ioctx) != 0) {
-        fct_->log()->error("io setup failed.");
+        fct_->log()->lerror("io setup failed.");
         return CHUNK_OP_INIT_ENV_ERR;
     }
 
     if((efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) == -1) {
-        fct_->log()->error("eventfd failed: %s", strerror(errno));
+        fct_->log()->lerror("eventfd failed: %s", strerror(errno));
         return CHUNK_OP_INIT_ENV_ERR;
     }
 
@@ -408,7 +408,7 @@ int FileChunk::init_chunk_async_env() {
     epevent.data.fd = efd;
 
     if(epoll_ctl(filestore->get_epfd(), EPOLL_CTL_ADD, efd, &epevent) != 0) {
-        fct_->log()->error("epoll ctl failed: %s", strerror(errno));
+        fct_->log()->lerror("epoll ctl failed: %s", strerror(errno));
         return CHUNK_OP_INIT_ENV_ERR;
     }
 
@@ -417,17 +417,17 @@ int FileChunk::init_chunk_async_env() {
 
 int FileChunk::destroy_chunk_async_env() {
     if(epoll_ctl(filestore->get_epfd(), EPOLL_CTL_DEL, efd, NULL) != 0) {
-        fct_->log()->error("epoll ctl failed: %s", strerror(errno));
+        fct_->log()->lerror("epoll ctl failed: %s", strerror(errno));
         return CHUNK_OP_DESTROY_ENV_ERR;
     }
 
     if(close(efd) != 0) {
-        fct_->log()->error("close efd failed: %s", strerror(errno));
+        fct_->log()->lerror("close efd failed: %s", strerror(errno));
         return CHUNK_OP_DESTROY_ENV_ERR;
     }
 
     if(io_destroy(ioctx) != 0) {
-        fct_->log()->error("io_destroy failed.");
+        fct_->log()->lerror("io_destroy failed.");
         return CHUNK_OP_DESTROY_ENV_ERR;
     }
 
@@ -464,14 +464,14 @@ int FileChunk::create(const struct chunk_create_opts_t &opts) {
     uint64_t object_nums = chunk_size / object_size;
 
     if(util::xmkdir(chunk_data_dir, util::def_dmode) != 0) {
-        fct_->log()->error("failed to mkdir %s: %s", chunk_data_dir, strerror(errno));
+        fct_->log()->lerror("failed to mkdir %s: %s", chunk_data_dir, strerror(errno));
         return CHUNK_OP_CREATE_ERR;
     } else {
         if(this->is_preallocated()) {
             for(uint64_t i = 0; i < object_nums; i++) {
                 uint64_t object_id = i;
                 if(create_object(object_id, object_size) == CHUNK_OP_OBJ_CREATE_ERR) {
-                    fct_->log()->error("create object failed.");
+                    fct_->log()->lerror("create object failed.");
                     return CHUNK_OP_CREATE_ERR;
                 }
             }
@@ -480,7 +480,7 @@ int FileChunk::create(const struct chunk_create_opts_t &opts) {
     }
 
     if(this->store(chunk_meta_obj) != 0) {
-        fct_->log()->error("failed to store chunk <%" PRIx64 ">.", this->chk_id);
+        fct_->log()->lerror("failed to store chunk <%" PRIx64 ">.", this->chk_id);
         util::xremove(chunk_data_dir);
         return CHUNK_OP_CREATE_ERR;
     }
@@ -493,17 +493,17 @@ int FileChunk::create_object(uint64_t object_id, uint64_t object_size) {
     char object_name[256];
     sprintf(object_name, "%s/%s/%" PRIx64 "/%" PRIx64, filestore->get_base_path(), filestore->get_data_path(), chk_id, object_id);
     if(access(object_name, F_OK) == 0) {
-        fct_->log()->error("object<%s> has already existed.", object_name);
+        fct_->log()->lerror("object<%s> has already existed.", object_name);
         return CHUNK_OP_OBJ_EXIST;
     }
 
     if((fd = open(object_name, O_CREAT | O_RDWR | O_CLOEXEC, util::def_fmode)) <= 0) {
-        fct_->log()->error("object<%s> create fiailed: %s", object_name, strerror(errno));
+        fct_->log()->lerror("object<%s> create fiailed: %s", object_name, strerror(errno));
         return CHUNK_OP_OBJ_CREATE_ERR;        
     }
 
     if(util::prealloc(fd, object_size) != 0) {
-        fct_->log()->error("object<%s> alloc disk space failed: %s", object_name, strerror(errno));
+        fct_->log()->lerror("object<%s> alloc disk space failed: %s", object_name, strerror(errno));
         close(fd);
         util::xremove(object_name);
         return CHUNK_OP_OBJ_CREATE_ERR;
@@ -574,7 +574,7 @@ int FileChunk::get_xattr(const std::string& name, std::string& value) {
     pthread_rwlock_unlock(&xattr_lock);
 
     if(iter == xattr_list.end()) {
-        fct_->log()->error("xattr<%s> is not exist.", name.c_str());
+        fct_->log()->lerror("xattr<%s> is not exist.", name.c_str());
         return CHUNK_OP_GET_XATTR_NO_NAME;
     }
     
@@ -633,7 +633,7 @@ int FileChunk::prepare_object_iocb_sync(struct oiocb *oiocbs, uint32_t count, vo
 #endif
         Object *obj = open_object(obj_idx);
         if(obj == nullptr) {
-            fct_->log()->error("open object faild.");
+            fct_->log()->lerror("open object faild.");
             return -1;
         }
 
@@ -696,7 +696,7 @@ int FileChunk::read_sync(void *payload, uint64_t offset, uint64_t length) {
     uint32_t request_num = last_obj_idx - first_obj_idx + 1;
     struct oiocb iocbs[request_num];
     if(prepare_object_iocb_sync(iocbs, request_num, payload, length, offset, CHUNK_OP_READ) != 0) {
-        fct_->log()->error("convert request into obejct iocb faild.");
+        fct_->log()->lerror("convert request into obejct iocb faild.");
         return CHUNK_OP_READ_ERR;
     }
 
@@ -710,7 +710,7 @@ int FileChunk::read_sync(void *payload, uint64_t offset, uint64_t length) {
 
     ret = io_submit_sync(iocbs, request_num);
     if(ret < request_num) {
-        fct_->log()->error("read_sync faild.");
+        fct_->log()->lerror("read_sync faild.");
         return CHUNK_OP_READ_ERR;
     }
 
@@ -729,7 +729,7 @@ int FileChunk::write_sync(void *payload, uint64_t offset, uint64_t length) {
     //std::cout << "request_num = " << request_num << std::endl;
     struct oiocb iocbs[request_num];
     if(prepare_object_iocb_sync(iocbs, request_num, payload, length, offset, CHUNK_OP_WRITE) != 0) {
-        fct_->log()->error("convert request into obejct iocb faild.");
+        fct_->log()->lerror("convert request into obejct iocb faild.");
         return CHUNK_OP_WRITE_ERR;
     }
 
@@ -741,7 +741,7 @@ int FileChunk::write_sync(void *payload, uint64_t offset, uint64_t length) {
 
     ret = io_submit_sync(iocbs, request_num);
     if(ret < request_num) {
-        fct_->log()->error("write_sync faild.");
+        fct_->log()->lerror("write_sync faild.");
         return CHUNK_OP_WRITE_ERR;
     }
 
@@ -781,7 +781,7 @@ int FileChunk::prepare_object_iocb(struct iocb **iocbs, uint32_t count, void *pa
 
         Object * obj = open_object(obj_idx);
         if(obj == nullptr) {
-            fct_->log()->error("open object faild.");
+            fct_->log()->lerror("open object faild.");
             return -1;            
         }
 
@@ -801,7 +801,7 @@ int FileChunk::prepare_object_iocb(struct iocb **iocbs, uint32_t count, void *pa
                 obj->update_access_time();
                 break;
             default:
-                fct_->log()->error("invalid op code.");
+                fct_->log()->lerror("invalid op code.");
                 return -1;
                 break;
         }
@@ -817,7 +817,7 @@ int FileChunk::prepare_object_iocb(struct iocb **iocbs, uint32_t count, void *pa
 int FileChunk::read_async(void *buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void *cb_arg) {
     struct chunk_async_opt_entry_t *extra_arg = (struct chunk_async_opt_entry_t *)malloc(sizeof(struct chunk_async_opt_entry_t));
     if(extra_arg == nullptr) {
-        fct_->log()->error("malloc callback_arg failed.");
+        fct_->log()->lerror("malloc callback_arg failed.");
         return CHUNK_OP_READ_ERR;
     }
 
@@ -846,7 +846,7 @@ int FileChunk::read_async(void *payload, uint64_t length, off_t offset, void *ex
     for(int i = 0; i < request_num; i++) {
         iocbps[i] = (struct iocb *)malloc(sizeof(struct iocb));
         if(iocbps[i] == nullptr) {
-            fct_->log()->error("prepare iocbs failed: %s", strerror(errno));
+            fct_->log()->lerror("prepare iocbs failed: %s", strerror(errno));
             for(int j = i - 1; j >= 0; j--) {
                 free(iocbps[i]);
             }
@@ -856,7 +856,7 @@ int FileChunk::read_async(void *payload, uint64_t length, off_t offset, void *ex
     }
 
     if(prepare_object_iocb(iocbps, request_num, payload, length, offset, CHUNK_OP_READ, extra_arg) != 0) {
-        fct_->log()->error("convert request into chunk_iocb failed.");
+        fct_->log()->lerror("convert request into chunk_iocb failed.");
         return CHUNK_OP_READ_ERR;
     }
 
@@ -870,7 +870,7 @@ int FileChunk::read_async(void *payload, uint64_t length, off_t offset, void *ex
 
     ret = io_submit(ioctx, request_num, iocbps);
     if(ret != request_num) {
-        fct_->log()->error("read io submit failed: %s", strerror(errno));
+        fct_->log()->lerror("read io submit failed: %s", strerror(errno));
         return CHUNK_OP_READ_ERR;
     }
 
@@ -880,7 +880,7 @@ int FileChunk::read_async(void *payload, uint64_t length, off_t offset, void *ex
 int FileChunk::write_async(void *buff, uint64_t off, uint64_t len, chunk_opt_cb_t cb, void *cb_arg) {
     struct chunk_async_opt_entry_t *extra_arg = (struct chunk_async_opt_entry_t *)malloc(sizeof(struct chunk_async_opt_entry_t));
     if(extra_arg == nullptr) {
-        fct_->log()->error("malloc callback_arg failed.");
+        fct_->log()->lerror("malloc callback_arg failed.");
         return CHUNK_OP_WRITE_ERR;
     }
 
@@ -911,7 +911,7 @@ int FileChunk::write_async(void *payload, uint64_t length, off_t offset, void *e
         iocbps[i] = (struct iocb *)malloc(sizeof(struct iocb));
 
         if(iocbps[i] == nullptr) {
-            fct_->log()->error("prepare iocbs failed: %s", strerror(errno));
+            fct_->log()->lerror("prepare iocbs failed: %s", strerror(errno));
             for(int j = i - 1; j >= 0; j--) {
                 free(iocbps[j]);
             }
@@ -920,7 +920,7 @@ int FileChunk::write_async(void *payload, uint64_t length, off_t offset, void *e
     }
 
     if(prepare_object_iocb(iocbps, request_num, payload, length, offset, CHUNK_OP_WRITE, extra_arg) != 0) {
-        fct_->log()->error("convert request into object_iocb faild.");
+        fct_->log()->lerror("convert request into object_iocb faild.");
         return CHUNK_OP_WRITE_ERR;
     }
    
@@ -935,7 +935,7 @@ int FileChunk::write_async(void *payload, uint64_t length, off_t offset, void *e
 
     ret = io_submit(ioctx, request_num, iocbps);
     if(ret != request_num) {
-        fct_->log()->error("write, io submit faild: %s", strerror(errno));
+        fct_->log()->lerror("write, io submit faild: %s", strerror(errno));
         return CHUNK_OP_WRITE_ERR;
     } 
 
@@ -947,13 +947,13 @@ int FileChunk::write_chunk(void *buff, uint64_t off, uint64_t len, void *extra_a
     switch(filestore->get_io_mode()) {
         case CHUNKSTORE_IO_MODE_SYNC:
             if(write_sync(buff, len, off) != CHUNK_OP_SUCCESS) {
-                fct_->log()->error("chunk write failed.");
+                fct_->log()->lerror("chunk write failed.");
                 return CHUNK_OP_WRITE_ERR;
             }
             break;
         case CHUNKSTORE_IO_MODE_ASYNC:
             if(write_async(buff, len, off, extra_arg) != CHUNK_OP_SUCCESS) {
-                fct_->log()->error("chunk write failed.");
+                fct_->log()->lerror("chunk write failed.");
                 return CHUNK_OP_WRITE_ERR;
             }
             break;
@@ -969,13 +969,13 @@ int FileChunk::read_chunk(void *buff, uint64_t off, uint64_t len, void *extra_ar
     switch(filestore->get_io_mode()) {
         case CHUNKSTORE_IO_MODE_SYNC:
             if(read_sync(buff, len, off) != CHUNK_OP_SUCCESS) {
-                fct_->log()->error("chunk read failed.");
+                fct_->log()->lerror("chunk read failed.");
                 return CHUNK_OP_READ_ERR;
             }
             break;
         case CHUNKSTORE_IO_MODE_ASYNC:
             if(read_async(buff, len, off, extra_arg) != CHUNK_OP_SUCCESS) {
-                fct_->log()->error("chunk write failed.");
+                fct_->log()->lerror("chunk write failed.");
                 return CHUNK_OP_READ_ERR;
             }
             break;
