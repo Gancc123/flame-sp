@@ -46,17 +46,17 @@ $(DORM)/engine.o
 # /metastore
 OBJ_METASTORE = \
 $(DMETASTORE)/sqlms/sqlms.o \
+$(DMETASTORE)/ms.o
+
+# /chunkstore
+OBJ_CHUNKSTORE = \
+$(DCHUNKSTORE)/simstore/simstore.o \
 $(DCHUNKSTORE)/filestore/filestore.o \
 $(DCHUNKSTORE)/filestore/filechunk.o \
 $(DCHUNKSTORE)/filestore/filechunkmap.o \
 $(DCHUNKSTORE)/filestore/filestoreconf.o \
 $(DCHUNKSTORE)/filestore/chunkutil.o \
 $(DCHUNKSTORE)/filestore/object.o \
-$(DMETASTORE)/ms.o
-
-# /chunkstore
-OBJ_CHUNKSTORE = \
-$(DCHUNKSTORE)/simstore/simstore.o \
 $(DCHUNKSTORE)/cs.o
 
 # /work
