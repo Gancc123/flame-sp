@@ -17,6 +17,8 @@ shared_ptr<ChunkStore> create_chunkstore(FlameContext* fct, const string& url) {
         return shared_ptr<ChunkStore>(SimStore::create_simstore(fct, url));
     } else if(driver == "filestore" || driver == "FileStore") {
         return shared_ptr<ChunkStore>(FileStore::create_filestore(fct, url));
+    } else if(driver == "nvmestore" || driver == "NvmeStore") {
+        return shared_ptr<ChunkStore>(NvmeStore::create_nvmestore(fct, url));
     }
 
     fct->log()->lerror("invalid driver: %s", driver.c_str());
