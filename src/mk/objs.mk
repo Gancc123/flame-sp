@@ -51,6 +51,18 @@ $(DMETASTORE)/ms.o
 # /chunkstore
 OBJ_CHUNKSTORE = \
 $(DCHUNKSTORE)/simstore/simstore.o \
+$(DCHUNKSTORE)/filestore/filestore.o \
+$(DCHUNKSTORE)/filestore/filechunk.o \
+$(DCHUNKSTORE)/filestore/filechunkmap.o \
+$(DCHUNKSTORE)/filestore/filestoreconf.o \
+$(DCHUNKSTORE)/filestore/chunkutil.o \
+$(DCHUNKSTORE)/filestore/object.o \
+$(DCHUNKSTORE)/nvmestore/chunkblobmap.o \
+$(DCHUNKSTORE)/nvmestore/iochannels.o \
+$(DCHUNKSTORE)/nvmestore/nvmechunkmap.o \
+$(DCHUNKSTORE)/nvmestore/nvmechunk.o \
+$(DCHUNKSTORE)/nvmestore/nvmeconf.o \
+$(DCHUNKSTORE)/nvmestore/nvmestore.o \
 $(DCHUNKSTORE)/cs.o
 
 # /work
