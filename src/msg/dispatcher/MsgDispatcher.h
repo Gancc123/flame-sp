@@ -1,5 +1,5 @@
-#ifndef FLAME_MSG_DISPATCHER_DISPATCHER_H
-#define FLAME_MSG_DISPATCHER_DISPATCHER_H
+#ifndef FLAME_MSG_DISPATCHER_MSG_DISPATCHER_H
+#define FLAME_MSG_DISPATCHER_MSG_DISPATCHER_H
 
 #include "common/thread/rw_lock.h"
 #include "msg/msg_context.h"
@@ -67,4 +67,4 @@ public:
 } //namespace msg
 } //namespace flame
 
-#endif //FLAME_MSG_DISPATCHER_DISPATCHER_H
+#endif //FLAME_MSG_DISPATCHER_MSG_DISPATCHER_H
