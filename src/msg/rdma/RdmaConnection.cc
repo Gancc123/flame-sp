@@ -342,7 +342,7 @@ ssize_t RdmaConnection::submit(bool more){
     if(r < 0){
         ML(mct, error, "submit_send_works error!");
     }
-    return 0;
+    return r;
 }
     
 int RdmaConnection::submit_send_works(){

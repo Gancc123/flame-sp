@@ -638,7 +638,7 @@ RdmaStack::RdmaStack(MsgContext *c)
 }
 
 int RdmaStack::init(){
-    manager = new RdmaManager(mct, mct->manager->get_worker_num());
+    manager = new RdmaManager(mct);
     if(!manager) return -1;
     return manager->init();
 }
