@@ -18,7 +18,7 @@
 
 namespace libflame {
 
-typedef void (*callback_t)(Status stat, void* arg);
+typedef void (*callback_fn_t)(const Status& stat, void* arg1, void* arg2);
 
 class FLAME_API Config {
 public:
@@ -27,11 +27,16 @@ public:
 
     int setAddr(std::string& addr);
 
-}; // class FlameConfig
+}; // class Config
 
 struct FLAME_API AioCompletion {
-    callback_t cb;
-    void* arg;
+    callback_fn_t fn { nullptr };
+    void* arg1 { nullptr };
+    void* arg2 { nullptr };
+
+    inline void call(const Status& stat) {
+        if (fn != nullptr) fn(stat, arg1, arg2);
+    }
 };
 
 class FLAME_API Volume;
@@ -40,7 +45,7 @@ class FLAME_API VolumeMeta;
 
 class FLAME_API Cluster {
 public:
-    static Cluster* connect(FlameConfig& cfg);
+    static Cluster* connect(Config& cfg);
     static Cluster* connect(std::string& path);
     int shutdown();
 
@@ -50,35 +55,35 @@ public:
 
     // Group API
     // create an group.
-    Status group_create(const std::string& name);
+    Status vg_create(const std::string& name);
     // list group. return an list of group name.
-    Status group_list(std::vector<std::string>>& rst);
+    Status vg_list(std::vector<std::string>>& rst);
     // remove an group.
-    Status group_remove(const std::string& name);
-    // rename an group.
-    Status group_rename(const std::string& src, const std::string& dst);
+    Status vg_remove(const std::string& name);
+    // rename an group. not support now
+    // Status vg_rename(const std::string& src, const std::string& dst);
 
     // Volume API
     // create an volume.
-    Status volume_create(const std::string& group, const std::string& name, const VolumeAttr& attr);
+    Status vol_create(const std::string& group, const std::string& name, const VolumeAttr& attr);
     // list volumes. return an list of volume name.
-    Status volume_list(const std::string& group, std::vector<std::string>>& rst);
+    Status vol_list(const std::string& group, std::vector<std::string>>& rst);
     // remove an volume.
-    Status volume_remove(const std::string& group, const std::string& name);
-    // rename an volume.
-    Status volume_rename(const std::string& group, const std::string& src, const std::string& dst);
+    Status vol_remove(const std::string& group, const std::string& name);
+    // rename an volume. not support now
+    // Status vol_rename(const std::string& group, const std::string& src, const std::string& dst);
     // move an volume to another group.
-    Status volume_move(const std::string& group, const std::string& name, const std::string& target);
+    Status vol_move(const std::string& group, const std::string& name, const std::string& target);
     // clone an volume
-    Status volume_clone(const std::string& src_group, const std::string& src_name, const std::string& dst_group, const std::string& dst_name);
+    Status vol_clone(const std::string& src_group, const std::string& src_name, const std::string& dst_group, const std::string& dst_name);
     // read info of volume.
-    Status volume_meta(const std::string& group, const std::string& name, VolumeMeta& info);
+    Status vol_meta(const std::string& group, const std::string& name, VolumeMeta& info);
     // open an volume, and return the io context of volume.
-    Status volume_open(const std::string& group, const std::string& name, Volume** rst);
-    // lock an volume.
-    Status volume_lock_open(const std::string& group, const std::string& name, Volume** rst);
-    // unlock an volume.
-    Status volume_unlock(const std::string& group, const std::string& name);
+    Status vol_open(const std::string& group, const std::string& name, Volume** rst);
+    // lock an volume. not support now
+    // Status vol_open_locked(const std::string& group, const std::string& name, Volume** rst);
+    // unlock an volume. not support now
+    // Status vol_unlock(const std::string& group, const std::string& name);
 
 private:
     Cluster();
@@ -111,7 +116,7 @@ public:
     // async io call
     Status aio_read(const BufferList& buffs, uint64_t offset, uint64_t len, const AioCompletion& cpl);
     Status aio_write(const BufferList& buffs, uint64_t offset, uint64_t len, const AioCompletion& cpl);
-    Status aio_reset(uint64_t offset, uint64_t len);
+    Status aio_reset(uint64_t offset, uint64_t len, const AioCompletion& cpl);
     Status aio_flush(const AioCompletion& cpl);
 
 private:

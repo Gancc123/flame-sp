@@ -208,7 +208,7 @@ public:
     int def_run() {
         auto cct = make_flame_client_context();
         vol_attr_t attr;
-        attr.size = size.get();
+        attr.size = (uint64_t)size.get() << 30;
         attr.chk_sz = chk_sz.get();
         attr.spolicy = 0;
         

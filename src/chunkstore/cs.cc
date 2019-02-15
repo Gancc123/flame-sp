@@ -1,4 +1,9 @@
 #include "chunkstore/cs.h"
+
+#include "chunkstore/simstore/simstore.h"
+#include "chunkstore/filestore/filestore.h"
+// #include "chunkstore/nvmestore/nvmestore.h"
+
 #include "chunkstore/log_cs.h"
 
 using namespace std;
@@ -17,9 +22,10 @@ shared_ptr<ChunkStore> create_chunkstore(FlameContext* fct, const string& url) {
         return shared_ptr<ChunkStore>(SimStore::create_simstore(fct, url));
     } else if(driver == "filestore" || driver == "FileStore") {
         return shared_ptr<ChunkStore>(FileStore::create_filestore(fct, url));
-    } else if(driver == "nvmestore" || driver == "NvmeStore") {
-        return shared_ptr<ChunkStore>(NvmeStore::create_nvmestore(fct, url));
-    }
+    } 
+    // else if(driver == "nvmestore" || driver == "NvmeStore") {
+    //     return shared_ptr<ChunkStore>(NvmeStore::create_nvmestore(fct, url));
+    // }
 
     fct->log()->lerror("invalid driver: %s", driver.c_str());
     return nullptr;

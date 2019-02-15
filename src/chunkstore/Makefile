@@ -2,7 +2,7 @@ ROOT = ../../src
 
 include $(ROOT)/mk/env.mk
 
-STORE_MODULES = simstore filestore nvmestore
+STORE_MODULES = simstore filestore #nvmestore
 
 .PHONY: all $(STORE_MODULES) clean
 
@@ -14,8 +14,8 @@ simstore:
 filestore:
 	make -C ./filestore
 
-nvmestore:
-	make -C ./nvmestore
+# nvmestore:
+	# make -C ./nvmestore
 	
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
@@ -23,4 +23,5 @@ nvmestore:
 clean:
 	make -C ./simstore clean
 	make -C ./filestore clean
+	# make -C ./nvmestore clean
 	rm -f *.o

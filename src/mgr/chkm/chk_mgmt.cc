@@ -36,7 +36,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     meta.size = attr.size;
     for (auto it = chk_ids.begin(); it != chk_ids.end(); it++) {
         chunk_id_t cid(*it);
-        meta.csd_id = cid;
+        meta.chk_id = cid;
         meta.vol_id = cid.get_vol_id();
         meta.index = cid.get_index();
         chk_list.push_back(meta);
@@ -49,6 +49,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     chk_list.clear(); // 避免占用过多内存
 
     // 选择合适的CSD
+    bct_->log()->ltrace("select csds");
     int grp = chk_num / cgn;
     list<uint64_t> csd_list;
     if ((r = layout_->select_bulk(csd_list, grp, cgn, attr.size)) != RC_SUCCESS) {
@@ -62,6 +63,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     }
 
     // 匹配Chunk与CSD，并过滤为以CSD为单位
+    bct_->log()->ltrace("filter csds");
     map<uint64_t, list<uint64_t>> chk_dict;
     list<uint64_t>::iterator csd_it = csd_list.begin();
     list<uint64_t>::const_iterator chk_it = chk_ids.begin();
@@ -70,6 +72,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     }
 
     // 控制CSD创建Chunk
+    bct_->log()->ltrace("control csd to create chunks");
     bool success = true;
     for (auto it = chk_dict.begin(); it != chk_dict.end(); it++) {
         CsdHandle* hdl = csdm_->find(it->first);
@@ -147,6 +150,7 @@ int ChunkManager::create_cg(chunk_id_t pid, int num, const chk_attr_t& attr) {
     for (int i = 0; i < num; i++) {
         pid.set_sub_id(i);
         chk_ids.push_back(pid);
+        bct_->log()->ltrace("chk_id=%llu", pid.val);
     }
 
     return create_bulk(chk_ids, num, attr);
@@ -159,6 +163,7 @@ int ChunkManager::create_vol(chunk_id_t pid, int grp, int cgn, const chk_attr_t&
         for (int i = 0; i < cgn; i++) {
             pid.set_sub_id(i);
             chk_ids.push_back(pid);
+            bct_->log()->ltrace("chk_id=%llu", pid.val);
         }
     }
 

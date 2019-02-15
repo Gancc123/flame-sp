@@ -21,6 +21,8 @@ int VolumeManager::init() {
  * Volume Group
 */
 int VolumeManager::vg_list(list<volume_group_meta_t>& res_list, uint32_t off, uint32_t limit) {
+    bct_->log()->ltrace("off=%u, limit=%u", off, limit);
+
     ReadLocker locker(vg_lock_);
     auto it = vg_idx_.begin();
     while (off > 0 && it != vg_idx_.end())
@@ -31,12 +33,15 @@ int VolumeManager::vg_list(list<volume_group_meta_t>& res_list, uint32_t off, ui
     while (limit > 0 && it != vg_idx_.end()) {
         res_list.push_back(*it->second);
         limit--;
+        it++;
     }
 
     return RC_SUCCESS;
 }
 
 int VolumeManager::vg_create(const string& name) {
+    bct_->log()->ltrace("name=%s", name.c_str());
+
     WriteLocker locker(vg_lock_);
     volume_group_meta_t vg;
     vg.vg_id = max_vg_id_++;
@@ -56,6 +61,8 @@ int VolumeManager::vg_create(const string& name) {
 }
 
 int VolumeManager::vg_remove(const string& name) {
+    bct_->log()->ltrace("name=%s", name.c_str());
+
     WriteLocker locker(vg_lock_);
 
     auto it = vg_idx_.find(name);
@@ -83,6 +90,8 @@ int VolumeManager::vg_remove(const string& name) {
 }
 
 int VolumeManager::vg_rename(const string& old_name, const string& new_name) {
+    bct_->log()->ltrace("name=%s, new=%s", old_name.c_str(), new_name.c_str());
+
     WriteLocker locker(vg_lock_);
     auto it = vg_idx_.find(old_name);
     if (it == vg_idx_.end()) {
@@ -108,6 +117,8 @@ int VolumeManager::vg_rename(const string& old_name, const string& new_name) {
  * Volume
  */
 int VolumeManager::vol_list(list<volume_meta_t>& res_list, const string& vg_name, uint32_t offset, uint32_t limit) {
+    bct_->log()->ltrace("vg=%s, off=%u, limit=%u", vg_name.c_str(), offset, limit);
+
     uint64_t vg_id = get_vg_id__(vg_name);
     if (vg_id == 0) {
         bct_->log()->lerror("vg not found");
@@ -118,6 +129,8 @@ int VolumeManager::vol_list(list<volume_meta_t>& res_list, const string& vg_name
 }
 
 int VolumeManager::vol_create(const string& vg_name, const string& vol_name, const vol_attr_t& attr) {
+    bct_->log()->ltrace("vg=%s, vol=%s, sz=%lluG, flg=%u, sp=%u", vg_name.c_str(), vol_name.c_str(), attr.size >> 30, attr.flags, attr.spolicy);
+
     int r;
     // get_vg_id_add_vol__() 原子获取vg_id并增加vol计数，防止创建Volume过程中，VG被误删除
     uint64_t vg_id = get_vg_id_add_vol__(vg_name);
@@ -136,6 +149,7 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
     // 在数据库中创建volume，并get到vol_id
     volume_meta_t vol;
     vol.vg_id = vg_id;
+    vol.name = vol_name;
     vol.stat = VOL_STAT_CREATING; // volume的状态为创建中！
     vol.chk_sz = attr.chk_sz;
     vol.size = attr.size;
@@ -147,6 +161,8 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
         vg_sub_vol_cnt__(vg_id);
         return r;
     }
+
+    bct_->log()->ltrace("vol_id=%llu", vol.vol_id);
 
     chk_attr_t chka;
     chka.spolicy = attr.spolicy;
@@ -184,6 +200,8 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
 }
 
 int VolumeManager::vol_remove(const std::string& vg_name, const std::string& vol_name) {
+    bct_->log()->ltrace("vg=%s, vol=%s", vg_name.c_str(), vol_name.c_str());
+
     uint64_t vg_id = get_vg_id__(vg_name);
     if (vg_id == 0) {
         bct_->log()->lerror("vg not found");
@@ -235,11 +253,13 @@ int VolumeManager::vol_remove(const std::string& vg_name, const std::string& vol
 
 
 int VolumeManager::vol_rename(const std::string& vg_name, const std::string& vol_old_name, const std::string& vol_new_name) {
+    bct_->log()->ltrace("vg=%s, vol=%s, new=%s", vg_name.c_str(), vol_old_name.c_str(), vol_new_name.c_str());
     // @@@ don't support now
     return RC_FAILD;
 }
 
 int VolumeManager::vol_info(volume_meta_t& vol_res, const std::string& vg_name, const std::string& vol_name) {
+    bct_->log()->ltrace("vg=%s, vol=%s, new=%s", vg_name.c_str(), vol_name.c_str());
     uint64_t vg_id = get_vg_id__(vg_name);
     if (vg_id == 0) {
         bct_->log()->lerror("vg not found");

@@ -35,11 +35,16 @@ int PollLayout::get_next_csd(uint64_t& csd_id, const uint64_t& chk_sz) {
             for (auto it = csdm_->csd_hdl_begin(); it != csdm_->csd_hdl_end(); ++it) {
                 CsdObject* obj = it->second->read_and_lock();
 
+                if (obj == nullptr)
+                    continue;
+
                 if (csd_info_.find(obj->get_csd_id()) == csd_info_.end()) {
                     csd_info_[obj->get_csd_id()] = obj->get_size() - obj->get_alloced();
                 } else if (!it->second->is_active()) {
                     csd_info_.erase(obj->get_csd_id());
                 }
+
+                it->second->unlock();
             }
             it_ = csd_info_.begin();
             csdm_->unlock();
