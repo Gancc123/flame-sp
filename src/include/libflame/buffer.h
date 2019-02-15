@@ -1,12 +1,12 @@
-#ifndef FLAME_LIBFLAME_BUFFER_H
-#define FLAME_LIBFLAME_BUFFER_H
+#ifndef LIBFLAME_BUFFER_H
+#define LIBFLAME_BUFFER_H
 
 #include <cassert>
 #include <cstdint>
 #include <list>
 #include <memory>
 
-namespace flame {
+namespace libflame {
 
 class BufferPtr {
 public:
@@ -47,26 +47,6 @@ inline bool operator == (const BufferPtr& x, const BufferPtr& y) {
 inline bool operator != (const BufferPtr& x, const BufferPtr& y) {
     return !(x == y);
 }
-
-template<T>
-class Pointer : public BufferPtr {
-public:
-    explicit Pointer() : ptr_(nullptr), cnt_(0) {}
-    explicit Pointer(T* ptr) : ptr_(ptr), cnt_(1) {}
-    explicit Pointer(T* ptr, size_t cnt) : ptr_(ptr), cnt_(cnt) {}
-
-    virtual uint8_t* addr() const override { return static_cast<uint8_t*>(ptr_); }
-
-    virtual size_t size() const override { return sizeof(T) * cnt_; }
-
-    void set(T* ptr, size_t cnt = 1) { ptr_ = ptr; cnt_ = cnt; }
-
-    T* get(size_t idx = 0) { return idx < cnt_ ? ptr_ + idx : nullptr; }
-
-protected:
-    T* ptr_;
-    size_t cnt_;
-}; // class Pointer
 
 class Buffer {
 public:
@@ -121,10 +101,10 @@ public:
 
     bool empty() const { return count() == 0 || size() == 0; }
 
-    std::list<Buffer>::const_iterator begin() { return list_.cbegin(); }
-    std::list<Buffer>::const_iterator end() { return list_.cend(); }
-    std::list<Buffer>::const_iterator rbegin() { return list_.crbegin(); }
-    std::list<Buffer>::const_iterator rend() { return list_.crend(); }
+    std::list<Buffer>::const_iterator begin() const { return blist_.cbegin(); }
+    std::list<Buffer>::const_iterator end() const { return blist_.cend(); }
+    std::list<Buffer>::const_reverse_iterator rbegin() const { return blist_.crbegin(); }
+    std::list<Buffer>::const_reverse_iterator rend() const { return blist_.crend(); }
 
     void push_front(const Buffer& buff) {
         blist_.push_front(buff);
@@ -176,38 +156,6 @@ private:
     size_t bsize_ {0};
 }; // class BufferList
 
-/**
- * @brief Buffer分配器
- * 
- * 所有具体实现都需要定义其对应的BufferAllocator和BufferPtr,
- * Buffer分配器没有定义回收的方法，回收动作在BufferPtr指针被Buffer释放时触发
- * 
- */
-class BufferAllocator {
-public:
-    virtual ~BufferAllocator() {}
+} // namespace libflame
 
-    /**
-     * @brief Buffer分配器所能分配的最大大小（不是Free空间）
-     * 
-     * @return size_t 
-     */
-    virtual size_t max_size() const = 0;
-
-    /**
-     * @brief 分配指定大小的Buffer
-     * 需要检查Buffer是否有效(valid)，
-     * 当Buffer的null()返回true或valid()返回false时，
-     * 表示内存分配器不能够再分配指定大小的内存
-     * @param sz 
-     * @return Buffer 
-     */
-    virtual Buffer allocate(size_t sz) = 0;
-
-protected:
-    BufferAllocator() {}
-}; // class BufferAllocator
-
-} // namespace flame
-
-#endif // !FLAME_INCLUDE_BUFFER_H
+#endif // LIBFLAME_BUFFER_H

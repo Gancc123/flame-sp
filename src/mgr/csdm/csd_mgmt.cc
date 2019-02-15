@@ -73,20 +73,20 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     auto meta = obj->meta();
     auto hlt = obj->health();
 
-    fct_->log()->ldebug("meta.csd_id = %llu, hlt.csd_id = %llu", meta.csd_id, hlt.csd_id);
+    bct_->log()->ldebug("meta.csd_id = %llu, hlt.csd_id = %llu", meta.csd_id, hlt.csd_id);
 
     ReadLocker hdl_locker(hdl->get_lock());
     int r = hdl->save();
     if (r != RC_SUCCESS) {
         csd_map_.erase(new_id);
-        fct_->log()->lerror("register csd ($llu, %s) faild: save error", new_id, attr.csd_name.c_str());
+        bct_->log()->lerror("register csd ($llu, %s) faild: save error", new_id, attr.csd_name.c_str());
         return r;
     }
 
     WriteLocker map_locker(csd_map_lock_);
     if (!insert_csd_handle__(new_id, hdl)) {
         delete hdl;
-        fct_->log()->lerror("register csd ($llu, %s) faild: duplicated map key", new_id, attr.csd_name.c_str());
+        bct_->log()->lerror("register csd ($llu, %s) faild: duplicated map key", new_id, attr.csd_name.c_str());
         return RC_OBJ_EXISTED;
     }
 
@@ -106,7 +106,7 @@ int CsdManager::csd_unregister(uint64_t csd_id) {
     int r = ms_->get_csd_ms()->remove(csd_id);
 
     if (r != RC_SUCCESS) {
-        fct_->log()->lerror("unregister csd faild: %llu", csd_id);
+        bct_->log()->lerror("unregister csd faild: %llu", csd_id);
         return r;
     }
 

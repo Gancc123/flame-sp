@@ -465,7 +465,6 @@ int Cmdline::do_parser__(int argc, char** argv) {
             // serial
             serial_idx++;
             auto it = idx_map_.find(serial_idx);
-            printf("hello!\n");
             if (it == idx_map_.end() || it->second->done()) {
                 err_msg_ << "not matched serial";
                 return CmdRetCode::FORMAT_ERROR;

@@ -225,6 +225,7 @@ public:
      * Update a single chunk
      */
     virtual int update(const chunk_meta_t& chk) override;
+    virtual int update_map(const chk_map_t& chk_map) override;
 
     friend class SqlMetaStore;
 private:
@@ -260,6 +261,13 @@ public:
      * Update a single chunk health
      */
     virtual int update(const chunk_health_meta_t& chk_hlt) override;
+
+    /**
+     * Top
+     */
+    virtual int top_load(std::list<chunk_health_meta_t>& chks, uint32_t limit) override;
+    virtual int top_wear(std::list<chunk_health_meta_t>& chks, uint32_t limit) override;
+    virtual int top_total(std::list<chunk_health_meta_t>& chks, uint32_t limit) override;
 
     friend class SqlMetaStore;
 private:
@@ -317,7 +325,6 @@ public:
      * 
      * @Note: 'ob' == 'order by'; 'tweight' == 'total_weight'
      */
-    virtual int list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint32_t limit) override;
     virtual int list_all(std::list<csd_health_meta_t>& res_list) override;
 
     /**
@@ -339,6 +346,13 @@ public:
      * Update a single CSD Health
      */
     virtual int update(const csd_health_meta_t& csd_hlt) override;
+
+    /**
+     * Top
+     */
+    virtual int top_load(std::list<csd_health_meta_t>& chks, uint32_t limit) override;
+    virtual int top_wear(std::list<csd_health_meta_t>& chks, uint32_t limit) override;
+    virtual int top_total(std::list<csd_health_meta_t>& chks, uint32_t limit) override;
 
     friend class SqlMetaStore;
 private:

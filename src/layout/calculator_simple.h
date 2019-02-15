@@ -37,7 +37,7 @@ public:
     }
 };
 
-} // namespace layout    
+} // namespace layout
 } // namespace flame
  
 #endif // FLAME_LAYOUT_CALCULATOR_SIMPLE_H

@@ -189,6 +189,7 @@ public:
      * Update a single chunk
      */
     virtual int update(const chunk_meta_t& chk) = 0;
+    virtual int update_map(const chk_map_t& chk_map) = 0;
 
 protected:
     ChunkMS(FlameContext* fct) : fct_(fct) {}
@@ -227,6 +228,13 @@ public:
      * Update a single chunk health
      */
     virtual int update(const chunk_health_meta_t& chk_hlt) = 0;
+
+    /**
+     * Top
+     */
+    virtual int top_load(std::list<chunk_health_meta_t>& chks, uint32_t limit) = 0;
+    virtual int top_wear(std::list<chunk_health_meta_t>& chks, uint32_t limit) = 0;
+    virtual int top_total(std::list<chunk_health_meta_t>& chks, uint32_t limit) = 0;
 
 protected:
     ChunkHealthMS(FlameContext* fct) : fct_(fct) {}
@@ -288,7 +296,6 @@ public:
      * 
      * @Note: 'ob' == 'order by'; 'tweight' == 'total_weight'
      */
-    virtual int list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint32_t limit) = 0;
     virtual int list_all(std::list<csd_health_meta_t>& res_list) = 0;
 
     /**
@@ -310,6 +317,13 @@ public:
      * Update a single CSD Health
      */
     virtual int update(const csd_health_meta_t& csd_hlt) = 0;
+
+    /**
+     * Top
+     */
+    virtual int top_load(std::list<csd_health_meta_t>& chks, uint32_t limit) = 0;
+    virtual int top_wear(std::list<csd_health_meta_t>& chks, uint32_t limit) = 0;
+    virtual int top_total(std::list<csd_health_meta_t>& chks, uint32_t limit) = 0;
 
 protected:
     CsdHealthMS(FlameContext* fct) : fct_(fct) {}

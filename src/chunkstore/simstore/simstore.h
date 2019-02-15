@@ -43,7 +43,9 @@ public:
     static SimStore* create_simstore(FlameContext* fct, const std::string& url);
     static SimStore* create_simstore(FlameContext* fct, uint64_t size, const std::string& bk_file = "");
 
-    virtual ~SimStore() {}
+    virtual ~SimStore() {
+        if (is_mounted()) dev_unmount();
+    }
 
     virtual int set_info(const cs_info_t& info) override { info_ = info; return 0; }
     virtual int get_info(cs_info_t& info) const override;

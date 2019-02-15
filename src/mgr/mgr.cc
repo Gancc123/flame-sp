@@ -341,8 +341,7 @@ bool Manager::init_csdm() {
     shared_ptr<layout::CsdHealthCaculator> csd_hlt_calor(new layout::SimpleCsdHealthCalculator());
 
     shared_ptr<CsdManager> csdm(new CsdManager(
-        mct_->fct(),    // Flame上下文文
-        mct_->ms(),     // MetaStore
+        mct_->bct(),
         csd_client_foctory,
         csd_hlt_calor   // CSD 健康信息计算器
     ));
@@ -372,8 +371,7 @@ bool Manager::init_chkm() {
     shared_ptr<layout::ChunkHealthCaculator> chk_hlt_calor(new layout::SimpleChunkHealthCalulator());
 
     shared_ptr<ChunkManager> chkm(new ChunkManager(
-        mct_->fct(),
-        mct_->ms(),
+        mct_->bct(),
         mct_->csdm(),
         layout,
         chk_hlt_calor   // Chunk健康信息计算器
@@ -385,8 +383,7 @@ bool Manager::init_chkm() {
 
 bool Manager::init_volm() {
     shared_ptr<VolumeManager> volm(new VolumeManager(
-        mct_->fct(),
-        mct_->ms(),
+        mct_->bct(),
         mct_->csdm(),
         mct_->chkm()
     ));
@@ -430,8 +427,10 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
+    MgrBaseContext* mbct = new MgrBaseContext(fct);
+
     // 创建MGR上下文
-    MgrContext* mct = new MgrContext(fct);
+    MgrContext* mct = new MgrContext(mbct);
 
     // 创建MGR主程序
     Manager mgr(mct);

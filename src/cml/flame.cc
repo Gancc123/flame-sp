@@ -35,7 +35,7 @@ static unique_ptr<FlameClientContext> make_flame_client_context() {
     FlameContext* fct = FlameContext::get_context();
 
     FlameClient* client = new FlameClientImpl(fct, grpc::CreateChannel(
-        "localhost:6666", grpc::InsecureChannelCredentials()
+        "192.168.3.115:6666", grpc::InsecureChannelCredentials()
     ));
     
     if (!client) {
@@ -208,7 +208,7 @@ public:
     int def_run() {
         auto cct = make_flame_client_context();
         vol_attr_t attr;
-        attr.size = size.get();
+        attr.size = (uint64_t)size.get() << 30;
         attr.chk_sz = chk_sz.get();
         attr.spolicy = 0;
         

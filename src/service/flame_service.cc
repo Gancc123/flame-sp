@@ -1,6 +1,9 @@
 #include "flame_service.h"
 #include "include/retcode.h"
 #include "util/utime.h"
+#include "mgr/csdm/csd_mgmt.h"
+#include "mgr/chkm/chk_mgmt.h"
+#include "mgr/volm/vol_mgmt.h"
 
 #include <string>
 #include <list>
@@ -102,8 +105,9 @@ const CsdIDListRequest* request, CsdAddrListReply* response)
 Status FlameServiceImpl::getVolGroupList(ServerContext* context,
 const VGListRequest* request, VGListReply* response)
 {
-    list<volume_group_meta_t> vgs;
+    mct_->log()->ltrace("flame_service", "getVolGroupList");
 
+    list<volume_group_meta_t> vgs;
     mct_->volm()->vg_list(vgs, request->offset(), request->limit());
 
     for (auto it = vgs.begin(); it != vgs.end(); it++) {
@@ -123,6 +127,8 @@ const VGListRequest* request, VGListReply* response)
 Status FlameServiceImpl::createVolGroup(ServerContext* context,
 const VGCreateRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "createVolGroup");
+
     int r = mct_->volm()->vg_create(request->vg_name());
     response->set_code(r);
     return Status::OK;
@@ -132,6 +138,8 @@ const VGCreateRequest* request, FlameReply* response)
 Status FlameServiceImpl::removeVolGroup(ServerContext* context,
 const VGRemoveRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "removeVolGroup");
+
     int r = mct_->volm()->vg_remove(request->vg_name());
     response->set_code(r);
     return Status::OK;
@@ -141,6 +149,8 @@ const VGRemoveRequest* request, FlameReply* response)
 Status FlameServiceImpl::renameVolGroup(ServerContext* context,
 const VGRenameRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "renameVolGroup");
+
     int r = mct_->volm()->vg_rename(request->old_vg_name(), request->new_vg_name());
     response->set_code(r);
     return Status::OK;
@@ -151,6 +161,8 @@ const VGRenameRequest* request, FlameReply* response)
 Status FlameServiceImpl::getVolumeList(ServerContext* context,
 const VolListRequest* request, VolListReply* response)
 {
+    mct_->log()->ltrace("flame_service", "getVolGroupList");
+
     list<volume_meta_t> vols;
     int r = mct_->volm()->vol_list(vols, request->vg_name(), request->offset(), request->limit());
      
@@ -176,6 +188,8 @@ const VolListRequest* request, VolListReply* response)
 Status FlameServiceImpl::createVolume(ServerContext* context,
 const VolCreateRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "createVolume");
+
     vol_attr_t attr;
     attr.chk_sz = request->chk_sz();
     attr.size = request->size();
@@ -191,6 +205,8 @@ const VolCreateRequest* request, FlameReply* response)
 Status FlameServiceImpl::removeVolume(ServerContext* context,
 const VolRemoveRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "removeVolume");
+
     int r = mct_->volm()->vol_remove(request->vg_name(), request->vol_name());
     response->set_code(r);
     return Status::OK;
@@ -200,6 +216,8 @@ const VolRemoveRequest* request, FlameReply* response)
 Status FlameServiceImpl::renameVolume(ServerContext* context,
 const VolRenameRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "renameVolume");
+
     int r = mct_->volm()->vol_rename(request->vg_name(), request->old_vol_name(), request->new_vol_name());
     response->set_code(r);
     return Status::OK;
@@ -209,6 +227,8 @@ const VolRenameRequest* request, FlameReply* response)
 Status FlameServiceImpl::getVolumeInfo(ServerContext* context,
 const VolInfoRequest* request, VolInfoReply* response)
 {
+    mct_->log()->ltrace("flame_service", "getVolumeInfo");
+
     volume_meta_t vol;
     int r = mct_->volm()->vol_info(vol, request->vg_name(), request->vol_name());
     response->set_retcode(r);
@@ -235,6 +255,8 @@ const VolInfoRequest* request, VolInfoReply* response)
 Status FlameServiceImpl::resizeVolume(ServerContext* context,
 const VolResizeRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "resizeVolume");
+
     int r = mct_->volm()->vol_resize(request->vg_name(), request->vol_name(), request->new_size());
     response->set_code(r);
     return Status::OK;
@@ -244,6 +266,8 @@ const VolResizeRequest* request, FlameReply* response)
 Status FlameServiceImpl::openVolume(ServerContext* context,
 const VolOpenRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "openVolume");
+
     int r = mct_->volm()->vol_open(request->gw_id(), request->vg_name(), request->vol_name());
     response->set_code(r);
     return Status::OK;
@@ -253,6 +277,8 @@ const VolOpenRequest* request, FlameReply* response)
 Status FlameServiceImpl::closeVolume(ServerContext* context,
 const VolCloseRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "closeVolume");
+
     int r = mct_->volm()->vol_close(request->gw_id(), request->vg_name(), request->vol_name());
     response->set_code(r);
     return Status::OK;
@@ -262,6 +288,8 @@ const VolCloseRequest* request, FlameReply* response)
 Status FlameServiceImpl::lockVolume(ServerContext* context,
 const VolLockRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "lockVolume");
+
     int r = mct_->volm()->vol_lock(request->gw_id(), request->vg_name(), request->vol_name());
     response->set_code(r);
     return Status::OK;
@@ -271,6 +299,8 @@ const VolLockRequest* request, FlameReply* response)
 Status FlameServiceImpl::unlockVolume(ServerContext* context,
 const VolUnlockRequest* request, FlameReply* response)
 {
+    mct_->log()->ltrace("flame_service", "unlockVolume");
+
     int r = mct_->volm()->vol_unlock(request->gw_id(), request->vg_name(), request->vol_name());
     response->set_code(r);
     return Status::OK;
@@ -280,6 +310,8 @@ const VolUnlockRequest* request, FlameReply* response)
 Status FlameServiceImpl::getVolumeMaps(ServerContext* context,
 const VolMapsRequest* request, VolMapsReply* response)
 {
+    mct_->log()->ltrace("flame_service", "getVolumeMaps");
+
     list<chunk_meta_t> chks;
     mct_->chkm()->info_vol(chks, request->vol_id());
 
@@ -303,6 +335,8 @@ const VolMapsRequest* request, VolMapsReply* response)
 Status FlameServiceImpl::getChunkMaps(ServerContext* context,
 const ChunkMapsRequest* request, ChunkMapsReply* response)
 {
+    mct_->log()->ltrace("flame_service", "getChunkMaps");
+
     list<uint64_t> chk_ids;
     for (int i = 0; i < request->chk_id_list_size(); i++) {
         chk_ids.push_back(request->chk_id_list(i));

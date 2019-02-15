@@ -57,13 +57,14 @@ $(DCHUNKSTORE)/filestore/filechunkmap.o \
 $(DCHUNKSTORE)/filestore/filestoreconf.o \
 $(DCHUNKSTORE)/filestore/chunkutil.o \
 $(DCHUNKSTORE)/filestore/object.o \
-$(DCHUNKSTORE)/nvmestore/chunkblobmap.o \
-$(DCHUNKSTORE)/nvmestore/iochannels.o \
-$(DCHUNKSTORE)/nvmestore/nvmechunkmap.o \
-$(DCHUNKSTORE)/nvmestore/nvmechunk.o \
-$(DCHUNKSTORE)/nvmestore/nvmeconf.o \
-$(DCHUNKSTORE)/nvmestore/nvmestore.o \
 $(DCHUNKSTORE)/cs.o
+# $(DCHUNKSTORE)/nvmestore/chunkblobmap.o \ 
+# $(DCHUNKSTORE)/nvmestore/iochannels.o \ 
+# $(DCHUNKSTORE)/nvmestore/nvmechunkmap.o \ 
+# $(DCHUNKSTORE)/nvmestore/nvmechunk.o \ 
+# $(DCHUNKSTORE)/nvmestore/nvmeconf.o \ 
+# $(DCHUNKSTORE)/nvmestore/nvmestore.o \ 
+
 
 # /work
 OBJ_WORK = \
