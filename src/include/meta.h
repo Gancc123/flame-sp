@@ -273,9 +273,7 @@ struct chk_map_t {
     uint64_t    chk_id;
     uint32_t    stat;
     uint64_t    csd_id;
-    uint64_t    csd_addr;
     uint64_t    dst_id;
-    uint64_t    dst_addr;
 };
 
 /**

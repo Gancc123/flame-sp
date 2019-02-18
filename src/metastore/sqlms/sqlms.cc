@@ -595,6 +595,16 @@ int SqlChunkMS::update(const chunk_meta_t& chk) {
     return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
 }
 
+int SqlChunkMS::update_map(const chk_map_t& chk_map) {
+    shared_ptr<Result> ret = m_chunk.update()
+        .assign({
+            set_(m_chunk.stat, chk_map.stat),
+            set_(m_chunk.csd_id, chk_map.csd_id),
+            set_(m_chunk.dst_id, chk_map.dst_id),
+        }).where(m_chunk.chk_id == chk_map.chk_id).exec();
+    return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
+
 /**
  * SqlChunkHealthMS
  */
@@ -704,6 +714,60 @@ int SqlChunkHealthMS::update(const chunk_health_meta_t& chk_hlt) {
             set_(m_chk_health.total_weight, chk_hlt.weight.w_total)
         }).where(m_chk_health.chk_id == chk_hlt.chk_id).exec();
     return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
+
+int SqlChunkHealthMS::top_load(list<chunk_health_meta_t>& chks, uint32_t limit) {
+    shared_ptr<Result> ret = m_chk_health.query()
+        .order_by(m_chk_health.load_weight, Order::DESC)
+        .limit(limit)
+        .exec();
+    
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            chunk_health_meta_t chk_hlt;
+            chunk_health_meta_set__(chk_hlt, m_chk_health, it);
+            chks.push_back(chk_hlt);
+        }
+        return RC_SUCCESS;
+    }
+    return RC_FAILD;
+}
+
+int SqlChunkHealthMS::top_wear(list<chunk_health_meta_t>& chks, uint32_t limit) {
+    shared_ptr<Result> ret = m_chk_health.query()
+        .order_by(m_chk_health.wear_weight, Order::DESC)
+        .limit(limit)
+        .exec();
+    
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            chunk_health_meta_t chk_hlt;
+            chunk_health_meta_set__(chk_hlt, m_chk_health, it);
+            chks.push_back(chk_hlt);
+        }
+        return RC_SUCCESS;
+    }
+    return RC_FAILD;
+}
+
+int SqlChunkHealthMS::top_total(list<chunk_health_meta_t>& chks, uint32_t limit) {
+    shared_ptr<Result> ret = m_chk_health.query()
+        .order_by(m_chk_health.total_weight, Order::DESC)
+        .limit(limit)
+        .exec();
+    
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            chunk_health_meta_t chk_hlt;
+            chunk_health_meta_set__(chk_hlt, m_chk_health, it);
+            chks.push_back(chk_hlt);
+        }
+        return RC_SUCCESS;
+    }
+    return RC_FAILD;
 }
 
 /**
@@ -873,22 +937,6 @@ static void csd_health_meta_set__(csd_health_meta_t& csd_hlt, const CsdHealthMod
     csd_hlt.weight.w_total  = it->get(m_csd_health.total_weight);
 }
 
-int SqlCsdHealthMS::list_ob_tweight(std::list<csd_health_meta_t>& res_list, uint32_t limit) {
-    shared_ptr<Result> ret = m_csd_health.query()
-        .order_by(m_csd_health.total_weight, Order::DESC).limit(limit).exec();
-
-    if (ret && ret->OK()) {
-        shared_ptr<DataSet> ds = ret->data_set();
-        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
-            csd_health_meta_t csd_hlt;
-            csd_health_meta_set__(csd_hlt, m_csd_health, it);
-            res_list.push_back(csd_hlt);
-        }
-        return RC_SUCCESS;
-    }
-    return RC_FAILD;
-}
-
 int SqlCsdHealthMS::list_all(std::list<csd_health_meta_t>& res_list) {
     shared_ptr<Result> ret = m_csd_health.query().exec();
 
@@ -960,6 +1008,60 @@ int SqlCsdHealthMS::update(const csd_health_meta_t& csd_hlt) {
             set_(m_csd_health.total_weight, csd_hlt.weight.w_total)
         }).where(m_csd_health.csd_id == csd_hlt.csd_id).exec();
     return (ret && ret->OK()) ? RC_SUCCESS : RC_FAILD;
+}
+
+int SqlCsdHealthMS::top_load(list<csd_health_meta_t>& chks, uint32_t limit) {
+    shared_ptr<Result> ret = m_csd_health.query()
+        .order_by(m_csd_health.load_weight, Order::DESC)
+        .limit(limit)
+        .exec();
+
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            csd_health_meta_t csd_hlt;
+            csd_health_meta_set__(csd_hlt, m_csd_health, it);
+            chks.push_back(csd_hlt);
+        }
+        return RC_SUCCESS;
+    }
+    return RC_FAILD;
+}
+
+int SqlCsdHealthMS::top_wear(list<csd_health_meta_t>& chks, uint32_t limit) {
+    shared_ptr<Result> ret = m_csd_health.query()
+        .order_by(m_csd_health.wear_weight, Order::DESC)
+        .limit(limit)
+        .exec();
+
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            csd_health_meta_t csd_hlt;
+            csd_health_meta_set__(csd_hlt, m_csd_health, it);
+            chks.push_back(csd_hlt);
+        }
+        return RC_SUCCESS;
+    }
+    return RC_FAILD;
+}
+
+int SqlCsdHealthMS::top_total(list<csd_health_meta_t>& chks, uint32_t limit) {
+    shared_ptr<Result> ret = m_csd_health.query()
+        .order_by(m_csd_health.total_weight, Order::DESC)
+        .limit(limit)
+        .exec();
+
+    if (ret && ret->OK()) {
+        shared_ptr<DataSet> ds = ret->data_set();
+        for (auto it = ds->cbegin(); it != ds->cend(); ++it) {
+            csd_health_meta_t csd_hlt;
+            csd_health_meta_set__(csd_hlt, m_csd_health, it);
+            chks.push_back(csd_hlt);
+        }
+        return RC_SUCCESS;
+    }
+    return RC_FAILD;
 }
 
 /**

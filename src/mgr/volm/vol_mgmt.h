@@ -18,11 +18,10 @@ namespace flame {
 
 class VolumeManager final {
 public:
-    VolumeManager(FlameContext* fct, 
-        const std::shared_ptr<MetaStore>& ms,
+    VolumeManager(MgrBaseContext* bct, 
         const std::shared_ptr<CsdManager>& csdm,
         const std::shared_ptr<ChunkManager>& chkm)
-    : fct_(fct), ms_(ms), csdm_(csdm), chkm_(chkm), sp_tlb_() {}
+    : bct_(bct), ms_(bct->ms()), csdm_(csdm), chkm_(chkm) {}
 
     /**
      * @brief 初始化
@@ -55,7 +54,7 @@ public:
     int vol_unlock(uint64_t gw_id, const std::string& vg_name, const std::string& vol_name);
 
 private:
-    FlameContext* fct_;
+    MgrBaseContext* bct_;
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdManager> csdm_;
     std::shared_ptr<ChunkManager> chkm_;
@@ -77,14 +76,6 @@ private:
     int vg_sub_vol__(uint64_t vg_id, uint64_t sz);
 
     int init_vg__();
-
-    /**
-     * Store Policy
-     */
-    std::vector<spolicy::StorePolicy*> sp_tlb_;
-    spolicy::StorePolicy* get_sp__(uint32_t sp_type);
-
-    int init_sp__();
 }; // class VolumeManager
 
 } // namespace flame

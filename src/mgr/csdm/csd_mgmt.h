@@ -1,7 +1,7 @@
 #ifndef FLAME_MGR_CSDM_H
 #define FLAME_MGR_CSDM_H
 
-#include "common/context.h"
+#include "mgr/mgr_context.h"
 #include "metastore/metastore.h"
 #include "include/objects.h"
 #include "common/thread/rw_lock.h"
@@ -20,11 +20,10 @@ class CsdHandle;
 
 class CsdManager final {
 public:
-    CsdManager(FlameContext* fct, 
-        const std::shared_ptr<MetaStore>& ms, 
+    CsdManager(MgrBaseContext* bct,
         const std::shared_ptr<CsdsClientFoctory>& csd_client_foctory,
         const std::shared_ptr<layout::CsdHealthCaculator>& csd_hlt_calor)
-    : fct_(fct), ms_(ms), csd_client_foctory_(csd_client_foctory), csd_hlt_calor_(csd_hlt_calor) {}
+    : bct_(bct), ms_(bct->ms()), csd_client_foctory_(csd_client_foctory), csd_hlt_calor_(csd_hlt_calor) {}
     
     ~CsdManager() {
         destroy__();
@@ -127,7 +126,7 @@ public:
 
     friend class CsdHandle;
 private:
-    FlameContext* fct_;
+    MgrBaseContext* bct_;
     std::shared_ptr<MetaStore> ms_;
     std::shared_ptr<CsdsClientFoctory> csd_client_foctory_;
     std::shared_ptr<layout::CsdHealthCaculator> csd_hlt_calor_;

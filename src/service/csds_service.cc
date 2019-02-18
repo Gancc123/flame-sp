@@ -12,6 +12,7 @@ namespace service {
 Status CsdsServiceImpl::fetchChunk(ServerContext* context, 
 const ChunkFetchRequest* request, ChunkFetchReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     return Status::OK;
 }
 
@@ -19,6 +20,7 @@ const ChunkFetchRequest* request, ChunkFetchReply* response)
 Status CsdsServiceImpl::pushChunkSignal(ServerContext* context,
 const ChunkSignalRequest* request, CsdsReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     return Status::OK;
 }
 
@@ -27,6 +29,7 @@ const ChunkSignalRequest* request, CsdsReply* response)
 Status CsdsServiceImpl::shutdown(ServerContext* context,
 const ShutdownRequest* request, CsdsReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     return Status::OK;
 }
 
@@ -34,6 +37,7 @@ const ShutdownRequest* request, CsdsReply* response)
 Status CsdsServiceImpl::clean(ServerContext* context,
 const CleanRequest* request, CsdsReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     return Status::OK;
 }
 
@@ -41,6 +45,7 @@ const CleanRequest* request, CsdsReply* response)
 Status CsdsServiceImpl::createChunk(ServerContext* context,
 const ChunkCreateRequest* request, ChunkBulkReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     int r;
     for (int i = 0; i < request->chk_id_list_size(); i++) {
         chunk_id_t chk_id = request->chk_id_list(i);
@@ -62,6 +67,7 @@ const ChunkCreateRequest* request, ChunkBulkReply* response)
 Status CsdsServiceImpl::removeChunk(ServerContext* context,
 const ChunkRemoveRequest* request, ChunkBulkReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     int r;
     for (int i = 0; i < request->chk_id_list_size(); i++) {
         uint64_t chk_id = request->chk_id_list(i);
@@ -77,6 +83,7 @@ const ChunkRemoveRequest* request, ChunkBulkReply* response)
 Status CsdsServiceImpl::chooseChunk(ServerContext* context,
 const ChunkChooseRequest* request, ChunkBulkReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     return Status::OK;
 }
 
@@ -84,6 +91,7 @@ const ChunkChooseRequest* request, ChunkBulkReply* response)
 Status CsdsServiceImpl::moveChunk(ServerContext* context,
 const ChunkMoveRequest* request, ChunkBulkReply* response)
 {
+    cct_->log()->ltrace("csds_service", "");
     return Status::OK;
 }
 

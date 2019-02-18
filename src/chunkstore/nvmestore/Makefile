@@ -1,12 +1,12 @@
 ROOT = ../../../src
-SPDK_ROOT_DIR := /home/chenxuqiang/spdk18.10/spdk
+SPDK_ROOT = $(ROOT)/spdk
 
 include $(ROOT)/mk/env.mk
 include $(ROOT)/mk/spdk.mk
 
-#include $(SPDK_ROOT_DIR)/mk/spdk.common.mk
-#include $(SPDK_ROOT_DIR)/mk/spdk.app.mk
-#include $(SPDK_ROOT_DIR)/mk/spdk.modules.mk
+include $(SPDK_ROOT)/mk/spdk.common.mk
+include $(SPDK_ROOT)/mk/spdk.app.mk
+include $(SPDK_ROOT)/mk/spdk.modules.mk
 
 #OBJ_NVMESTORE = nvmestore.o nvmechunk.o nvmeconf.o nvmechunkmap.o chunkblobmap.o iochannels.o
 

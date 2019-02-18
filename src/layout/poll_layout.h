@@ -13,7 +13,7 @@ namespace layout {
 class PollLayout : public ChunkLayout {
 public:
     PollLayout(const std::shared_ptr<CsdManager>& csdm)
-    : ChunkLayout(csdm) {}
+    : ChunkLayout(csdm) { init(); }
 
     void init();
 
