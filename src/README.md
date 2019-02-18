@@ -51,7 +51,26 @@ Flame 源码目录说明
     - `objs.mk` : 包含各个模块的引用
     - `spdk.mk`
 - `msg/`: 网络消息通信模块
-    - (未知)
+    - `dispatcher/` : 消息模块上层接口(尚未详细测试)
+    - `event/` : 对epoll的封装
+    - `internal/` : 内部使用的头文件
+    - `rdma/` : rdma实现
+    - `socket/` : socket实现(TCP)
+    - `Connection.h` & `Connection.cc` : Connection抽象类
+    - `ListenPort.h` : ListenPort抽象类
+    - `Message.h` : 调用消息模块时的数据单元，数据buffer待补全
+    - `msg_common.h` : 内部公用头文件
+    - `msg_context.h` & `msg_context.cc` : 消息模块上下文，管理整个消息模块的生命周期和相关资源
+    - `msg_core.h` : 调用消息模块时，只需include此文件即可
+    - `msg_data.h` : 内部使用的消息数据类
+    - `msg_def.h` : 内部宏定义
+    - `msg_types.h` : 内部接口定义
+    - `Msg.h` & `Msg.cc` : Msg类
+    - `MsgManager.h` & `MsgManager.cc` : 管理连接，监听端口，会话和工作线程
+    - `MsgWorker.h` & `MsgWorker.cc` : MsgWorker抽象类和ThrMsgWorker子类(pthread实现)
+    - `NetHandler.h` & `NetHandler.cc` : socket工具类
+    - `Session.h` & `Session.cc` : Session类
+    - `Stack.h` & `Stack.cc` : TcpStack和RdmaStack的基类
 - `orm/` : MGR ORM，为MetaStore的SQL实现提供数据结构抽象，支持不同的SQL数据库系统
     - `examples/` : 用例
     - `my_impl/` : 适配MySQL的实现
