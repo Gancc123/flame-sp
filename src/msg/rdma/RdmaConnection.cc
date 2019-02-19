@@ -50,22 +50,10 @@ void RdmaConnection::recv_msg_cb(Msg *msg){
     msg->put();
 }
 
-
-uint32_t RdmaConnection::max_post_works(){
-    auto manager = rdma_worker->get_manager();
-    uint32_t tx_queue_len = manager->get_ib().get_tx_queue_len();
-    uint32_t concurrent_num = manager->max_concurrent_num;
-    uint32_t cur_tx_queue_len = qp->get_tx_wr() + concurrent_num;
-    assert(tx_queue_len >= qp->get_tx_wr());
-    if(tx_queue_len > cur_tx_queue_len){
-        return tx_queue_len - cur_tx_queue_len;
-    }
-    return 0;
-}
-
 RdmaConnection::RdmaConnection(MsgContext *mct)
 :Connection(mct),
  status(RdmaStatus::INIT),
+ fin_msg_pending(false),
  is_dead_pending(false),
  send_mutex(MUTEX_TYPE_ADAPTIVE_NP),
  inflight_rx_buffers(0),
@@ -354,7 +342,7 @@ ssize_t RdmaConnection::submit(bool more){
     if(r < 0){
         ML(mct, error, "submit_send_works error!");
     }
-    return 0;
+    return r;
 }
     
 int RdmaConnection::submit_send_works(){
@@ -375,6 +363,10 @@ int RdmaConnection::submit_send_works(){
         msg_list.splice(msg_list.begin(), to_submit_msg_list);
     }
 
+    if(fin_msg_pending){
+        this->fin(); //post fin msg if need
+    }
+
     return r;
 }
 
@@ -389,10 +381,12 @@ int RdmaConnection::post_rdma_send(std::list<Msg*> &msgs){
 
     auto memory_manager = rdma_worker->get_memory_manager();
     uint32_t buf_size = memory_manager->get_buffer_size();
-    uint32_t max_wrs = max_post_works();
-    if(max_wrs * buf_size < total_bytes){ //limit works num.
-        total_bytes = max_wrs * buf_size;
-    }
+    uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()
+                                                            .get_tx_queue_len();
+    uint32_t max_wrs = qp->add_tx_wr_with_limit(
+                            (total_bytes + buf_size - 1) / buf_size,
+                            tx_queue_len, true);
+    total_bytes = max_wrs * buf_size;
 
     if(total_bytes == 0) return 0;
 
@@ -562,7 +556,6 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
     ibv_send_wr iswr[tx_buffers.size()];
     uint32_t current_swr = 0;
     ibv_send_wr* pre_wr = NULL;
-    uint32_t num = 0; 
 
     memset(iswr, 0, sizeof(iswr));
     memset(isge, 0, sizeof(isge));
@@ -588,7 +581,6 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
                 (void *)(*current_buffer), isge[current_sge].length,
                 (iswr[current_swr].send_flags & IBV_SEND_INLINE)?"inline":"" );
 
-        num++;
         if(pre_wr)
             pre_wr->next = &iswr[current_swr];
         pre_wr = &iswr[current_swr];
@@ -598,23 +590,28 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
     }
 
     int r = 0;
-    //can_post_works() ensure that send queue won't be full.
-    ibv_send_wr *bad_tx_work_request;
+    //qp->add_tx_wr_with_limit() ensure that send queue won't be full.
+    ibv_send_wr *bad_tx_work_request = nullptr;
     if (ibv_post_send(qp->get_qp(), iswr, &bad_tx_work_request)) {
         if(errno == ENOMEM){
             ML(mct, error, "failed to send data. "
                         "(most probably send queue is full): {}",
                         cpp_strerror(errno));
-            num = ((char *)bad_tx_work_request - (char *)iswr)
-                                                     / sizeof(ibv_send_wr);
+            
         }else{
             ML(mct, error, "failed to send data. "
                         "(most probably should be peer not ready): {}",
                         cpp_strerror(errno));
         }
         r = -errno;
+        if(bad_tx_work_request){
+            uint32_t done_num = ((char *)bad_tx_work_request - (char *)iswr)
+                                                        / sizeof(ibv_send_wr);
+            assert(done_num <= tx_buffers.size());
+            //some wrs not posted.
+            qp->dec_tx_wr(tx_buffers.size() - done_num);
+        }
     }
-    qp->add_tx_wr(num);
     // ML(mct, debug, "qp state is {}", 
     //                     ib::Infiniband::qp_state_string(qp->get_state()));
     return r;
@@ -645,8 +642,11 @@ int RdmaConnection::submit_rw_works(){
 
 int RdmaConnection::post_rdma_rw(RdmaRwWork *work, bool enqueue){
     if(!work) return -1;
-    int wr_num = work->rbufs.size();
-    if(max_post_works() < wr_num || status != RdmaStatus::CAN_WRITE){
+    uint32_t wr_num = work->rbufs.size();
+    uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()
+                                                            .get_tx_queue_len();
+    uint32_t can_post_wr = qp->add_tx_wr_with_limit(wr_num, tx_queue_len);
+    if(can_post_wr < wr_num || status != RdmaStatus::CAN_WRITE){
         if(enqueue){
             MutexLocker l(send_mutex);
             rw_work_list.push_back(work);
@@ -710,28 +710,43 @@ int RdmaConnection::post_rdma_rw(RdmaRwWork *work, bool enqueue){
 
     int r = 0;
     //can_post_works() ensure that send queue won't be full.
-    ibv_send_wr *bad_tx_work_request;
+    ibv_send_wr *bad_tx_work_request = nullptr;
     if (ibv_post_send(qp->get_qp(), iswr, &bad_tx_work_request)) {
         if(errno == ENOMEM){
             ML(mct, error, "failed to send data. "
                         "(most probably send queue is full): {}",
                         cpp_strerror(errno));
-            num = ((char *)bad_tx_work_request - (char *)iswr)
-                                                     / sizeof(ibv_send_wr);
         }else{
             ML(mct, error, "failed to send data. "
                         "(most probably should be peer not ready): {}",
                         cpp_strerror(errno));
         }
         r = -errno;
+        if(bad_tx_work_request){
+            uint32_t done_num = ((char *)bad_tx_work_request - (char *)iswr)
+                                                        / sizeof(ibv_send_wr);
+            assert(done_num <= wr_num);
+            //some wrs not posted.
+            qp->dec_tx_wr(wr_num - done_num);
+        }
     }
-    qp->add_tx_wr(num);
 
     return r;
 }
 
 
 void RdmaConnection::fin(){
+    uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()
+                                                            .get_tx_queue_len();
+    uint32_t can_post_wr = qp->add_tx_wr_with_limit(1, tx_queue_len);
+    if(can_post_wr == 0){
+        fin_msg_pending = true;
+        return;
+    }else{
+        fin_msg_pending = false;
+    }
+
+
     ibv_send_wr wr;
     memset(&wr, 0, sizeof(wr));
     wr.wr_id = reinterpret_cast<uint64_t>(qp);
@@ -743,9 +758,9 @@ void RdmaConnection::fin(){
         ML(mct, warn, "failed to send fin message. "
             "ibv_post_send failed(most probably should be peer not ready): {}",
             cpp_strerror(errno));
+        qp->dec_tx_wr(1);
         return ;
     }
-    qp->add_tx_wr(1);
     if(status != RdmaStatus::CLOSING_PASSIVE
         && status != RdmaStatus::CLOSED
         && status != RdmaStatus::ERROR){

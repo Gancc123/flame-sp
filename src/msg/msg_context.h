@@ -14,7 +14,7 @@ class MsgDispatcher;
 
 class CsdAddrResolver{
 public:
-    virtual int pull_csd_addr(std::list<csd_addr_attr_t>& res,
+    virtual int pull_csd_addr(std::list<csd_addr_t>& res,
                                  const std::list<uint64_t>& csd_id_list) = 0;
 };
 

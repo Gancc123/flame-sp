@@ -47,8 +47,8 @@ private:
     std::list<Msg *> recv_msg_list;
 
     std::atomic<RdmaStatus> status;
+    std::atomic<bool> fin_msg_pending;
 
-    uint32_t max_post_works();
     void recv_msg_cb(Msg *msg);
     int post_work_request(std::vector<Chunk *> &tx_buffers);
     int post_rdma_send(std::list<Msg *> &msg);

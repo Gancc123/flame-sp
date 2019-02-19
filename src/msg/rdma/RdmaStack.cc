@@ -182,8 +182,9 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
         
         Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
-        ML(mct, info, "QP: {} len: {}, addr: {:p} {}", response->qp_num,
-                    response->byte_len, (void *)chunk,
+        ML(mct, info, "QP: {}, addr: {:p} {} {}", response->qp_num, 
+                    (void *)chunk, 
+                    manager->get_ib().wc_opcode_string(response->opcode),
                     manager->get_ib().wc_status_to_string(response->status));
 
         if (response->status != IBV_WC_SUCCESS) {
@@ -557,7 +558,7 @@ RdmaManager::~RdmaManager(){
 int RdmaManager::init(){
     int res = (m_ib.init()?0:1);
     if(res) return res;
-    auto worker = mct->manager->get_lightest_load_worker();
+    auto worker = mct->manager->get_worker(0); //use the first worker
     assert(worker);
     res = arm_async_event_handler(worker);
     if(res) return res;
@@ -572,15 +573,15 @@ int RdmaManager::init(){
     }
     workers.reserve(cqp_num);
 
-    
-    int arm_step = (msg_worker_num - 1) / cqp_num;
+    // int arm_step = (msg_worker_num - 1) / cqp_num;
+    int arm_step = 1;
     ML(mct, info, "rdma_worker_num(rdma_cq_pair_num): {}, msg_worker_num: {},"
                         " arm_step:{}", cqp_num, msg_worker_num, arm_step);
 
     for(int i = 0;i < cqp_num; ++i){
         auto worker = new RdmaWorker(mct, this);
         worker->init();
-        int msg_worker_index = arm_step * i;
+        int msg_worker_index = arm_step * i + 1;
         res = worker->arm_notify(mct->manager->get_worker(msg_worker_index));
         assert(res == 0);
         workers.push_back(worker);
@@ -637,7 +638,7 @@ RdmaStack::RdmaStack(MsgContext *c)
 }
 
 int RdmaStack::init(){
-    manager = new RdmaManager(mct, mct->manager->get_worker_num());
+    manager = new RdmaManager(mct);
     if(!manager) return -1;
     return manager->init();
 }

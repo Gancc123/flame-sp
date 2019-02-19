@@ -124,7 +124,7 @@ char *PoolAllocator::malloc(const size_type bytes){
         real_size = bytes + sizeof(*m);
     }
 
-    m = static_cast<mem_info *>(mmgr->malloc(bytes + sizeof(*m)));
+    m = static_cast<mem_info *>(mmgr->malloc(real_size));
     if (!m) {
         ML(mct, error, "failed to allocate {} + {} bytes of memory for {}",
                                                     bytes, sizeof(*m), nbufs);
@@ -144,8 +144,8 @@ char *PoolAllocator::malloc(const size_type bytes){
         mmgr->free(m);
         return NULL;
     }else{
-        ML(mct, info, "register {} + {} ({}) bytes of memory for {} bufs.",
-            bytes, sizeof(*m), real_size, nbufs);
+        ML(mct, info, "{:p} register {} + {} ({}) bytes of memory for {} bufs.",
+            (void *)m, bytes, sizeof(*m), real_size, nbufs);
     }
 
     m->nbufs = nbufs;
@@ -179,7 +179,7 @@ void PoolAllocator::free(char * const block){
 
 MemoryManager::MemoryManager(MsgContext *c, ProtectionDomain *p)
 : mct(c), pd(p), buffer_size(c->config->rdma_buffer_size),
-    lock(MUTEX_TYPE_ADAPTIVE_NP),
+    lock(MUTEX_TYPE_ADAPTIVE_NP), huge_page_map_lock(MUTEX_TYPE_ADAPTIVE_NP),
     mem_pool(this, sizeof(Chunk) + mct->config->rdma_buffer_size,
                                                         calcu_init_space(c)){
     rdma_buffer_allocator = new RdmaBufferAllocator(this);
@@ -191,6 +191,7 @@ MemoryManager::MemoryManager(MsgContext *c, ProtectionDomain *p)
 MemoryManager::~MemoryManager(){
     rdma_buffer_allocator->fin();
     delete rdma_buffer_allocator;
+    mem_pool.purge_memory();
 }
 
 void* MemoryManager::huge_pages_malloc(size_t size){
@@ -205,6 +206,7 @@ void* MemoryManager::huge_pages_malloc(size_t size){
         if (ptr == nullptr) return nullptr;
         real_size = 0;
     }else{
+        MutexLocker l(huge_page_map_lock);
         assert(huge_page_map[ptr] == 0);
         huge_page_map[ptr] = real_size;
     }
@@ -213,6 +215,7 @@ void* MemoryManager::huge_pages_malloc(size_t size){
 
 void MemoryManager::huge_pages_free(void *ptr){
     if (ptr == nullptr) return;
+    MutexLocker l(huge_page_map_lock);
     auto it = huge_page_map.find(ptr);
     if(it != huge_page_map.end()){
         size_t real_size = it->second;

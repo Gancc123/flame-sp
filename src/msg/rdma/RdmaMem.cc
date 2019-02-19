@@ -25,7 +25,7 @@ RdmaBuffer::RdmaBuffer(void *ptr, BuddyAllocator *a)
 void *RdmaMemSrc::alloc(size_t s) {
     void *m = mmgr->malloc(s);
     if(!m){
-        MLI(mmgr->mct, error, "RdmaMemSrc failed to allocate {}B of mem.", s);
+        MLI(mmgr->mct, error, "RdmaMemSrc failed to allocate {} B of mem.", s);
         return nullptr;
     }
     // As huge page memory's unit is 2MB(on intel).
@@ -37,12 +37,12 @@ void *RdmaMemSrc::alloc(size_t s) {
                         | IBV_ACCESS_REMOTE_READ);
 
     if(mr == nullptr){
-        MLI(mmgr->mct, error, "RdmaMemSrc failed to register {}B of mem: {}",
+        MLI(mmgr->mct, error, "RdmaMemSrc failed to register {} B of mem: {}",
                 s, cpp_strerror(errno));
         mmgr->free(m);
         return nullptr;
     }else{
-        MLI(mmgr->mct, info, "RdmaMemSrc register {}B of mem", s);
+        MLI(mmgr->mct, info, "RdmaMemSrc register {} B of mem", s);
     }
 
     return m;

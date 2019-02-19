@@ -33,5 +33,8 @@
 #include "rdma/RdmaListenPort.h"
 #include "rdma/RdmaConnection.h"
 
+#include "dispatcher/MsgChannel.h"
+#include "dispatcher/MsgDispatcher.h"
+
 
 #endif //FLAEM_MSG_MSG_CORE_H

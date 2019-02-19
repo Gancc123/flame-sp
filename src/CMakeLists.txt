@@ -136,5 +136,5 @@ if(WITH_STATIC_LIBSTDCXX)
       LINK_FLAGS "-static-libstdc++ -static-libgcc")
 endif()
 
-
+add_subdirectory(examples)
 add_subdirectory(tests)

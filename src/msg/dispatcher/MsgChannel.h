@@ -1,5 +1,5 @@
-#ifndef FLAME_MSG_DISPATCHER_CHANNEL_H
-#define FLAME_MSG_DISPATCHER_CHANNEL_H
+#ifndef FLAME_MSG_DISPATCHER_MSG_CHANNEL_H
+#define FLAME_MSG_DISPATCHER_MSG_CHANNEL_H
 
 #include "msg/Message.h"
 
@@ -30,4 +30,4 @@ public:
 } //namespace msg
 } //namespace flame
 
-#endif // FLAME_MSG_DISPATCHER_CHANNEL_H
+#endif // FLAME_MSG_DISPATCHER_MSG_CHANNEL_H

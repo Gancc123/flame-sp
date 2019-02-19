@@ -171,6 +171,7 @@ private:
     ProtectionDomain *pd;
     MemPool mem_pool;
     unsigned n_bufs_allocated;
+    Mutex huge_page_map_lock;
     std::map<void *, size_t> huge_page_map;
     const uint32_t buffer_size;
     /**
