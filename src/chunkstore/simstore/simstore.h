@@ -59,6 +59,7 @@ public:
     virtual int dev_mount() override;
     virtual int dev_unmount() override;
     virtual bool is_mounted() override;
+    virtual int flush() override;
 
     virtual int chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) override;
     virtual int chunk_remove(uint64_t chk_id) override;
