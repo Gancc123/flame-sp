@@ -125,8 +125,10 @@ int SimStore::dev_format() {
 int SimStore::dev_mount() {
     if (!bk_file_.empty()) {
         int r = backup_load__();
-        if (r != 0) 
+        if (r != 0) {
+            fct_->log()->lerror("simstore: load backup faild");
             return RC_FAILD;
+        }
     } else 
         info_init__();
     
@@ -154,6 +156,18 @@ int SimStore::dev_unmount() {
 
 bool SimStore::is_mounted() {
     return mounted_;
+}
+
+int SimStore::flush() {
+    if (!bk_file_.empty()) {
+        int r = backup_store__();
+        if (r == 0) {
+            return RC_SUCCESS;
+        }
+        fct_->log()->lerror("faild to store data to backup file");
+        return RC_FAILD;
+    }
+    return RC_SUCCESS;
 }
 
 int SimStore::chunk_create(uint64_t chk_id, const chunk_create_opts_t& opts) {
@@ -220,8 +234,10 @@ int SimStore::info_init__() {
 int SimStore::backup_load__() {
     fstream fin;
     fin.open(bk_file_, fstream::in);
-    if (!fin.is_open())
+    if (!fin.is_open()) {
+        fct_->log()->lerror("simstore: backup file not found");
         return RC_OBJ_NOT_FOUND;
+    }
 
     return ld_upper__(fin);
 }
@@ -229,8 +245,10 @@ int SimStore::backup_load__() {
 int SimStore::backup_store__() {
     fstream fout;
     fout.open(bk_file_, fstream::out);
-    if (!fout.is_open())
+    if (!fout.is_open()) {
+        fct_->log()->linfo("simstore: backup file not found");
         return RC_OBJ_NOT_FOUND;
+    }
     
     // store ChunkStore Information
     fout << "@kv" << endl;
@@ -309,8 +327,10 @@ int SimStore::ld_upper__(fstream& fin) {
             ld_annotation__(fin);
         else if (chr == '@') {
             int r = ld_sub_name__(fin);
-            if (r != 0)
+            if (r != 0) {
+                fct_->log()->lerror("simstore: load sub name faild");
                 return r;
+            }
         }
     }
 }
@@ -339,8 +359,10 @@ int SimStore::ld_sub_name__(fstream& fin) {
         return ld_sub_table__(fin);
     } else if (name == "end") {
         return 0;
-    } else 
+    } else {
+        fct_->log()->lerror("simstore: faild in sub name");
         return 1;
+    }
 }
 
 int SimStore::ld_sub_kv__(fstream& fin) {
@@ -351,12 +373,16 @@ int SimStore::ld_sub_kv__(fstream& fin) {
     while (fin.get(chr)) {
         if (in_value) {
             if (chr == '\n') {
-                if (key.empty() || value.empty())
+                if (key.empty() || value.empty()) {
+                    fct_->log()->lerror("simstore: key or value is empty");
                     return 2;
+                }
                 
                 int r = st_info__(key, value);
-                if (r != 0)
+                if (r != 0) {
+                    fct_->log()->lerror("simstore: set key-value faild");
                     return 2;
+                }
 
                 key.clear();
                 value.clear();
@@ -364,9 +390,10 @@ int SimStore::ld_sub_kv__(fstream& fin) {
             } else
                 value.push_back(chr);
         } else {
-            if (chr == '\n')
+            if (chr == '\n') {
+                fct_->log()->lerror("simstore: format invalid");
                 return 2;
-            else if (chr == SIMSTORE_SEP_KW)
+            } else if (chr == SIMSTORE_SEP_KW)
                 in_value = true;
             else if (chr == '@') {
                 if (key.empty())
@@ -382,15 +409,19 @@ int SimStore::ld_sub_table__(fstream& fin) {
     vector<string> header;
     
     int r = ld_sub_table_header__(fin, header);
-    if (r != 0)
+    if (r != 0) {
+        fct_->log()->lerror("simstore: load sub table header faild");
         return 3;
+    }
     
     while (true) {
         r = ld_sub_table_row__(fin, header);
         if (r == 1)
             break;
-        if (r > 1)
+        if (r > 1) {
+            fct_->log()->lerror("simstore: load sub table row faild");
             return 3;
+        }
     }
     return 0;
 }
@@ -402,13 +433,16 @@ int SimStore::ld_sub_table_header__(fstream& fin, vector<string>& header) {
         if (chr == '\n') 
             return 0;
         else if (chr == SIMSTORE_SEP_L1) {
-            if (col.empty())
+            if (col.empty()) {
+                fct_->log()->lerror("simstore: sub table col name is empty");
                 return 1;
+            }
             header.push_back(col);
             col.clear();
         } else 
             col.push_back(chr);
     }
+    fct_->log()->lerror("simstore: sub table header format invalid");
     return 2;
 }
 
@@ -418,19 +452,36 @@ int SimStore::ld_sub_table_row__(fstream& fin, vector<string>& header) {
     int cols = 0;
     simstore_chunk_t chk;
     while (fin.get(chr)) {
-        if (chr == '\n') {
+        if (chr == '@') {
+            if (cols == 0) {
+                int r = ld_sub_name__(fin);
+                if (r != 0) {
+                    fct_->log()->lerror("simstore: load sub name faild");
+                    return r;
+                }
+            } else {
+                fct_->log()->lerror("simstore: sub table row format invalid");
+                return 2;
+            }
+        } else if (chr == '\n') {
             if (value.empty() && cols == 0)
                 return 1;   // is tail
-            if (cols != header.size())
+            if (cols != header.size()) {
+                fct_->log()->lerror("simstore: sub table row format invalid");
                 return 2;   // 2 is faild
+            }
             chk_map_[chk.info.chk_id] = chk;
         } else if (chr == SIMSTORE_SEP_L1) {
-            if (value.empty() || cols >= header.size())
+            if (value.empty() || cols >= header.size()) {
+                fct_->log()->lerror("simstore: sub table row value invalid");
                 return 2;
+            }
 
             int r = st_chunk__(chk, header[cols], value);
-            if (r != 0)
+            if (r != 0) {
+                fct_->log()->lerror("simstore: set chunk faild");
                 return 2;
+            }
 
             cols++;
         } else 
@@ -444,6 +495,7 @@ int SimStore::st_info__(const std::string& key, const std::string& value) {
             uint64_t id = stoull(value);
             info_.id = id;
         } catch (exception& e) {
+            fct_->log()->lerror("simstore: set id faild");
             return 1;
         }
     } else if (key == "cluster_name") {
@@ -455,6 +507,7 @@ int SimStore::st_info__(const std::string& key, const std::string& value) {
             uint64_t size = stoull(value);
             info_.size = size;
         } catch (exception& e) {
+            fct_->log()->lerror("simstore: set size faild");
             return 1;
         }
     } else if (key == "used") {
@@ -462,6 +515,7 @@ int SimStore::st_info__(const std::string& key, const std::string& value) {
             uint64_t used = stoull(value);
             info_.used = used;
         } catch (exception& e) {
+            fct_->log()->lerror("simstore: set used faild");
             return 1;
         }
     } else if (key == "ftime") {
@@ -469,6 +523,7 @@ int SimStore::st_info__(const std::string& key, const std::string& value) {
             uint64_t ftime = stoull(value);
             info_.ftime = ftime;
         } catch (exception& e) {
+            fct_->log()->lerror("simstore: set ftime faild");
             return 1;
         }
     } else if (key == "chk_num") {
@@ -476,6 +531,7 @@ int SimStore::st_info__(const std::string& key, const std::string& value) {
             uint32_t chk_num = stoull(value);
             info_.chk_num = chk_num;
         } catch (exception& e) {
+            fct_->log()->lerror("simstore: set chk_num faild");
             return 1;
         }
     } else 
@@ -494,6 +550,7 @@ int SimStore::st_chunk__(simstore_chunk_t& chk, const string& key, const string&
     try {
         v = stoull(value);
     } catch (exception& e) {
+        fct_->log()->lerror("simstore: parse value faild");
         return 1;
     }
 
