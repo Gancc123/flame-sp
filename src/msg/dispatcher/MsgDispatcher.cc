@@ -42,12 +42,12 @@ MessagePtr MsgDispatcher::message_from_msg(Msg *m){
     return msg;
 }
 
-int MsgDispatcher::resolve_addr(uint64_t csd_id, csd_addr_attr_t &res){
+int MsgDispatcher::resolve_addr(uint64_t csd_id, csd_addr_t &res){
     if(mct->csd_addr_resolver == nullptr){
         ML(mct, error, "can't resolve dst addr, csd_addr_resolver is null.");
         return -1;
     }
-    std::list<csd_addr_attr_t> csd_addr_list;
+    std::list<csd_addr_t> csd_addr_list;
     std::list<uint64_t> csd_id_list;
     csd_id_list.push_back(csd_id);
     mct->csd_addr_resolver->pull_csd_addr(csd_addr_list, csd_id_list);
@@ -59,27 +59,31 @@ int MsgDispatcher::resolve_addr(uint64_t csd_id, csd_addr_attr_t &res){
 }
 
 Session *MsgDispatcher::get_session(uint64_t dst_id){
-    msger_id_t msger_id = MsgDispatcher::msger_id_from_node_addr(dst_id);
+    csd_addr_t dst_addr_attr;
+    if(resolve_addr(dst_id, dst_addr_attr)){
+        return nullptr;
+    }
+    msger_id_t msger_id = MsgDispatcher::msger_id_from_node_addr(
+                                                                 dst_addr_attr
+                                                                .admin_addr);
     auto session = mct->manager->get_session(msger_id);
     if(!session->ready()){
-        csd_addr_attr_t dst_addr_attr;
-        if(resolve_addr(dst_id, dst_addr_attr)){
-            return nullptr;
-        }
-        session->set_listen_addr(dst_addr_attr.csd_id, msg_ttype_t::TCP);
+        session->set_listen_addr(dst_addr_attr.admin_addr, msg_ttype_t::TCP);
         session->set_listen_addr(dst_addr_attr.io_addr, msg_ttype_t::RDMA);
     }
     return session;
 }
 
-int MsgDispatcher::deliver_to_remote(MessagePtr msg){
+int MsgDispatcher::deliver_to_remote(MessagePtr msg, Connection *conn){
 
-    auto session = get_session(msg->dst());
-
-    auto conn = session->get_conn(msg_ttype_t::RDMA);
     if(conn == nullptr){
-        ML(mct, error, "get conn failed. {}", session->to_string());
-        return -1;
+        auto session = get_session(msg->dst());
+
+        conn = session->get_conn(msg_ttype_t::RDMA);
+        if(conn == nullptr){
+            ML(mct, error, "get conn failed. {}", session->to_string());
+            return -1;
+        }
     }
 
     Msg *m = msg_from_message(msg);
@@ -91,12 +95,12 @@ int MsgDispatcher::deliver_to_remote(MessagePtr msg){
 }
 
 
-int MsgDispatcher::deliver_msg(MessagePtr msg){
+int MsgDispatcher::deliver_msg(MessagePtr msg, Connection *conn){
     auto channel = get_channel(msg->dst());
     if(channel){
         channel->on_local_recv(msg);
     }else{
-        deliver_to_remote(msg);
+        deliver_to_remote(msg, conn);
     }
     return 0;
 }
