@@ -230,6 +230,40 @@ public:
      * Return true if the queue pair is in an error state, false otherwise.
      */
     bool is_error() const;
+    /**
+     * If tx_wr + amt < limit, update tx_wr.
+     * Otherwise, if partial is true, add as many as possible, 
+     * and reutrn the amt.
+     * @param amt   
+     *      the amount to be added.
+     * @param limit 
+     *      tx_wr can't excceed the limit.
+     * @param partial 
+     *      if true, add as many as possible, otherwise add when don't 
+     *      excceed the limit.
+     * @return 
+     *      return the real amount added.
+     */
+    uint32_t add_tx_wr_with_limit(uint32_t amt, uint32_t limit, 
+                                                            bool partial=false){
+        uint32_t wr_inflight = tx_wr_inflight.load(std::memory_order_relaxed);
+        uint32_t real_amt = amt;
+        do{
+            if(wr_inflight + amt > limit){
+                if(partial){
+                    assert(wr_inflight <= limit);
+                    real_amt = limit - wr_inflight;
+                }else{
+                    return 0;
+                }
+                
+            }
+        }while(tx_wr_inflight.compare_exchange_weak(wr_inflight, 
+                                                    wr_inflight + real_amt, 
+                                                    std::memory_order_release,
+                                                    std::memory_order_relaxed));
+        return real_amt;
+    }
     void add_tx_wr(uint32_t amt) { tx_wr_inflight += amt; }
     void dec_tx_wr(uint32_t amt) { tx_wr_inflight -= amt; }
     uint32_t get_tx_wr() const { return tx_wr_inflight; }

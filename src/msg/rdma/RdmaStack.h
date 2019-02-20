@@ -141,8 +141,8 @@ class RdmaManager{
 
     std::vector<RdmaWorker *> workers;
 public:
-    explicit RdmaManager(MsgContext *c, uint32_t max_cc_num)
-    :mct(c), m_ib(c), max_concurrent_num(max_cc_num) {};
+    explicit RdmaManager(MsgContext *c)
+    :mct(c), m_ib(c) {};
     ~RdmaManager();
     int init();
     int clear_before_stop();
@@ -154,7 +154,6 @@ public:
     RdmaWorker *get_lightest_load_rdma_worker();
     MsgWorker *get_owner() const { return this->owner; }
     ib::Infiniband &get_ib() { return m_ib; }
-    const uint32_t max_concurrent_num;
 };
 
 

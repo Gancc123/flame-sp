@@ -1,5 +1,5 @@
-#ifndef FLAME_MSG_DISPATCHER_DISPATCHER_H
-#define FLAME_MSG_DISPATCHER_DISPATCHER_H
+#ifndef FLAME_MSG_DISPATCHER_MSG_DISPATCHER_H
+#define FLAME_MSG_DISPATCHER_MSG_DISPATCHER_H
 
 #include "common/thread/rw_lock.h"
 #include "msg/msg_context.h"
@@ -24,9 +24,9 @@ class MsgDispatcher : public MsgerCallback{
 
     Session *get_session(uint64_t dst_id);
 
-    int deliver_to_remote(MessagePtr msg);
+    int deliver_to_remote(MessagePtr msg, Connection *conn=nullptr);
 
-    int resolve_addr(uint64_t dst_id, csd_addr_attr_t &res);
+    int resolve_addr(uint64_t dst_id, csd_addr_t &res);
 
     Msg *msg_from_message(MessagePtr& msg);
 
@@ -44,7 +44,7 @@ public:
     explicit MsgDispatcher(MsgContext *c) 
     : mct(c), channel_map_rwlock() {};
 
-    int deliver_msg(MessagePtr m);
+    int deliver_msg(MessagePtr m, Connection *conn=nullptr);
 
     int post_rdma_work(uint64_t dst_id, RdmaRwWork *work);
 
@@ -67,4 +67,4 @@ public:
 } //namespace msg
 } //namespace flame
 
-#endif //FLAME_MSG_DISPATCHER_DISPATCHER_H
+#endif //FLAME_MSG_DISPATCHER_MSG_DISPATCHER_H

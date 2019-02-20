@@ -166,7 +166,7 @@ public:
     message_header_t &get_header() { return header_; }
 
     std::string to_string() const{
-        auto s = fmt::format("[Message src {:x} dst{:x} {}[({:p})]",
+        auto s = fmt::format("[Message src {:x} dst {:x} {}[({:p})]",
                     src(), dst(), (req_typ()?"io":"admin"), (void *)this);
         return s;
     }

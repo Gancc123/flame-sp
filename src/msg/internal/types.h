@@ -72,8 +72,8 @@ struct flame_msg_rdma_mr_t{
 
 
 struct msger_id_t {
-    uint32_t ip; // just for ipv4
-    uint16_t port; // port
+    uint32_t ip     {0};    // just for ipv4
+    uint16_t port   {0};  // port
 } __attribute__((packed));
 
 
