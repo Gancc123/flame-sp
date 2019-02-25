@@ -91,6 +91,7 @@ int RdmaWorker::clear_before_stop(){
         ML(mct, info, "wait for all rdma conn cleaned... ({:p})", (void *)this);
         fin_clean_wait();
     }
+    return 0;
 }
 
 void RdmaWorker::clear_qp(uint32_t qpn){
@@ -593,6 +594,7 @@ int RdmaManager::clear_before_stop(){
     for(auto it : workers){
         it->clear_before_stop();
     }
+    return 0;
 }
 
 RdmaWorker *RdmaManager::get_rdma_worker(int index){

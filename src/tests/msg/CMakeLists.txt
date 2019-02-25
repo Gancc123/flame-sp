@@ -2,6 +2,7 @@
 add_subdirectory(test_msg)
 add_subdirectory(test_rdma)
 add_subdirectory(rdma_perf)
+add_subdirectory(test_mem_cpy)
 
 package_add_test(buddy_allocator_unittest buddy_allocator_unittest.cc)
 

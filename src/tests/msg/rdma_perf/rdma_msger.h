@@ -67,7 +67,7 @@ void dump_result(perf_config_t &cfg){
         deltas[i] = cfg.tposted[i+1] - cfg.tposted[i];
     }
 
-    std::sort(deltas.begin(), deltas.end());
+    //std::sort(deltas.begin(), deltas.end());
     std::ofstream f;
     f.open(cfg.result_file);
     f << "Cnt: " << cfg.num << '\n';
@@ -81,14 +81,14 @@ void dump_result(perf_config_t &cfg){
     f.close();
 }
 
-int init_resource(perf_config_t &config){
+void init_resource(perf_config_t &config){
     assert(config.num > 0);
     config.tposted = new cycles_t[config.num + 1];
     assert(config.tposted);
     std::memset(config.tposted, 0, sizeof(cycles_t)*(config.num + 1));
 }
 
-int fin_resource(perf_config_t &config){
+void fin_resource(perf_config_t &config){
     delete config.data_buffer;
     delete [] config.tposted;
 }
@@ -413,6 +413,8 @@ void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
         }else if(msg->is_resp()){
             on_mem_fetch_resp(conn, msg);
         }
+        break;
+    default:
         break;
     }
     return;

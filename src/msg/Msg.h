@@ -68,7 +68,7 @@ public:
         return get_data_len() + sizeof(flame_msg_header_t);
     }
 
-    int clear_data(){
+    void clear_data(){
         data_bl.clear();
     }
 

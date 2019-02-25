@@ -26,6 +26,7 @@ struct chunk_header_t{
 
 class MemSrc{
 public:
+    virtual ~MemSrc() {};
     virtual void *alloc(size_t s) = 0;
     virtual void free(void *p) = 0;
     virtual void *prep_mem_before_return(void *p, void *base, size_t size) = 0;
@@ -155,6 +156,7 @@ private:
             ++level;
         }
         assert(level <= max_level); // invalid p!
+        return 0;
     }
 
 };
