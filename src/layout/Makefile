@@ -8,7 +8,7 @@ include $(ROOT)/mk/grpc.mk
 all: calculator.o poll_layout.o easdl.o eamou.o 
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
+	$(CXX) $(DBGFLAGS) $^ -c $(ISRC)
 
 clean:
 	rm -f *.o

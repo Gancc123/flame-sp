@@ -16,10 +16,10 @@ $(DSERVICE)/csds_service.o
 all: csd
 
 csd: $(OBJ_CSD) $(OBJ_COMMON) $(OBJ_CHUNKSTORE) $(OBJ_PROTO) $(OBJ_UTIL) $(OBJ_WORK) $(OBJ_DEPS)
-	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(GRPC_LDFLAGS) $(AIOLIBS) # $(ISPDK) $(SPDK_CFLAGS) $(SPDK_LIB) $(DPDK_CFLAGS)
+	$(CXX) $(DBGFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(GRPC_LDFLAGS) $(AIOLIBS) # $(ISPDK) $(SPDK_CFLAGS) $(SPDK_LIB) $(DPDK_CFLAGS)
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -c $(ISRC) $(GRPC_LDFLAGS) # $(ISPDK)
+	$(CXX) $(DBGFLAGS) $(IGRPC) $^ -c $(ISRC) $(GRPC_LDFLAGS) # $(ISPDK)
 
 clean:
 	rm -f *.o csd

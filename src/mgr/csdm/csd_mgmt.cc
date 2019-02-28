@@ -1,6 +1,7 @@
 #include "mgr/csdm/csd_mgmt.h"
 #include "include/retcode.h"
 #include "log_csdm.h"
+#include "common/context.h"
 
 #include <cassert>
 #include <algorithm>
@@ -69,7 +70,10 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     obj->set_admin_addr(attr.admin_addr);
     obj->set_ctime_ut(utime_t::now());
     obj->set_latime_ut(utime_t::now());
-
+	bct_->log()->ltrace("?????");
+	bct_->log()->ltrace("attr.csd_name:%s,attr.size:%llu,obj->get_name():%s, obj->get_size():%llu",
+			attr.csd_name.c_str(),attr.size,obj->get_name().c_str(), obj->get_size()
+	);
     auto meta = obj->meta();
     auto hlt = obj->health();
 
@@ -91,6 +95,19 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     }
 
     *hp = hdl;
+	bct_->log()->ltrace("csd_map_[%llu].get().get_name():%s",new_id,csd_map_[new_id]->get()->get_name().c_str());
+    /**hp = create_csd_handle__(new_id);
+	(*hp)->obj_as_new__();
+	CsdObject* obj2 = hdl->get();
+
+    obj2->set_csd_id(new_id);
+    obj2->set_size(attr.size);
+    obj2->set_stat(attr.stat);
+    obj2->set_name(attr.csd_name);
+    obj2->set_io_addr(attr.io_addr);
+    obj2->set_admin_addr(attr.admin_addr);
+    obj2->set_ctime_ut(utime_t::now());
+    obj2->set_latime_ut(utime_t::now());*/
     return RC_SUCCESS;
 }
 
@@ -175,8 +192,9 @@ int CsdManager::csd_stat_update(uint64_t csd_id, uint32_t stat) {
     if (it == csd_map_.end()) {
         return RC_OBJ_NOT_FOUND;
     }
-
-    it->second->update_stat(stat);
+	bct_->log()->ldebug("lwg:update csd_id:%d it->second->update_stat(stat = %d)",it->first,stat);
+	bct_->log()->ldebug("obj->get_name(): %s", it->second->get()->get_name().c_str());
+	it->second->update_stat(stat);
 
     return RC_SUCCESS;
 }
@@ -264,8 +282,10 @@ void CsdHandle::update_stat(int st) {
 
     if (st == CSD_STAT_PAUSE || st == CSD_STAT_ACTIVE)
         latime_ = utime_t::now();
-    
     obj_->set_stat(st);
+	FlameContext *fct = FlameContext::get_context();
+	fct->log()->ldebug("lwg:update_stat:obj_.get_stat() = %llu",obj_->get_stat());
+	fct->log()->ldebug("lwg:update_stat:obj_.get_name() = %s",obj_->get_name().c_str());
 }
 
 void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
@@ -376,6 +396,8 @@ shared_ptr<CsdsClient> CsdHandle::get_client() {
 
 shared_ptr<CsdsClient> CsdHandle::make_client__() {
     node_addr_t addr = obj_->get_admin_addr();
+	FlameContext *fct = FlameContext::get_context();
+	fct->log()->ldebug("addr.val = %llu",addr.val);
     return csdm_->csd_client_foctory_->make_csds_client(addr);
 }
 

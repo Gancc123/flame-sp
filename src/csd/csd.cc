@@ -420,16 +420,8 @@ bool CSD::csd_register() {
         }
 
         info.id = reg_res.csd_id;
-        info.cluster_name = cfg_clt_name_;
-        info.name = cfg_csd_name_;
         if ((r = cct_->cs()->set_info(info)) != RC_SUCCESS) {
             cct_->log()->lerror("chunkstore set info faild");
-            return false;
-        }
-
-        // 注册成功后将信息刷回
-        if ((r = cct_->cs()->flush()) != RC_SUCCESS) {
-            cct_->log()->lerror("flush info faild");
             return false;
         }
     } else {
@@ -445,8 +437,7 @@ bool CSD::csd_register() {
     }
 
     cct_->log()->ldebug("csd register success: clt_name(%s), csd_id(%llu), csd_name(%s), size(%llu)", 
-        info.cluster_name.c_str(), info.id, info.name.c_str(), info.size
-    );
+        info.cluster_name.c_str(), info.id, info.name.c_str(), info.size);
 
     return true;
 }

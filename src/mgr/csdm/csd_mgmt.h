@@ -26,6 +26,7 @@ public:
     : bct_(bct), ms_(bct->ms()), csd_client_foctory_(csd_client_foctory), csd_hlt_calor_(csd_hlt_calor) {}
     
     ~CsdManager() {
+    	bct_->log()->ltrace("destroy","别destroy");
         destroy__();
     }
 
@@ -166,11 +167,14 @@ private:
 class CsdHandle final {
 public:
     CsdHandle(CsdManager* csdm, const std::shared_ptr<MetaStore>& ms, uint64_t csd_id) 
-    : csdm_(csdm), csd_id_(csd_id), stat_(CSD_OBJ_STAT_LOAD), ms_(ms) {
+    : csdm_(csdm), csd_id_(csd_id), stat_(CSD_OBJ_STAT_LOAD), obj_stat_(CSD_OBJ_STAT_NEW), ms_(ms) {
         obj_ = new CsdObject();
     }
 
-    ~CsdHandle() { delete obj_; }
+    ~CsdHandle() { 
+		
+		delete obj_; 
+	}
 
     /**
      * @brief CSD状态
@@ -288,6 +292,8 @@ private:
     CsdObject* obj_ {nullptr};
 
     std::atomic<int> stat_ {CSD_STAT_DOWN};
+    std::atomic<int> obj_stat_ {CSD_OBJ_STAT_NEW};
+
     utime_t latime_;    // last active time
     void set_as_none__() { stat_ = CSD_STAT_NONE; }
     void set_as_down__() { stat_ = CSD_STAT_DOWN; }
@@ -296,22 +302,14 @@ private:
 
     void set_latime__(utime_t ut) { latime_ = ut; }
     
-    enum CsdObjStat {
-        CSD_OBJ_STAT_NEW  = 0,  // 新创建的状态，尚未保存
-        CSD_OBJ_STAT_LOAD = 1,  // 处于加载状态
-        CSD_OBJ_STAT_SVAE = 2,  // 已保存状态
-        CSD_OBJ_STAT_DIRT = 3,  // 数据脏，等待保存
-        CSD_OBJ_STAT_TRIM = 4   // 等待删除
-    };
-    std::atomic<int> obj_stat_ {CSD_OBJ_STAT_LOAD};
 
     int obj_stat__() const { return stat_.load(); }
-    void obj_as_new__() { stat_ = CSD_OBJ_STAT_NEW; }
-    void obj_as_load__() { stat_ = CSD_OBJ_STAT_LOAD; }
-    void obj_as_save__() { stat_ = CSD_OBJ_STAT_SVAE; }
-    void obj_as_dirty__() { stat_ = CSD_OBJ_STAT_DIRT; }
-    void obj_as_trim__() { stat_ = CSD_OBJ_STAT_TRIM; }
-    bool obj_is_new__() { return stat_.load() == CSD_OBJ_STAT_NEW; }
+    void obj_as_new__() { obj_stat_ = CSD_OBJ_STAT_NEW; }
+    void obj_as_load__() { obj_stat_ = CSD_OBJ_STAT_LOAD; }
+    void obj_as_save__() { obj_stat_ = CSD_OBJ_STAT_SVAE; }
+    void obj_as_dirty__() { obj_stat_ = CSD_OBJ_STAT_DIRT; }
+    void obj_as_trim__() { obj_stat_ = CSD_OBJ_STAT_TRIM; }
+    bool obj_is_new__() { return obj_stat_.load() == CSD_OBJ_STAT_NEW; }
 
     std::shared_ptr<MetaStore> ms_;
     RWLock lock_;
@@ -320,8 +318,9 @@ private:
     std::shared_ptr<CsdsClient> make_client__();
 
     bool obj_readable__() const {
-        int stat = stat_.load();
-        if (stat != CSD_OBJ_STAT_LOAD || stat != CSD_OBJ_STAT_TRIM)
+        int obj_stat = obj_stat_.load();
+        //if (stat != CSD_OBJ_STAT_LOAD || stat != CSD_OBJ_STAT_TRIM)
+        if (obj_stat != CSD_OBJ_STAT_LOAD && obj_stat != CSD_OBJ_STAT_TRIM)
             return true;
         return false;
     }

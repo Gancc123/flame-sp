@@ -7,7 +7,7 @@
 #include <string>
 #include <atomic>
 
-#define MAX_LOG_LEN 512
+#define MAX_LOG_LEN 1024
 // #define log(level, module, fmt, arg...) plog((level), (module), __FILE__, __LINE__, (fmt), ##arg)
 
 /**
