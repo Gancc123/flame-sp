@@ -207,6 +207,13 @@ enum CsdStat {
     CSD_STAT_PAUSE  = 2,    // 在线，但不能提供服务
     CSD_STAT_ACTIVE = 3     // 正常提供服务
 };
+enum CsdObjStat {
+        CSD_OBJ_STAT_NEW  = 0,  // 新创建的状态，尚未保存
+        CSD_OBJ_STAT_LOAD = 1,  // 处于加载状态
+        CSD_OBJ_STAT_SVAE = 2,  // 已保存状态
+        CSD_OBJ_STAT_DIRT = 3,  // 数据脏，等待保存
+        CSD_OBJ_STAT_TRIM = 4   // 等待删除
+};
 
 /**
  * CSD Health MetaData
