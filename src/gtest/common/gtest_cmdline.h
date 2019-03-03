@@ -19,11 +19,11 @@ class TestEnvironment : public testing::Environment{
 public:
     virtual void SetUp()
     {
-        cout << "TestEnvironment SetUp" << endl;
+        //cout << "TestEnvironment SetUp" << endl;
     }
     virtual void TearDown()
     {
-        cout << "TestEnvironment TearDown" << endl;
+        //cout << "TestEnvironment TearDown" << endl;
     }
 };//class TestEnvironment
 
@@ -58,7 +58,7 @@ public:
 private:
     int (*MyFunction)(Cmdline* cmd) = PrintDebug;
     Cmdline             *cmdline_;
-};// class TestVolumeManager
+};// class TestCommandLine
 
 // class IsPrimeParamTest : public::testing::TestWithParam<int>{};
 
