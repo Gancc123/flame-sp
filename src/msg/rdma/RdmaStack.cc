@@ -559,19 +559,24 @@ RdmaManager::~RdmaManager(){
 int RdmaManager::init(){
     int res = (m_ib.init()?0:1);
     if(res) return res;
+    int msg_worker_num = mct->manager->get_worker_num();
     auto worker = mct->manager->get_worker(0); //use the first worker
     assert(worker);
     res = arm_async_event_handler(worker);
     if(res) return res;
 
     int cqp_num = mct->config->rdma_cq_pair_num;
-    int msg_worker_num = mct->manager->get_worker_num();
+    
     if(cqp_num >= msg_worker_num){
         cqp_num = msg_worker_num - 1;
+        if(cqp_num == 0){
+            cqp_num = 1;
+        }
         ML(mct, warn, "config->rdma_cq_pair_num too large, "
                         "set equal to msg_worker_num - 1: {}", 
                         cqp_num);
     }
+    assert(cqp_num > 0);
     workers.reserve(cqp_num);
 
     // int arm_step = (msg_worker_num - 1) / cqp_num;
@@ -582,7 +587,7 @@ int RdmaManager::init(){
     for(int i = 0;i < cqp_num; ++i){
         auto worker = new RdmaWorker(mct, this);
         worker->init();
-        int msg_worker_index = arm_step * i + 1;
+        int msg_worker_index = (arm_step * i + 1) % msg_worker_num;
         res = worker->arm_notify(mct->manager->get_worker(msg_worker_index));
         assert(res == 0);
         workers.push_back(worker);

@@ -11,6 +11,7 @@
 #include <cassert>
 
 #define FLAME_MSG_LOG_LEVEL_D         "PRINT"
+#define FLAME_MSG_WORKER_NUM_D        "4"
 #define FLAME_MSGER_ID_D              ""
 #define FLAME_NODE_LISTEN_PORTS_D     ""
 #define FLAME_RDMA_ENABLE_D           "false"
@@ -64,6 +65,13 @@ public:
      */
     msg_log_level_t msg_log_level;
     int set_msg_log_level(const std::string &v);
+
+    /**
+     * Msg module workers num
+     * @cfg: msg_worker_num
+     */
+    int msg_worker_num;
+    int set_msg_worker_num(const std::string &v);
 
     /**
      * Msger Id

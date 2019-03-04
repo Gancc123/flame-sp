@@ -1,31 +1,31 @@
-add_executable(rdma_mem_mgr
-rdma_mgr.cc
+add_executable(rdma_mem_target
+mem_cpy_target.cc
 get_clock.c
     )
-target_link_libraries(rdma_mem_mgr common)
-set_target_properties(rdma_mem_mgr
+target_link_libraries(rdma_mem_target common)
+set_target_properties(rdma_mem_target
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy"
     )
 add_custom_command(
-    TARGET rdma_mem_mgr POST_BUILD
+    TARGET rdma_mem_target POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_target.cfg
             ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
 
-add_executable(rdma_mem_client
-rdma_client.cc
+add_executable(rdma_mem_forward
+mem_cpy_forward.cc
 get_clock.c
     )
-target_link_libraries(rdma_mem_client common)
-set_target_properties(rdma_mem_client
+target_link_libraries(rdma_mem_forward common)
+set_target_properties(rdma_mem_forward
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy"
     )
 add_custom_command(
-    TARGET rdma_mem_client POST_BUILD
+    TARGET rdma_mem_forward POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_forward.cfg
             ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
 
 add_executable(local_mem_cpy
@@ -38,7 +38,15 @@ set_target_properties(local_mem_cpy
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy"
     )
 
+add_custom_command(
+    TARGET local_mem_cpy POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/../*.sh
+            ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
 
-
-
+add_custom_command(
+    TARGET local_mem_cpy POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/../*.py
+            ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
 

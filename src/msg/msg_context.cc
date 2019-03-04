@@ -55,13 +55,16 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
         ML(this, warn, "CsdAddrResolver is null, can't resolve csd addrs!");
     }
 
-    MsgManager *msg_manager = new MsgManager(this);
+    MsgManager *msg_manager = new MsgManager(this, config->msg_worker_num);
     msg_manager->set_msger_cb(msger_cb);
 
     this->manager = msg_manager;
 
     ML(this, trace, "before init all stack.");
-    Stack::init_all_stack(this);
+    if(Stack::init_all_stack(this)){
+        ML(this, error, "init msg all stack failed!");
+        return 1;
+    }
     ML(this, trace, "after init all stack.");
 
     std::string transport;
@@ -80,6 +83,8 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
         for(i = min_port; i <= max_port; ++i){
             addr->set_port(i);
             if(msg_manager->add_listen_port(addr, ttype)){
+                ML(this, info, "listen: {}@{}/{}", transport, address, 
+                                                        addr->get_port());
                 addr->put();
                 addr = nullptr;
                 break;

@@ -207,7 +207,7 @@ Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
     Msg *msg = get_declare_msg();
     conn->send_msg(msg);
 
-    conn->put();
+    //conn->put();  //return conn with its ownership
     return conn;
 }
 

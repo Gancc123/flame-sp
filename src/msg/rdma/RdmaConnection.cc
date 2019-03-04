@@ -85,6 +85,7 @@ RdmaConnection *RdmaConnection::create(MsgContext *mct, RdmaWorker *w,
     my_msg.psn = qp->get_initial_psn();
     my_msg.lid = ib.get_lid();
     my_msg.peer_qpn = 0;
+    my_msg.sl = sl;
     my_msg.gid = ib.get_gid();
 
     w->reg_rdma_conn(my_msg.qpn, conn);
@@ -334,11 +335,13 @@ ssize_t RdmaConnection::submit(bool more){
     }
     int r = 0;
     r = submit_rw_works();
+    ML(mct, trace, "sumbit rw_works: {}", r);
     if(r < 0){
         ML(mct, error, "submit_rw_works error!");
         return r;
     }
     r = submit_send_works();
+    ML(mct, trace, "sumbit send_works: {}", r);
     if(r < 0){
         ML(mct, error, "submit_send_works error!");
     }
@@ -577,7 +580,7 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
             iswr[current_swr].send_flags |= IBV_SEND_INLINE;
         }
 
-        ML(mct, debug, "sending buffer: {} length: {} {}", 
+        ML(mct, debug, "qp({}) sending buffer: {} length: {} {}", my_msg.qpn,
                 (void *)(*current_buffer), isge[current_sge].length,
                 (iswr[current_swr].send_flags & IBV_SEND_INLINE)?"inline":"" );
 

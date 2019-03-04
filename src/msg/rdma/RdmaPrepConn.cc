@@ -75,8 +75,7 @@ RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, int cfd){
     return prep_conn;
 }
 
-RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr, 
-                                                                uint8_t sl){
+RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr, uint8_t sl){
     try{
         int fd = RdmaPrepConn::connect(mct, addr);
         auto conn = new RdmaPrepConn(mct);
@@ -92,8 +91,7 @@ RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr,
         conn->real_conn = real_conn;
         real_conn->get();
 
-        ib::Infiniband &ib = 
-                Stack::get_rdma_stack()->get_manager()->get_ib();
+        ib::Infiniband &ib = Stack::get_rdma_stack()->get_manager()->get_ib();
         auto &my_msg = real_conn->get_my_msg();
         my_msg.peer_qpn = 0;
 

@@ -161,7 +161,6 @@ int QueuePair::init(){
                                         mct->config->rdma_buffer_size);
         return -1;
     } 
-    ML(mct, info, "started.");
     ibv_qp_init_attr qpia;
     memset(&qpia, 0, sizeof(qpia));
     qpia.qp_context = this;
@@ -760,7 +759,7 @@ int Infiniband::encode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
     gid_to_wire_gid(&(im.gid), gid);
     sprintf(buffer.data(), "%04x:%08x:%08x:%08x:%02x:%s", 
                             im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
-    ML(mct, info, ": {}, {}, {}, {}, {}, {}", 
+    ML(mct, info, "{}, {}, {}, {}, {}, {}", 
                             im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
     buffer.set_offset(TCP_MSG_LEN);
     return TCP_MSG_LEN;
@@ -773,7 +772,7 @@ int Infiniband::decode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
     sscanf(buffer.data(), "%hu:%x:%x:%x:%hhx:%s", &(im.lid), &(im.qpn), 
                                     &(im.psn), &(im.peer_qpn), &(im.sl), gid);
     wire_gid_to_gid(gid, &(im.gid));
-    ML(mct, info, ": {}, {}, {}, {}, {}, {}", 
+    ML(mct, info, "{}, {}, {}, {}, {}, {}", 
                         im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
     return TCP_MSG_LEN;
 }

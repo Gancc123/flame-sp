@@ -21,9 +21,10 @@ Connection* Session::get_conn(msg_ttype_t ttype, uint8_t sl){
         return nullptr;
     }
 
+    //get conn with its ownership
     Connection *conn = msg_manager->add_connection(addr, ttype);
 
-    conn->get();
+    //conn->get();
     conn_entry_t entry;
     entry.ttype = ttype;
     entry.sl = sl;
@@ -46,6 +47,7 @@ int Session::add_conn(Connection *conn, msg_ttype_t ttype, uint8_t sl){
     MutexLocker l(conns_mutex);
     for(auto entry : conns){
         if(entry.conn == conn){
+            conn->put();
             return 0;
         }
     }

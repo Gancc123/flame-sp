@@ -38,8 +38,7 @@ private:
     RdmaPrepConn(MsgContext *mct);
 public:
     static RdmaPrepConn *create(MsgContext *mct, int cfd);
-    static RdmaPrepConn *create(MsgContext *mct, NodeAddr *addr, 
-                                                                uint8_t sl=0);
+    static RdmaPrepConn *create(MsgContext *mct, NodeAddr *addr, uint8_t sl=0);
     ~RdmaPrepConn();
 
     void set_rdma_listen_port(RdmaListenPort *lp);

@@ -30,12 +30,12 @@ add_custom_command(
 add_custom_command(
     TARGET rdma_client_perf POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/*.sh
+            ${CMAKE_CURRENT_SOURCE_DIR}/../*.sh
             ${CMAKE_BINARY_DIR}/bin/rdma_perf)
 add_custom_command(
     TARGET rdma_client_perf POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/*.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/../*.py
             ${CMAKE_BINARY_DIR}/bin/rdma_perf)
 
 
