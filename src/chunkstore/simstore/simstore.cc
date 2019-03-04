@@ -40,7 +40,7 @@ SimStore* SimStore::create_simstore(FlameContext* fct, const std::string& url) {
     string size_unit = result[3];
     string path = result[4];
     if (!path.empty())
-        path = path.substr(1);
+        path = path.substr(1);//去冒号
     uint64_t size;
     try {
         size = stoull(size_str);
@@ -87,8 +87,8 @@ std::string SimStore::get_driver_name() const {
 std::string SimStore::get_config_info() const {
     ostringstream oss;
     oss << get_driver_name() << "://" << (info_.size >> 30) << "G";
-    if (!bk_file_.empty())
-        oss << ":" << bk_file_;
+    if (!bk_file_name_.empty())
+        oss << ":" << bk_file_name_;
     return oss.str();
 }
 
@@ -102,29 +102,30 @@ int SimStore::get_io_mode() const {
 
 int SimStore::dev_check() {
     // 当配置bk_file时，检查文件是否存在
-    if (!bk_file_.empty()) {
+    if (!bk_file_name_.empty()) {
         fstream fs;
-        fs.open(bk_file_, fstream::in);
-        if (!fs.is_open())
+        fs.open(bk_file_name_, fstream::in);
+        if (!fs.is_open()){
             return ChunkStore::DevStatus::NONE;
+        }     
     }
     return ChunkStore::DevStatus::CLT_IN;
 }
 
 int SimStore::dev_format() {
-    if (!bk_file_.empty()) {
+    if (!bk_file_name_.empty()) {
         fstream fs;
-        fs.open(bk_file_, fstream::out);
+        fs.open(bk_file_name_, fstream::out);
         if (!fs.is_open())
             return RC_OBJ_NOT_FOUND;
     }
     formated_ = true;
-    fct_->log()->linfo("simstore: device (%llu:%s) format", size_, bk_file_.c_str());
+    fct_->log()->linfo("simstore: device (%llu:%s) format", size_, bk_file_name_.c_str());
     return RC_SUCCESS;
 }
 
 int SimStore::dev_mount() {
-    if (!bk_file_.empty()) {
+    if (!bk_file_name_.empty()) {
         int r = backup_load__();
         if (r != 0) {
             fct_->log()->lerror("simstore: load backup faild");
@@ -132,7 +133,13 @@ int SimStore::dev_mount() {
         }
     } else 
         info_init__();
-    
+    cs_info_t cs_info;
+    get_info(cs_info);
+    if(strcmp(cs_info.cluster_name.c_str(),"") == 0){
+        fct_->log()->linfo("whta ");
+        info_init__();
+    }
+        
     mounted_ = true;
     fct_->log()->linfo("simstore: device mount success");
     return RC_SUCCESS;
@@ -141,7 +148,7 @@ int SimStore::dev_mount() {
 int SimStore::dev_unmount() {
     if (!mounted_)
         return RC_SUCCESS;
-    if (!bk_file_.empty()) {
+    if (!bk_file_name_.empty()) {
         int r = backup_store__();
         if (r == 0) {
             mounted_ = false;
@@ -160,7 +167,7 @@ bool SimStore::is_mounted() {
 }
 
 int SimStore::flush() {
-    if (!bk_file_.empty()) {
+    if (!bk_file_name_.empty()) {
         int r = backup_store__();
         if (r == 0) {
             return RC_SUCCESS;
@@ -229,12 +236,13 @@ int SimStore::info_init__() {
     info_.used = 0;
     info_.ftime = utime_t::now().to_usec();
     info_.chk_num = 0;
+    fct_->log()->lerror("xxxx %s --%s",info_.name.c_str(),fct_->node_name().c_str());
     return RC_SUCCESS;
 }
 
 int SimStore::backup_load__() {
     fstream fin;
-    fin.open(bk_file_, fstream::in);
+    fin.open(bk_file_name_, fstream::in);
     if (!fin.is_open()) {
         fct_->log()->lerror("simstore: backup file not found");
         return RC_OBJ_NOT_FOUND;
@@ -245,7 +253,7 @@ int SimStore::backup_load__() {
 
 int SimStore::backup_store__() {
     fstream fout;
-    fout.open(bk_file_, fstream::out);
+    fout.open(bk_file_name_, fstream::out);
     if (!fout.is_open()) {
         fct_->log()->linfo("simstore: backup file not found");
         return RC_OBJ_NOT_FOUND;

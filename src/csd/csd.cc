@@ -62,6 +62,7 @@ public:
     int init(CsdCli* csd_cli);
     int run();
     void down();
+    void chunkstore_flush();
 
     friend class CsdAdminThread;
 
@@ -466,7 +467,18 @@ int CSD::csd_wait() {
     return 0;
 }
 
+void CSD::chunkstore_flush(){
+    cct_->cs()->flush();
+}
+
 } // namespace flame
+
+static CSD *g_csd;
+
+void pre_exit_csd(int signum){
+    g_csd->chunkstore_flush();
+    exit(signum); 
+}
 
 int main(int argc, char** argv) {
     CsdCli* csd_cli = new CsdCli();
@@ -478,20 +490,23 @@ int main(int argc, char** argv) {
         csd_cli->print_help();
         return 0;
     }
-
+    // 修改信号量SIGINT
+    signal(SIGINT,pre_exit_csd);
+    
     // 获取全局上下文
     FlameContext* fct = FlameContext::get_context();
 
-    if (!fct->init_config(csd_cli->config_path)) {
+    if (!fct->init_config(csd_cli->config_path.get())) {
         fct->log()->lerror("init config faild");
         exit(-1);
     }
-
     // 创建CSD上下文
     CsdContext* cct = new CsdContext(fct);
 
     // 创建CSD主程序
     CSD csd(cct);
+
+    g_csd = &csd;
 
     // 初始化CSD，CSD在初始化完成后保证不再使用CsdCli
     if (csd.init(csd_cli) != 0)

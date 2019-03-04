@@ -26,7 +26,6 @@ public:
     : bct_(bct), ms_(bct->ms()), csd_client_foctory_(csd_client_foctory), csd_hlt_calor_(csd_hlt_calor) {}
     
     ~CsdManager() {
-    	bct_->log()->ltrace("destroy","别destroy");
         destroy__();
     }
 

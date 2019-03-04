@@ -20,12 +20,10 @@ int CsdManager::init() {
     list<csd_meta_t> res_list;
     int r = ms_->get_csd_ms()->list_all(res_list);
     if (r != 0) return r;
-    
     uint64_t max_id = 0;
-
     for (auto it = res_list.begin(); it != res_list.end(); ++it) {
         CsdHandle* hdl = create_csd_handle__(it->csd_id);
-        hdl->obj_as_load__();
+        hdl->set_as_down__();
         hdl->get()->meta() = *it;
         hdl->set_latime__(utime_t::get_by_usec(it->latime));
         if (!insert_csd_handle__(it->csd_id, hdl)) 
