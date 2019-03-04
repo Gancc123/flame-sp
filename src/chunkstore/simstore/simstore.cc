@@ -18,10 +18,11 @@ namespace flame {
 
 void simstore_chunk_t::init_blocks__() {
     uint32_t blk_num = info.size / SIMSTORE_BLOCK_SIZE + (info.size % SIMSTORE_BLOCK_SIZE ? 1 : 0);
-    uint32_t idx = blocks.size();
+    uint32_t idx = 0;
     while (idx < blk_num) {
         simstore_block_t blk;
         blocks.push_back(blk);
+        idx++;
     }
 }
 
@@ -333,6 +334,7 @@ int SimStore::ld_upper__(fstream& fin) {
             }
         }
     }
+    return RC_SUCCESS;
 }
 
 int SimStore::ld_annotation__(fstream& fin) {

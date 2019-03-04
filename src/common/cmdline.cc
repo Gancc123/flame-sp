@@ -25,10 +25,6 @@ int Cmdline::def_run() {
     return 0;
 }
 
-void Cmdline::register_self(Cmdline* parent) {
-    assert_msg(parent != nullptr, "Cmdline Internal Error!");
-    parent->register_submodule(this, name_);
-}
 
 void Cmdline::register_type(CmdBase* arg) {
     assert_msg(arg != nullptr, "Cmdline Internal Error!");
@@ -113,8 +109,6 @@ static void print_usage__(print_context_t& pcxt, const std::string& mod_list) {
     for (auto it = pcxt.larg_must.begin(); it != pcxt.larg_must.end(); it++) {
         if (!(*it)->long_name().empty())
             printf("--%s <%s> ", (*it)->long_name().c_str(), (*it)->long_name().c_str());
-        else
-            printf("--%c <%c> ", (*it)->short_name(), (*it)->short_name());
     }
 
     printf("\n\n");

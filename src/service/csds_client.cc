@@ -222,7 +222,7 @@ std::shared_ptr<CsdsClient> CsdsClientFoctoryImpl::make_csds_client(node_addr_t 
     uint8_t* part = (uint8_t*)&ip;
 
     ostringstream oss;
-    oss << *part << "." << *(part + 1) << "." << *(part + 2) << "." << *(part + 3);
+    oss << (int)*part << "." << (int)*(part + 1) << "." << (int)*(part + 2) << "." << (int)*(part + 3);
     oss << ":" << addr.get_port();
 
     CsdsClientImpl* client = new CsdsClientImpl(fct_, grpc::CreateChannel(

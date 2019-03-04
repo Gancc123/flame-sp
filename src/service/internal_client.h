@@ -48,7 +48,7 @@ public:
 
 private:
     std::unique_ptr<InternalService::Stub> stub_;
-}; // class FlameClientImpl
+}; // class InternalClientImpl
 
 class InternalClientFoctoryImpl : public InternalClientFoctory {
 public:

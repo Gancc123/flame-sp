@@ -167,7 +167,7 @@ private:
 class CsdHandle final {
 public:
     CsdHandle(CsdManager* csdm, const std::shared_ptr<MetaStore>& ms, uint64_t csd_id) 
-    : csdm_(csdm), csd_id_(csd_id), stat_(CSD_OBJ_STAT_LOAD), obj_stat_(CSD_OBJ_STAT_NEW), ms_(ms) {
+    : csdm_(csdm), csd_id_(csd_id), stat_(CSD_STAT_NONE), obj_stat_(CSD_OBJ_STAT_NEW), ms_(ms) {
         obj_ = new CsdObject();
     }
 
@@ -186,6 +186,13 @@ public:
     bool is_down() const { return stat_.load() == CSD_STAT_DOWN; }
     bool is_pause() const { return stat_.load() == CSD_STAT_PAUSE; }
     bool is_active() const { return stat_.load() == CSD_STAT_ACTIVE; }
+
+    /**
+     * @brief 初始化的csd存库操作
+     * 不需要读写锁
+     * @return int 
+     */
+    int save_csd_info();
 
     /**
      * @brief 更新CSD状态
@@ -319,7 +326,6 @@ private:
 
     bool obj_readable__() const {
         int obj_stat = obj_stat_.load();
-        //if (stat != CSD_OBJ_STAT_LOAD || stat != CSD_OBJ_STAT_TRIM)
         if (obj_stat != CSD_OBJ_STAT_LOAD && obj_stat != CSD_OBJ_STAT_TRIM)
             return true;
         return false;

@@ -95,9 +95,9 @@ public:
             int r = snprintf(buff, MAX_LOG_LEN, "[%s][%s] %s(%d) %s(): ", module, LogDict[level], file, line, func);
             r += snprintf(buff + r, MAX_LOG_LEN - r, fmt, args...);
             snprintf(buff + r, MAX_LOG_LEN - r, "\n");
-            fprintf(fp_, buff);
+            fprintf(fp_, "%s", buff);
             if (imm_flush_) fflush(fp_);
-            if (with_console_) fprintf(stdout, buff);
+            if (with_console_) fprintf(stdout, "%s", buff);
         }
     }
 

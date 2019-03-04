@@ -58,7 +58,7 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     uint64_t new_id = next_csd_id_.fetch_add(1);
 
     CsdHandle* hdl = create_csd_handle__(new_id);
-    hdl->obj_as_new__();
+    hdl->set_as_none__();
     
     CsdObject* obj = hdl->get();
 
@@ -70,17 +70,13 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     obj->set_admin_addr(attr.admin_addr);
     obj->set_ctime_ut(utime_t::now());
     obj->set_latime_ut(utime_t::now());
-	bct_->log()->ltrace("?????");
-	bct_->log()->ltrace("attr.csd_name:%s,attr.size:%llu,obj->get_name():%s, obj->get_size():%llu",
-			attr.csd_name.c_str(),attr.size,obj->get_name().c_str(), obj->get_size()
-	);
     auto meta = obj->meta();
     auto hlt = obj->health();
 
     bct_->log()->ldebug("meta.csd_id = %llu, hlt.csd_id = %llu", meta.csd_id, hlt.csd_id);
 
     ReadLocker hdl_locker(hdl->get_lock());
-    int r = hdl->save();
+    int r = hdl->save_csd_info();
     if (r != RC_SUCCESS) {
         csd_map_.erase(new_id);
         bct_->log()->lerror("register csd ($llu, %s) faild: save error", new_id, attr.csd_name.c_str());
@@ -95,19 +91,6 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     }
 
     *hp = hdl;
-	bct_->log()->ltrace("csd_map_[%llu].get().get_name():%s",new_id,csd_map_[new_id]->get()->get_name().c_str());
-    /**hp = create_csd_handle__(new_id);
-	(*hp)->obj_as_new__();
-	CsdObject* obj2 = hdl->get();
-
-    obj2->set_csd_id(new_id);
-    obj2->set_size(attr.size);
-    obj2->set_stat(attr.stat);
-    obj2->set_name(attr.csd_name);
-    obj2->set_io_addr(attr.io_addr);
-    obj2->set_admin_addr(attr.admin_addr);
-    obj2->set_ctime_ut(utime_t::now());
-    obj2->set_latime_ut(utime_t::now());*/
     return RC_SUCCESS;
 }
 
@@ -275,6 +258,19 @@ void CsdManager::destroy__() {
  * CsdHandle
  */
 
+int CsdHandle::save_csd_info(){
+    int r;
+    if (stat_.load() == CSD_STAT_NONE) {
+        if ((r = ms_->get_csd_ms()->create(obj_->meta())) != RC_SUCCESS)
+            return r;
+        if ((r = ms_->get_csd_health_ms()->create(obj_->health())) != RC_SUCCESS)
+            return r;
+        set_as_down__();
+        return RC_SUCCESS;
+    }
+    return RC_OBJ_EXISTED;
+}
+
 void CsdHandle::update_stat(int st) {
     WriteLocker locker(lock_);
 
@@ -284,8 +280,6 @@ void CsdHandle::update_stat(int st) {
         latime_ = utime_t::now();
     obj_->set_stat(st);
 	FlameContext *fct = FlameContext::get_context();
-	fct->log()->ldebug("lwg:update_stat:obj_.get_stat() = %llu",obj_->get_stat());
-	fct->log()->ldebug("lwg:update_stat:obj_.get_name() = %s",obj_->get_name().c_str());
 }
 
 void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
@@ -338,12 +332,12 @@ int CsdHandle::save() {
     if(!obj_readable__())
         return RC_FAILD;
 
-    if (stat_.load() == CSD_OBJ_STAT_NEW) {
+    if (obj_stat_.load() == CSD_OBJ_STAT_NEW) {
         if ((r = ms_->get_csd_ms()->create(obj_->meta())) != RC_SUCCESS)
             return r;
         if ((r = ms_->get_csd_health_ms()->create(obj_->health())) != RC_SUCCESS)
             return r;
-    } else if (stat_.load() == CSD_OBJ_STAT_DIRT) {
+    } else if (obj_stat_.load() == CSD_OBJ_STAT_DIRT) {
         if ((r = ms_->get_csd_ms()->update(obj_->meta())) != RC_SUCCESS)
             return r;
         if ((r = ms_->get_csd_health_ms()->update(obj_->health())) != RC_SUCCESS)
@@ -396,8 +390,6 @@ shared_ptr<CsdsClient> CsdHandle::get_client() {
 
 shared_ptr<CsdsClient> CsdHandle::make_client__() {
     node_addr_t addr = obj_->get_admin_addr();
-	FlameContext *fct = FlameContext::get_context();
-	fct->log()->ldebug("addr.val = %llu",addr.val);
     return csdm_->csd_client_foctory_->make_csds_client(addr);
 }
 
