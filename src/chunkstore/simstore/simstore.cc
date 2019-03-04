@@ -133,12 +133,6 @@ int SimStore::dev_mount() {
         }
     } else 
         info_init__();
-    cs_info_t cs_info;
-    get_info(cs_info);
-    if(strcmp(cs_info.cluster_name.c_str(),"") == 0){
-        fct_->log()->linfo("whta ");
-        info_init__();
-    }
         
     mounted_ = true;
     fct_->log()->linfo("simstore: device mount success");
@@ -236,7 +230,6 @@ int SimStore::info_init__() {
     info_.used = 0;
     info_.ftime = utime_t::now().to_usec();
     info_.chk_num = 0;
-    fct_->log()->lerror("xxxx %s --%s",info_.name.c_str(),fct_->node_name().c_str());
     return RC_SUCCESS;
 }
 
