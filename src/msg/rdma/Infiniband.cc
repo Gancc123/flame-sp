@@ -13,7 +13,6 @@ namespace msg{
 namespace ib{
 
 static const uint32_t MAX_SHARED_RX_SGE_COUNT = 1;
-static const uint32_t MAX_INLINE_DATA = 72;
 static const uint32_t TCP_MSG_LEN = 
  sizeof("0000:00000000:00000000:00000000:00:00000000000000000000000000000000");
 static const uint32_t CQ_DEPTH = 30000;
@@ -161,6 +160,7 @@ int QueuePair::init(){
                                         mct->config->rdma_buffer_size);
         return -1;
     } 
+
     ibv_qp_init_attr qpia;
     memset(&qpia, 0, sizeof(qpia));
     qpia.qp_context = this;
@@ -176,7 +176,7 @@ int QueuePair::init(){
     qpia.cap.max_send_wr  = max_send_wr; // max outstanding send requests
     qpia.cap.max_send_sge = 1;           // max send scatter-gather elements
     // max bytes of immediate data on send q
-    qpia.cap.max_inline_data = MAX_INLINE_DATA;  
+    qpia.cap.max_inline_data = mct->config->rdma_max_inline_data;  
     // RC, UC, UD, or XRC(only RC supported now!!)
     qpia.qp_type = type;                 
     qpia.sq_sig_all = 0;                 // only generate CQEs on requested WQEs
@@ -570,10 +570,16 @@ bool Infiniband::init(){
                         mct->config->rdma_send_queue_len, tx_queue_len);
     }
 
+    auto dev_attr = device->device_attr;
     //mct->config->rdma_buffer_num no use now.
-
-    ML(mct, info, "device allow {} completion entries.", 
-                                                device->device_attr->max_cqe);
+    ML(mct, info, "device max_mr_size: {}, page_size_cap: {}", 
+                    dev_attr->max_mr_size, dev_attr->page_size_cap);
+    ML(mct, info, "device max_qp: {}, max_qp_wr:{}", 
+                    dev_attr->max_qp, dev_attr->max_qp_wr);
+    ML(mct, info, "device max_cq: {}, max_cqe: {}, max_mr: {}", 
+                    dev_attr->max_cq, dev_attr->max_cqe, dev_attr->max_mr);
+    ML(mct, info, "device max_srq: {}, max_srq_wr: {}", 
+                    dev_attr->max_srq, dev_attr->max_srq_wr);
 
     memory_manager = new MemoryManager(mct, pd);
     
@@ -778,10 +784,6 @@ int Infiniband::decode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
 }
 int Infiniband::get_ib_syn_msg_len(){
     return TCP_MSG_LEN;
-}
-
-int Infiniband::get_max_inline_data(){
-    return MAX_INLINE_DATA;
 }
 
 void Infiniband::wire_gid_to_gid(const char *wgid, union ibv_gid *gid){

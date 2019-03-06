@@ -183,8 +183,9 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
         
         Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
-        ML(mct, info, "QP: {}, addr: {:p} {} {}", response->qp_num, 
+        ML(mct, info, "QP: {}, addr: {:p}, imm_data:{} {} {}", response->qp_num, 
                     (void *)chunk, 
+                    (response->wc_flags & IBV_WC_WITH_IMM)?response->imm_data:0,
                     manager->get_ib().wc_opcode_string(response->opcode),
                     manager->get_ib().wc_status_to_string(response->status));
 
@@ -208,12 +209,15 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
 
         //TX completion may come either from regular send message or from 'fin'
-        // message. In the case of 'fin' wr_id points to the QueuePair.
-        if(reinterpret_cast<ib::QueuePair*>(response->wr_id) == qp){
+        // message or from imm_data send. 
+        //In the case of 'fin' wr_id points to the QueuePair.
+        //In the case of imm_data send, wr_id is 0.
+        //In the case of regular send message, wr_id is the tx_chunks pointer.
+        if(response->wr_id == 0){
+            //ignore.
+        }else if(reinterpret_cast<ib::QueuePair*>(response->wr_id) == qp){
             ML(mct, debug, "sending of the disconnect msg completed");
-        } else if(chunk != nullptr) {
-            // MemoryManager doesn't check whether the chunk is valid.
-            // if you worry about that, may use MemoryManager.is_from().
+        }else {
             tx_chunks.push_back(chunk);
         }
     }

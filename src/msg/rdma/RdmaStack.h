@@ -27,7 +27,7 @@ typedef std::function<void(RdmaRwWork *, RdmaConnection*)> rdma_rw_work_func_t;
 
 struct RdmaRwWork{
     using RdmaBuffer = ib::RdmaBuffer;
-    std::vector<RdmaBuffer *> rbufs;
+    std::vector<RdmaBuffer *> rbufs; //bufs num should <= 32.
     std::vector<RdmaBuffer *> lbufs; //must be same num as rbufs.
     bool is_write;
     uint32_t imm_data = 0; // 0 means no imm data.

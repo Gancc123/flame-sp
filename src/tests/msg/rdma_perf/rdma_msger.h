@@ -25,6 +25,7 @@ enum class perf_type_t {
     SEND_DATA, // send req with data + send resp
     MEM_FETCH, // send req + rdma write + send resp
     MEM_FETCH_WITH_IMM, //send req + rdma write_with_imm
+    SEND_WITH_IMM, // send req + send resp by imm
 };
 
 perf_type_t perf_type_from_str(const std::string &s){
@@ -34,6 +35,9 @@ perf_type_t perf_type_from_str(const std::string &s){
     }
     if(lower == "send"){
         return perf_type_t::SEND;
+    }
+    if(lower == "send_with_imm"){
+        return perf_type_t::SEND_WITH_IMM;
     }
     if(lower == "send_data"){
         return perf_type_t::SEND_DATA;
@@ -105,10 +109,10 @@ optparse::OptionParser init_parser(){
     parser.add_option("-n", "--num").type("long").set_default(1000)
         .help("iter count for perf");
     parser.add_option("-t", "--type")
-        .choices({"mem_push", "send", "send_data", "mem_fetch",
+        .choices({"mem_push", "send", "send_with_imm", "send_data", "mem_fetch",
                     "mem_fetch_with_imm"})
         .set_default("send")
-        .help("perf type: mem_push, send, send_data, mem_fetch,"
+        .help("perf type: mem_push, send, send_with_imm, send_data, mem_fetch,"
                 " mem_fetch_with_imm");
     parser.add_option("--log_level").set_default("info");
     parser.add_option("--result_file").set_default("result.txt")
@@ -248,6 +252,13 @@ void RdmaMsger::on_send_req(Connection *conn, Msg *msg){
     auto msger_id = conn->get_session()->peer_msger_id;
     ML(mct, trace, "{}=>  {}", msger_id_to_str(msger_id), msg->to_string());
 
+    if(config->perf_type == perf_type_t::SEND_WITH_IMM){
+        auto rdma_conn = RdmaStack::rdma_conn_cast(conn);
+        assert(rdma_conn);
+        rdma_conn->post_imm_data(incre_data.num + 1);
+        return;
+    }
+
     auto resp_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
     resp_msg->flag |= FLAME_MSG_FLAG_RESP;
 
@@ -260,8 +271,14 @@ void RdmaMsger::on_send_req(Connection *conn, Msg *msg){
 
 void RdmaMsger::on_send_resp(Connection *conn, Msg *msg){
     msg_incre_d incre_data;
-    auto it = msg->data_iter();
-    incre_data.decode(it);
+    if(config->perf_type == perf_type_t::SEND_WITH_IMM){
+        assert(msg->is_imm_data());
+        incre_data.num = msg->imm_data;
+        ML(mct, debug, "recv imm_data: {}", msg->imm_data);
+    }else{
+        auto it = msg->data_iter();
+        incre_data.decode(it);
+    }
 
     assert(this->config);
     this->config->tposted[incre_data.num] = get_cycles();
@@ -399,6 +416,7 @@ void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
         }
         break;
     case perf_type_t::SEND:
+    case perf_type_t::SEND_WITH_IMM:
     case perf_type_t::SEND_DATA:
         if(msg->is_req()){
             on_send_req(conn, msg);

@@ -8,6 +8,8 @@
 
 #include <atomic>
 #include <string>
+#include <deque>
+#include <vector>
 #include <functional>
 
 namespace flame{
@@ -38,6 +40,7 @@ private:
     Mutex send_mutex;
     std::list<Msg *> msg_list;
     std::list<RdmaRwWork *> rw_work_list;
+    std::deque<uint32_t> imm_data_list;
 
     //for recv msg
     std::list<ibv_wc> recv_wc;
@@ -94,6 +97,8 @@ public:
     int activate();
 
     int post_rdma_rw(RdmaRwWork *work, bool enqueue=true);
+    int post_imm_data(uint32_t imm_data);
+    int post_imm_data(std::vector<uint32_t> *imm_data_vec);
 
     const char* get_qp_state() { 
         return ib::Infiniband::qp_state_string(qp->get_state()); 

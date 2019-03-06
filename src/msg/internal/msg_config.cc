@@ -92,6 +92,13 @@ int MsgConfig::load(){
             return 1;
         }
 
+        res = set_rdma_max_inline_data(cfg->get("rdma_max_inline_data", 
+                                                FLAME_RDMA_MAX_INLINE_DATA));
+        if (res) {
+            perr_arg("rdma_max_inline_data");
+            return 1;
+        }
+
         res = set_rdma_send_queue_len(cfg->get("rdma_send_queue_len", 
                                                 FLAME_RDMA_SEND_QUEUE_LEN_D));
         if (res) {
@@ -302,9 +309,21 @@ int MsgConfig::set_rdma_buffer_size(const std::string &v){
     if(v.empty()){
         return 1;
     }
-    int64_t result = size_str_to_uint64(v);
-    if(result > 0 && result < (1LL << 32)){
+    uint64_t result = size_str_to_uint64(v);
+    if(result < (1LL << 32)){
         rdma_buffer_size = result;
+        return 0;
+    }
+    return 1;
+}
+
+int MsgConfig::set_rdma_max_inline_data(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+    uint64_t result = size_str_to_uint64(v);
+    if(result < (1ULL << 32)){
+        rdma_max_inline_data = result;
         return 0;
     }
     return 1;

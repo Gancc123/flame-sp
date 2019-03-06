@@ -19,6 +19,7 @@
 #define FLAME_RDMA_PORT_NUM_D         ""
 #define FLAME_RDMA_BUFFER_NUM_D       ""
 #define FLAME_RDMA_BUFFER_SIZE_D      "4080"
+#define FLAME_RDMA_MAX_INLINE_DATA    "128"
 #define FLAME_RDMA_SEND_QUEUE_LEN_D   "256"
 #define FLAME_RDMA_RECV_QUEUE_LEN_D   "256"
 #define FLAME_RDMA_ENABLE_HUGEPAGE_D  "true"
@@ -123,6 +124,13 @@ public:
      */
     uint32_t rdma_buffer_size;
     int set_rdma_buffer_size(const std::string &v);
+
+    /**
+     * RDMA max inline data
+     * @cfg: rdma_max_inline_data
+     */
+    uint32_t rdma_max_inline_data;
+    int set_rdma_max_inline_data(const std::string &v);
 
     /**
      * RDMA send queue len

@@ -78,7 +78,8 @@ void send_first_msg(MsgContext *mct){
 
         conn->send_msg(req_msg);
         req_msg->put();
-    }else if(global_config.perf_type == perf_type_t::SEND){
+    }else if(global_config.perf_type == perf_type_t::SEND
+            || global_config.perf_type == perf_type_t::SEND_WITH_IMM){
         ML(mct, info, "send first msg (send)");
         global_config.tposted[0] = get_cycles();
         auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
