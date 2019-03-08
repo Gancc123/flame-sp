@@ -338,7 +338,7 @@ void RdmaPrepConn::close_rdma_conn_if_need(){
     // close rdma conn when prep conn failed.
     if(!real_conn->is_connected()){
         ML(mct, warn, "close RdmaConn {:p}", (void *)real_conn);
-        real_conn->error_cb();
+        real_conn->close();
     }
 }
 

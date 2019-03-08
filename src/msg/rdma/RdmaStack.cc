@@ -163,6 +163,7 @@ int RdmaWorker::process_cq_dry_run(){
 void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
     std::vector<Chunk*> tx_chunks;
     std::set<RdmaConnection *> to_wake_conns;
+    auto tx_queue_len = manager->get_ib().get_tx_queue_len();
 
     for (int i = 0; i < n; ++i) {
         ibv_wc* response = &cqe[i];
@@ -172,8 +173,11 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         ib::QueuePair *qp = conn->get_qp();
         if(qp){
             qp->dec_tx_wr(1);
-            //wakeup conn after dec_tx_wr;
-            to_wake_conns.insert(conn);
+            if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) >  
+                tx_queue_len){
+                //wakeup conn after dec_tx_wr;
+                to_wake_conns.insert(conn);
+            }
         }
 
         if(response->opcode == IBV_WC_RDMA_READ
@@ -222,7 +226,8 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
     }
 
-    owner->post_work([to_wake_conns](){
+    owner->post_work([to_wake_conns, this](){
+        ML(this->mct, trace, "in handle_tx_cqe()");
         for(RdmaConnection *conn : to_wake_conns){
             conn->send_msg(nullptr);
         }
@@ -347,6 +352,10 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
                 polled[conn].push_back(*response);
             }
         } else {
+            //Todo 
+            //Not distinguish the error type here.
+            //No need to close the conn for some error types.
+            //But here always close.
             ML(mct, error, "work request returned error for buffer({:p}) "
                             "status({}:{})", (void *)chunk, response->status,
                     manager->get_ib().wc_status_to_string(response->status));
@@ -442,6 +451,7 @@ void RdmaWorker::make_conn_dead(RdmaConnection *conn){
     if(!conn) return;
     if(!get_owner()->am_self()){
         get_owner()->post_work([this, conn](){
+            ML(this->mct, trace, "in make_conn_dead()");
             this->make_conn_dead(conn);
         });
         return;
@@ -533,7 +543,8 @@ int RdmaManager::handle_async_event(){
             for(auto &worker : workers){
                 //Only one worker has the conn.
                 //The others will do nothing.
-                worker->get_owner()->post_work([qpn, worker](){
+                worker->get_owner()->post_work([this, qpn, worker](){
+                    ML(this->mct, trace, "in handle_async_event()");
                     worker->clear_qp(qpn);
                 });
             }

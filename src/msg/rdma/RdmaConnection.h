@@ -18,6 +18,8 @@ namespace msg{
 class RdmaWorker;
 struct RdmaRwWork;
 
+extern const uint32_t RDMA_RW_WORK_BUFS_LIMIT;
+
 class RdmaConnection : public Connection{
 public:
     enum class RdmaStatus : uint8_t{
@@ -47,7 +49,6 @@ private:
     uint32_t recv_cur_msg_offset = 0;
     MsgBuffer recv_cur_msg_header_buffer;
     Msg *recv_cur_msg = nullptr;
-    std::list<Msg *> recv_msg_list;
 
     std::atomic<RdmaStatus> status;
     std::atomic<bool> fin_msg_pending;
@@ -73,16 +74,16 @@ public:
         MutexLocker l(send_mutex);
         return this->msg_list.size();
     };
+    size_t pending_rw_works(){
+        MutexLocker l(send_mutex);
+        return this->rw_work_list.size();
+    }
     virtual bool is_connected() override{
         return status == RdmaStatus::CAN_WRITE;
     }
     virtual void close() override;
     virtual bool has_fd() const override { return false; }
     virtual bool is_owner_fixed() const override { return true; }
-
-    virtual void read_cb() override;
-    virtual void write_cb() override;
-    virtual void error_cb() override;
 
     std::atomic<bool> is_dead_pending;
     std::atomic<uint32_t> inflight_rx_buffers;

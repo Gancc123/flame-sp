@@ -11,39 +11,7 @@ namespace flame{
 namespace msg{
 
 static uint32_t BATCH_SEND_WR_MAX = 32;
-
-void RdmaConnection::read_cb(){
-    // if(!this->get_owner()->am_self()){
-    //     return;
-    // }
-    // ConnectionListener *listener = this->get_listener();
-    // assert(listener != nullptr);
-    // while(true){
-    //     auto msg = this->recv_msg();
-    //     if(msg){
-    //         if(listener){
-    //             listener->on_conn_recv(this, msg);
-    //         }
-    //         msg->put();
-    //     }else{
-    //         break;
-    //     }
-    // }
-}
-
-void RdmaConnection::write_cb(){
-    this->submit(false);
-}
-
-void RdmaConnection::error_cb(){
-    ML(mct, error, "RdmaConn {:p} status:{}", (void *)this, status_str(status));
-    if(status == RdmaStatus::INIT){
-        this->fault();
-    }else if(status == RdmaStatus::CAN_WRITE){
-        fin();
-    }
-
-}
+const uint32_t RDMA_RW_WORK_BUFS_LIMIT = 8;
 
 void RdmaConnection::recv_msg_cb(Msg *msg){
     if(get_listener()){
@@ -117,13 +85,6 @@ RdmaConnection *RdmaConnection::create(MsgContext *mct, RdmaWorker *w,
 
 RdmaConnection::~RdmaConnection(){
     MLI(mct, info, "status: {}", status_str(status));
-    if(!recv_msg_list.empty()){
-        //clean the recv_msg_list.
-        read_cb();
-        if(!recv_msg_list.empty()){
-            MLI(mct, warn, "recv_msg_list still not empty after read_cb()");
-        }
-    }
 
     if(qp){
         delete qp;
@@ -166,12 +127,6 @@ void RdmaConnection::get_wc(std::list<ibv_wc> &wc){
 
 inline Msg *RdmaConnection::recv_msg(){
     recv_data();
-
-    // if(!recv_msg_list.empty()){
-    //     auto tmp = recv_msg_list.front();
-    //     recv_msg_list.pop_front();
-    //     return tmp;
-    // }
 
     return nullptr;
 }
@@ -292,8 +247,6 @@ int RdmaConnection::decode_rx_buffer(ib::Chunk *chunk){
 
         recv_offset += bytes;
     }
-
-    // recv_msg_list.splice(recv_msg_list.end(), msgs);
 
     return chunk->get_bound();
 }
@@ -664,9 +617,9 @@ int RdmaConnection::submit_rw_works(){
 int RdmaConnection::post_rdma_rw(RdmaRwWork *work, bool enqueue){
     if(!work) return -1;
     uint32_t wr_num = work->rbufs.size();
-    if(wr_num > BATCH_SEND_WR_MAX){
+    if(wr_num > RDMA_RW_WORK_BUFS_LIMIT){
         ML(mct, error, "RdmaRwWork({:p}) has too much buffers. {} > {}", 
-                                    (void *)work, wr_num, BATCH_SEND_WR_MAX);
+                                (void *)work, wr_num, RDMA_RW_WORK_BUFS_LIMIT);
         return -1;
     }
     uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()

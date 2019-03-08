@@ -17,7 +17,6 @@ void MsgWorkerThread::entry(){
     worker->drain();
 }
 
-
 void HandleNotifyCallBack::read_cb(){
     char c[256];
     int r = 0;
@@ -159,6 +158,7 @@ uint64_t ThrMsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
         add_time_work(expire, work_fn, id);
     }else{
         post_work([expire, work_fn, id, this](){
+            ML(this->mct, trace, "in post_time_work()");
             this->add_time_work(expire, work_fn, id);
         });
     }
@@ -170,6 +170,7 @@ void ThrMsgWorker::cancel_time_work(uint64_t id){
         del_time_work(id);
     }else{
         post_work([id, this](){
+            ML(this->mct, trace, "in cancel_time_work()");
             this->del_time_work(id);
         });
     }

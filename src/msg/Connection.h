@@ -105,9 +105,9 @@ public:
         return this->m_listener;
     }
 
-    virtual void read_cb() = 0;
-    virtual void write_cb() = 0;
-    virtual void error_cb() = 0;
+    virtual void read_cb() override  {};
+    virtual void write_cb() override {};
+    virtual void error_cb() override {};
 
     std::string to_string() const{
         auto s = fmt::format("[Conn {}]", this->conn_id.to_string());
