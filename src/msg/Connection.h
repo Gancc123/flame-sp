@@ -27,7 +27,7 @@ public:
      session(nullptr), owner(nullptr), m_listener(nullptr){
          
     }
-    ~Connection();
+    ~Connection() {};
 
     virtual msg_ttype_t get_ttype() = 0;
 
@@ -86,8 +86,13 @@ public:
         return this->conn_id;
     }
     
-    void set_session(Session *s);
-    Session *get_session() const;
+    inline Session* get_session() const{
+        return this->session; //* 这里获得的session可能已被释放
+    }
+
+    inline void set_session(Session *s){
+        this->session = s;  //* 这里s->get()会造成循环引用
+    }
 
     void set_owner(MsgWorker *worker){
         this->owner = worker;

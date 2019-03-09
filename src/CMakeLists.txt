@@ -68,7 +68,6 @@ set(msg_common_srcs
     msg/event/EventPoller.cc
     msg/Msg.cc
     msg/MsgWorker.cc
-    msg/Connection.cc
     msg/Session.cc
     msg/MsgManager.cc
     msg/socket/TcpListenPort.cc

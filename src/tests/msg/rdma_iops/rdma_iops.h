@@ -193,8 +193,13 @@ void IopsMsger::on_req(Connection *conn, Msg *msg){
 
     auto send_cnt = inflight_cnt;
 
-    if(send_cnt % cfg->batch_size == 0 
-        || (cnt >= cfg->num && inflight_cnt > 0)){
+    if(send_cnt % cfg->batch_size == 0){
+        send_resp_batch();
+    }
+
+    while(cnt >= cfg->num && inflight_cnt > 0){
+        ML(mct, trace, "cnt: {}, inflight_cnt: {}, in end loop" , 
+                    cnt, inflight_cnt);
         send_resp_batch();
     }
 
@@ -231,7 +236,8 @@ void IopsMsger::on_resp(Connection *conn, Msg *msg){
     if(send_cnt == 0){
         return;
     }
-    if(send_cnt % cfg->batch_size == 0 || send_cnt == cfg->num - cnt){
+    if(send_cnt % cfg->batch_size == 0 
+        || send_cnt + inflight_cnt + cnt == cfg->num){
         send_req_batch();
     }
 
@@ -273,8 +279,7 @@ void IopsMsger::send_resp_batch(){
             }
         }
         r = rdma_conn->post_imm_data(&imm_data_vec);
-        assert(r == send_cnt);
-        ML(mct, info, "batch send resp: {} by imm_data", send_cnt);
+        ML(mct, info, "batch send resp: {} by imm_data", r);
     }else{
         std::list<Msg *> msgs;
         for(uint32_t i = 0;i < cfg->depth && send_cnt < max_send;++i){

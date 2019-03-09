@@ -739,8 +739,9 @@ int RdmaConnection::post_imm_data(std::vector<uint32_t> *imm_data_vec){
     }
     uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()
                                                             .get_tx_queue_len();
-    uint32_t can_post_wr = qp->add_tx_wr_with_limit(wr_num, tx_queue_len, true);
-    if(can_post_wr == 0 || status != RdmaStatus::CAN_WRITE){
+    wr_num = qp->add_tx_wr_with_limit(wr_num, tx_queue_len, true);
+    if(wr_num == 0 || status != RdmaStatus::CAN_WRITE){
+        ML(mct, trace, "tx_queue may be full or qp not ready to send. Wait!");
         return 0;
     }
 
@@ -752,7 +753,7 @@ int RdmaConnection::post_imm_data(std::vector<uint32_t> *imm_data_vec){
     while(current_swr < wr_num){
         iswr[current_swr].wr_id = 0;
         iswr[current_swr].next = nullptr;
-        iswr[current_swr].opcode = IBV_WR_SEND_WITH_IMM;
+        iswr[current_swr].opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
         iswr[current_swr].imm_data = htonl(imm_data_to_send[current_swr]);
         ML(mct, debug, "send imm_data: {}", imm_data_to_send[current_swr]);
         if(pre_wr){
@@ -763,6 +764,8 @@ int RdmaConnection::post_imm_data(std::vector<uint32_t> *imm_data_vec){
     }
     //only signal the last one
     iswr[current_swr - 1].send_flags |= IBV_SEND_SIGNALED; 
+    //Use wrid to store the batch size.
+    iswr[current_swr - 1].wr_id = sel_sig_wrid_from_num(current_swr); 
 
     size_t sended_num = wr_num;
     int r = sended_num;
@@ -843,6 +846,7 @@ void RdmaConnection::close(){
     if(status == RdmaStatus::CAN_WRITE){
         fin();
     }
+    status = RdmaStatus::CLOSED;
     this->get_listener()->on_conn_error(this);
     if(is_dead_pending){
         return;

@@ -172,7 +172,12 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         assert(conn);
         ib::QueuePair *qp = conn->get_qp();
         if(qp){
-            qp->dec_tx_wr(1);
+            if(is_sel_sig_wrid(response->wr_id)){
+                qp->dec_tx_wr(num_from_sel_sig_wrid(response->wr_id));
+                ML(mct, info, "dec {}", num_from_sel_sig_wrid(response->wr_id));
+            }else{
+                qp->dec_tx_wr(1);
+            }
             if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) >  
                 tx_queue_len){
                 //wakeup conn after dec_tx_wr;
@@ -180,13 +185,18 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
             }
         }
 
-        if(response->opcode == IBV_WC_RDMA_READ
-            || response->opcode == IBV_WC_RDMA_WRITE){
+        //ignore rdma_write by post_imm_data().
+        if(response->wr_id != 0 && !is_sel_sig_wrid(response->wr_id)
+            && (response->opcode == IBV_WC_RDMA_READ
+                || response->opcode == IBV_WC_RDMA_WRITE)){
             handle_rdma_rw_cqe(*response, conn);
             continue;
         }
         
-        Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
+        Chunk* chunk = nullptr;
+        if(!is_sel_sig_wrid(response->wr_id)){
+            chunk = reinterpret_cast<Chunk *>(response->wr_id);
+        }
         ML(mct, info, "QP: {}, addr: {:p}, imm_data:{} {} {}", response->qp_num, 
                     (void *)chunk, 
                     (response->wc_flags & IBV_WC_WITH_IMM)?response->imm_data:0,
@@ -215,9 +225,9 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         //TX completion may come either from regular send message or from 'fin'
         // message or from imm_data send. 
         //In the case of 'fin' wr_id points to the QueuePair.
-        //In the case of imm_data send, wr_id is 0.
+        //In the case of imm_data send, wr_id is 0 or it has a magic prefix.
         //In the case of regular send message, wr_id is the tx_chunks pointer.
-        if(response->wr_id == 0){
+        if(response->wr_id == 0 || is_sel_sig_wrid(response->wr_id)){
             //ignore.
         }else if(reinterpret_cast<ib::QueuePair*>(response->wr_id) == qp){
             ML(mct, debug, "sending of the disconnect msg completed");

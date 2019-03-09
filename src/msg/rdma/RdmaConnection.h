@@ -12,8 +12,33 @@
 #include <vector>
 #include <functional>
 
+#define FLAME_MSG_RDMA_SEL_SIG_WRID_MATIC_PREFIX_SHIFT 24
+//The magic prefix helps distinguishing whether wrid is a pointer.
+#define FLAME_MSG_RDMA_SEL_SIG_WRID_MAGIC_PREFIX 0x19941224ff000000ULL
+
 namespace flame{
 namespace msg{
+
+//"inline" allows the function to be declared in multiple translation units.
+//The only meaning of "inline" to C++ is allowing multiple definitions.
+inline bool is_sel_sig_wrid(uint64_t wrid){
+    int shift = FLAME_MSG_RDMA_SEL_SIG_WRID_MATIC_PREFIX_SHIFT;
+    uint64_t prefix = FLAME_MSG_RDMA_SEL_SIG_WRID_MAGIC_PREFIX >> shift;
+    return (wrid >> shift) == prefix;
+}
+
+inline uint32_t num_from_sel_sig_wrid(uint64_t wrid){
+    int shift = FLAME_MSG_RDMA_SEL_SIG_WRID_MATIC_PREFIX_SHIFT;
+    return (uint32_t)(wrid & ~((~0) << shift));
+}
+
+//num max is limited by "prefix shift".
+inline uint64_t sel_sig_wrid_from_num(uint32_t num){
+    int shift = FLAME_MSG_RDMA_SEL_SIG_WRID_MATIC_PREFIX_SHIFT;
+    uint64_t prefix = FLAME_MSG_RDMA_SEL_SIG_WRID_MAGIC_PREFIX;
+    uint64_t num_clean = num & ~((~0) << shift);
+    return prefix | num_clean;
+}
 
 class RdmaWorker;
 struct RdmaRwWork;
