@@ -52,12 +52,12 @@ public:
     void free(void *p, size_t s=0);
 
     bool is_from(void *p){
-        return ((PA(p) >= base) && (PA(p) < base + (1 << max_level)));
+        return ((PA(p) >= base) && (PA(p) < base + (1ULL << max_level)));
     }
 
-    size_t get_mem_used() const { return (1 << max_level) - mem_free; }
+    size_t get_mem_used() const { return (1ULL << max_level) - mem_free; }
     size_t get_mem_free() const { return mem_free; }
-    size_t get_mem_total() const { return (1 << max_level); }
+    size_t get_mem_total() const { return (1ULL << max_level); }
     std::string get_stat() const;
 
     uint8_t get_min_level() const { return min_level; }
@@ -71,7 +71,7 @@ private:
     uint8_t find_level(size_t s){
         uint8_t level = min_level;
         while(level <= max_level){
-            if((1 << level) >= s){
+            if((1ULL << level) >= s){
                 return level;
             }
             ++level;
@@ -80,11 +80,11 @@ private:
     }
 
     size_t index_in_level_of(void *p, uint8_t level){
-        return (PA(p) - base) / (1 << level);
+        return (PA(p) - base) / (1ULL << level);
     }
 
     size_t index_of_p(void *p, uint8_t level){
-        return (1 << (max_level - level)) - 1 + index_in_level_of(p, level);
+        return (1ULL << (max_level - level)) - 1 + index_in_level_of(p, level);
     }
 
     char *pop_chunk_of_level(uint8_t level){

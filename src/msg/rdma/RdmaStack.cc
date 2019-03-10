@@ -178,7 +178,7 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
             }else{
                 qp->dec_tx_wr(1);
             }
-            if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) >  
+            if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) > 
                 tx_queue_len){
                 //wakeup conn after dec_tx_wr;
                 to_wake_conns.insert(conn);
@@ -666,7 +666,10 @@ int RdmaManager::arm_async_event_handler(MsgWorker *worker){
 
 RdmaStack::RdmaStack(MsgContext *c)
 :mct(c), manager(nullptr) {
-
+    auto cfg = mct->config;
+    assert(cfg != nullptr);
+    max_msg_size_ = ((uint64_t)cfg->rdma_buffer_size) 
+                        * cfg->rdma_send_queue_len;
 }
 
 int RdmaStack::init(){

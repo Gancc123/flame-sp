@@ -29,14 +29,14 @@ inline bool is_sel_sig_wrid(uint64_t wrid){
 
 inline uint32_t num_from_sel_sig_wrid(uint64_t wrid){
     int shift = FLAME_MSG_RDMA_SEL_SIG_WRID_MATIC_PREFIX_SHIFT;
-    return (uint32_t)(wrid & ~((~0) << shift));
+    return (uint32_t)(wrid & ~((~0ULL) << shift));
 }
 
 //num max is limited by "prefix shift".
 inline uint64_t sel_sig_wrid_from_num(uint32_t num){
     int shift = FLAME_MSG_RDMA_SEL_SIG_WRID_MATIC_PREFIX_SHIFT;
     uint64_t prefix = FLAME_MSG_RDMA_SEL_SIG_WRID_MAGIC_PREFIX;
-    uint64_t num_clean = num & ~((~0) << shift);
+    uint64_t num_clean = num & ~((~0ULL) << shift);
     return prefix | num_clean;
 }
 

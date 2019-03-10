@@ -6,6 +6,7 @@
 #include "msg/internal/errno.h"
 
 #include <algorithm>
+#include <iterator>
 
 namespace flame{
 namespace msg{
@@ -254,10 +255,17 @@ int RdmaConnection::decode_rx_buffer(ib::Chunk *chunk){
 ssize_t RdmaConnection::send_msg(Msg *msg){
     if(status != RdmaStatus::INIT
         && status != RdmaStatus::CAN_WRITE){
+        ML(mct, warn, "Conn can't send msg. State: {}", status_str(status));
         return -1;
     }
 
     if(msg){
+        if(msg->total_bytes() > Stack::get_rdma_stack()->max_msg_size()){
+            ML(mct, error, "Msg size too big {}B > {}B, send failed! "
+                "Change rdma_buffer_size or rdma_send_queue_len.", 
+                msg->total_bytes(), Stack::get_rdma_stack()->max_msg_size());
+            return -1;
+        }
         msg->get();
         MutexLocker l(send_mutex);
         msg_list.push_back(msg);
@@ -274,6 +282,15 @@ ssize_t RdmaConnection::send_msgs(std::list<Msg *> &msgs){
         return -1;
     }
 
+    auto max_msg_size = Stack::get_rdma_stack()->max_msg_size();
+    for(auto msg : msgs){
+        if(msg->total_bytes() >max_msg_size){
+            ML(mct, error, "Msg size too big {}B > {}B, send failed! "
+                "Change rdma_buffer_size or rdma_send_queue_len.",  
+                                    msg->total_bytes(), max_msg_size);
+            return -1;
+        }
+    }
     for(auto msg : msgs){
         msg->get();
     }
@@ -355,22 +372,23 @@ int RdmaConnection::post_rdma_send(std::list<Msg*> &msgs){
     uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()
                                                             .get_tx_queue_len();
     uint32_t max_wrs = (total_bytes + buf_size - 1) / buf_size;
-    //limit for not excceed stack size when use iswr[] in post_work_request()
-    max_wrs = std::min(max_wrs, BATCH_SEND_WR_MAX); 
     //limit for tx_queue_len
-    max_wrs = qp->add_tx_wr_with_limit(max_wrs, tx_queue_len, true);
+    uint32_t can_post = qp->add_tx_wr_with_limit(max_wrs, tx_queue_len, true);
     
     total_bytes = max_wrs * buf_size;
 
     if(total_bytes == 0) return 0;
 
     memory_manager->get_buffers(total_bytes, chunks);
+    if(chunks.size() < max_wrs){
+        qp->dec_tx_wr(max_wrs - chunks.size());
+        if(chunks.size() == 0){
+            return 0;
+        }
+    }
     size_t chunk_bytes = chunks.size() * memory_manager->get_buffer_size();
     
     auto chunk_it = chunks.begin();
-    if(chunk_it == chunks.end()){
-        return 0;
-    }
     Chunk *cur_chunk = *chunk_it;
     cur_chunk->clear();
     while(!msgs.empty()){
@@ -419,9 +437,38 @@ int RdmaConnection::post_rdma_send(std::list<Msg*> &msgs){
         ++cnt;
     }
 
-    int r = post_work_request(chunks);
-    if(r < 0){
-        return r;
+    size_t filled_chunks = std::distance(chunks.begin(), 
+                                        (cur_chunk->get_offset() > 0)
+                                            ?std::next(chunk_it)
+                                            :chunk_it);
+    if(chunks.size() > filled_chunks){
+        qp->dec_tx_wr(chunks.size() - filled_chunks);
+        std::vector<Chunk*> sub_chunks(chunks.begin()+filled_chunks,
+                                                         chunks.end());
+        memory_manager->release_buffers(sub_chunks);
+        chunks.resize(filled_chunks);
+    }
+
+    size_t l = 0,  r = 1;
+    for(;r < filled_chunks;++r){
+        if((r - l) % BATCH_SEND_WR_MAX == 0){
+            auto b = chunks.begin();
+            std::vector<Chunk*> sub_chunks(b + l, b + r);
+            int result = post_work_request(sub_chunks);
+            if(result < 0){
+                return result;
+            }
+            l = r;
+        }
+    }
+
+    if(r - l > 0){
+        auto b = chunks.begin();
+        std::vector<Chunk*> sub_chunks(b + l, chunks.end());
+        int result = post_work_request(sub_chunks);
+        if(result < 0){
+            return result;
+        }
     }
 
     return cnt;
@@ -524,6 +571,9 @@ int RdmaConnection::activate(){
 
 int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
     // ML(mct, debug, "QP：{} {:p}", my_msg.qpn, (void *)tx_buffers.front());
+    if(tx_buffers.size() == 0){
+        return 0;
+    }
     auto current_buffer = tx_buffers.begin();
     ibv_sge isge[tx_buffers.size()];
     uint32_t current_sge = 0;
@@ -753,6 +803,8 @@ int RdmaConnection::post_imm_data(std::vector<uint32_t> *imm_data_vec){
     while(current_swr < wr_num){
         iswr[current_swr].wr_id = 0;
         iswr[current_swr].next = nullptr;
+        //Use WRITE_WITH_IMM for send the imm_data. According to
+        //www.rdmamojo.com/2013/06/08/tips-and-tricks-to-optimize-your-rdma-code
         iswr[current_swr].opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
         iswr[current_swr].imm_data = htonl(imm_data_to_send[current_swr]);
         ML(mct, debug, "send imm_data: {}", imm_data_to_send[current_swr]);

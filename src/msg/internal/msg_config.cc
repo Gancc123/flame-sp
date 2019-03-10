@@ -310,7 +310,7 @@ int MsgConfig::set_rdma_buffer_size(const std::string &v){
         return 1;
     }
     uint64_t result = size_str_to_uint64(v);
-    if(result < (1LL << 32)){
+    if(result < (1ULL << 32)){
         rdma_buffer_size = result;
         return 0;
     }

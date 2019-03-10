@@ -170,7 +170,7 @@ public:
     }
 
     std::string to_string() const{
-        auto s = fmt::format("[Msg {} {} {} SL{} {}B]({:p})",
+        auto s = fmt::format("[Msg {} {} {} PRIO{} {}B]({:p})",
                                 msg_ttype_to_str(ttype),
                                 msg_type_str(), msg_flag_str(),
                                 (int)priority, get_data_len(),

@@ -42,6 +42,7 @@ int main(int argc, char *argv[]){
     global_config.result_file = std::string(options.get("result_file"));
     global_config.perf_type = perf_type_from_str(
                                             std::string(options.get("type")));
+    global_config.use_imm_resp = (bool)options.get("imm_resp");
     global_config.size = size_str_to_uint64(std::string(options.get("size")));
 
     init_resource(global_config);

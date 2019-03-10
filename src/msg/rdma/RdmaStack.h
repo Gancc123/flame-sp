@@ -160,6 +160,7 @@ public:
 class RdmaStack : public Stack{
     MsgContext *mct;
     RdmaManager *manager;
+    uint64_t max_msg_size_;
 public:
     explicit RdmaStack(MsgContext *c);
     virtual int init() override;
@@ -175,6 +176,9 @@ public:
             return static_cast<RdmaConnection *>(conn);
         }
         return nullptr;
+    }
+    uint64_t max_msg_size(){
+        return max_msg_size_;
     }
 };
 

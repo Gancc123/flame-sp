@@ -13,6 +13,7 @@ namespace msg{
 std::string str2upper(const std::string &);
 std::string str2lower(const std::string &);
 uint64_t size_str_to_uint64(const std::string &);
+std::string size_str_from_uint64(uint64_t);
 
 
 /**
