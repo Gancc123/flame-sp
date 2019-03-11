@@ -301,6 +301,13 @@ public:
     virtual bool is_mounted() = 0;
 
     /**
+     * flush()
+     * 持久化所有数据到设备（如果有的话）
+     * @return int 
+     */
+    virtual int flush() { return SUCCESS; }
+
+    /**
      * Chunk操作部分
      */
 
