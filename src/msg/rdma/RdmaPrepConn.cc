@@ -127,7 +127,10 @@ void RdmaPrepConn::set_rdma_listen_port(RdmaListenPort *lp){
 }
 
 int RdmaPrepConn::send_my_msg(){
-    int r, write_len, total_bytes = 0;
+    int r = 0, write_len = 0, total_bytes = 0;
+    if(my_msg_buffer_offset == my_msg_buffer.offset()){
+        return 0;
+    }
     while(my_msg_buffer_offset < my_msg_buffer.offset()){
         r = ::send(fd, my_msg_buffer.data() + my_msg_buffer_offset, 
                                 my_msg_buffer.offset() - my_msg_buffer_offset,
@@ -151,13 +154,16 @@ int RdmaPrepConn::send_my_msg(){
             break;
         }
     }
-    ML(mct, trace, "RdmaPrepConn {} send {} bytes, msg_buffer {} bytes",
+    ML(mct, trace, "RdmaPrepConn {} send {} bytes, msg_buffer {} bytes.",
             fd, total_bytes, my_msg_buffer.length());
     return total_bytes;
 }
 
 int RdmaPrepConn::recv_peer_msg(){
-    int r, recv_len, total_bytes = 0;
+    int r = 0, recv_len = 0, total_bytes = 0;
+    if(peer_msg_buffer_offset == peer_msg_buffer.length()){
+        return 0;
+    }
     while(peer_msg_buffer_offset < peer_msg_buffer.length()){
         r = ::recv(fd, peer_msg_buffer.data() + peer_msg_buffer_offset, 
                             peer_msg_buffer.length() - peer_msg_buffer_offset,
@@ -224,6 +230,8 @@ void RdmaPrepConn::read_cb(){
                     ML(mct, error, "RdmaConn activate() failed."
                                     " Close related RdmaPrepConn.");
                     this->close();
+                }else{
+                    send_my_msg();
                 }
             }else{
                 return;
@@ -252,6 +260,8 @@ void RdmaPrepConn::read_cb(){
                     ML(mct, error, "RdmaConn activate() failed."
                                     " Close related RdmaPrepConn.");
                     this->close();
+                }else{
+                    send_my_msg();
                 }
             }
         }else if(status == PrepStatus::SYNED_MY_MSG){
