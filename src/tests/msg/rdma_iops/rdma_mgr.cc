@@ -3,22 +3,22 @@
 #include "util/fmt.h"
 #include "util/clog.h"
 
-#include "rdma_msger.h"
+#include "rdma_iops.h"
 
 #include <unistd.h>
 #include <cstdio>
 #include <string>
 
 using FlameContext = flame::FlameContext;
-using namespace flame::msg;
+using namespace flame;
 
-perf_config_t global_config;
+msg::rdma_iops_config_t cfg;
 
 #define CFG_PATH "flame_mgr.cfg"
 
 int main(int argc, char *argv[]){
-    auto parser = init_parser();
-    optparse::Values options = parser.parse_args(argc, argv);
+    auto parser = msg::init_parser();
+    auto options = parser.parse_args(argc, argv);
     auto config_path = options.get("config");
 
     FlameContext *fct = FlameContext::get_context();
@@ -27,37 +27,36 @@ int main(int argc, char *argv[]){
         clog("init config failed.");
         return -1;
     }
-    if(!fct->init_log("", str2upper(std::string(options.get("log_level"))), 
-                    fmt::format("mgr{}",  std::string(options.get("index"))))){
+    if(!fct->init_log("", msg::str2upper(std::string(options.get("log_level"))), 
+                fmt::format("mgr{}",  std::string(options.get("index"))))){
          clog("init log failed.");
         return -1;
     }
 
-    auto mct = new MsgContext(fct);
+    cfg.is_mgr = true;
+    cfg.use_imm_data = (bool)options.get("imm_data");
+    cfg.num = msg::size_str_to_uint64(std::string(options.get("num")));
+    cfg.depth = (unsigned long)options.get("depth");
+    cfg.batch_size = (unsigned long)options.get("batch_size");
+
+    auto mct = new msg::MsgContext(fct);
 
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    global_config.num = (int)options.get("num");
-    global_config.result_file = std::string(options.get("result_file"));
-    global_config.perf_type = perf_type_from_str(
-                                            std::string(options.get("type")));
-    global_config.use_imm_resp = (bool)options.get("imm_resp");
-    global_config.size = size_str_to_uint64(std::string(options.get("size")));
-
-    init_resource(global_config);
-
-    auto rdma_msger = new RdmaMsger(mct, &global_config);
+    auto msger = new msg::IopsMsger(mct, &cfg);
 
     mct->load_config();
     mct->config->set_msg_log_level(std::string(options.get("log_level")));
 
     ML(mct, info, "before msg module init");
-    mct->init(rdma_msger, nullptr);
+    mct->init(msger, nullptr);
     ML(mct, info, "after msg module init");
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
                                          mct->config->msger_id.port);
+
+    msg::init_resource(mct, &cfg);
 
     std::getchar();
 
@@ -65,9 +64,9 @@ int main(int argc, char *argv[]){
     mct->fin();
     ML(mct, info, "after msg module fin");
 
-    delete rdma_msger;
+    delete msger;
 
-    fin_resource(global_config);
+    msg::fin_resource(&cfg);
 
     delete mct;
 

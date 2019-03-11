@@ -200,7 +200,7 @@ void* MemoryManager::huge_pages_malloc(size_t size){
                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE | MAP_HUGETLB,
                     -1, 0);
     if (ptr == MAP_FAILED) {
-        ML(mct, info, "Alloc huge page failed. Use malloc. {} ({}) B",
+        ML(mct, warn, "Alloc huge page failed. Use malloc. {} ({}) B",
             size, real_size);
         ptr = (char *)std::malloc(real_size);
         if (ptr == nullptr) return nullptr;

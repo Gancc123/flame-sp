@@ -41,7 +41,8 @@ public:
         
         //assume that no delete operation.
         do{
-            while(next = it->next.load(std::memory_order_consume)){
+            while((next = it->next.load(std::memory_order_consume)) 
+                  != nullptr ){
                 it = next;
             }
         }while(!it->next.compare_exchange_weak(next, new_elem,

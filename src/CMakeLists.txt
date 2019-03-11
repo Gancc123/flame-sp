@@ -1,6 +1,6 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-security")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-security -Wno-return-type")
 
 # requeired by spdlog
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
@@ -68,7 +68,6 @@ set(msg_common_srcs
     msg/event/EventPoller.cc
     msg/Msg.cc
     msg/MsgWorker.cc
-    msg/Connection.cc
     msg/Session.cc
     msg/MsgManager.cc
     msg/socket/TcpListenPort.cc

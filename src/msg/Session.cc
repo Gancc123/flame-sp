@@ -21,9 +21,10 @@ Connection* Session::get_conn(msg_ttype_t ttype, uint8_t sl){
         return nullptr;
     }
 
+    //get conn with its ownership
     Connection *conn = msg_manager->add_connection(addr, ttype);
 
-    conn->get();
+    //conn->get();
     conn_entry_t entry;
     entry.ttype = ttype;
     entry.sl = sl;
@@ -34,18 +35,25 @@ Connection* Session::get_conn(msg_ttype_t ttype, uint8_t sl){
     return conn;
 }
 
-int Session::add_conn(Connection *conn, msg_ttype_t ttype, uint8_t sl){
-    if(!conn || ttype == msg_ttype_t::UNKNOWN) return -1;
+int Session::add_conn(Connection *conn, uint8_t sl){
+    if(!conn) return -1;
     conn->get();
     conn_entry_t entry;
-    entry.ttype = ttype;
+    entry.ttype = conn->get_ttype();
     entry.sl = sl;
     entry.conn = conn;
     conn->set_session(this);
     
     MutexLocker l(conns_mutex);
-    for(auto entry : conns){
-        if(entry.conn == conn){
+    for(auto e : conns){
+        if(e.ttype == entry.ttype && e.sl == entry.sl){
+            ML(mct, debug, "Same type conn already exists. ignore {}", 
+                                                            conn->to_string());
+            conn->put();
+            return -1;
+        }
+        if(e.conn == conn){
+            conn->put();
             return 0;
         }
     }

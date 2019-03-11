@@ -49,6 +49,13 @@ int MsgConfig::load(){
         return 1;
     }
 
+    res = set_msg_worker_num(cfg->get("msg_worker_num", 
+                                                    FLAME_MSG_WORKER_NUM_D));
+    if (res) {
+        perr_arg("msg_worker_num");
+        return 1;
+    }
+
     res = set_rdma_enable(cfg->get("rdma_enable", FLAME_RDMA_ENABLE_D));
     if (res) {
         perr_arg("rdma_enable");
@@ -82,6 +89,13 @@ int MsgConfig::load(){
                                             FLAME_RDMA_BUFFER_SIZE_D));
         if (res) {
             perr_arg("rdma_buffer_size");
+            return 1;
+        }
+
+        res = set_rdma_max_inline_data(cfg->get("rdma_max_inline_data", 
+                                                FLAME_RDMA_MAX_INLINE_DATA));
+        if (res) {
+            perr_arg("rdma_max_inline_data");
             return 1;
         }
 
@@ -167,6 +181,18 @@ int MsgConfig::set_msg_log_level(const std::string &v){
         }
     }
     return 1;
+}
+
+int  MsgConfig::set_msg_worker_num(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    int worker_num = std::stoi(v, nullptr, 0);
+
+    msg_worker_num = worker_num;
+
+    return 0;
 }
 
 int MsgConfig::set_msger_id(const std::string &v){
@@ -283,9 +309,21 @@ int MsgConfig::set_rdma_buffer_size(const std::string &v){
     if(v.empty()){
         return 1;
     }
-    int64_t result = size_str_to_uint64(v);
-    if(result > 0 && result < (1LL << 32)){
+    uint64_t result = size_str_to_uint64(v);
+    if(result < (1ULL << 32)){
         rdma_buffer_size = result;
+        return 0;
+    }
+    return 1;
+}
+
+int MsgConfig::set_rdma_max_inline_data(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+    uint64_t result = size_str_to_uint64(v);
+    if(result < (1ULL << 32)){
+        rdma_max_inline_data = result;
         return 0;
     }
     return 1;

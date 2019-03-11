@@ -207,7 +207,7 @@ Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
     Msg *msg = get_declare_msg();
     conn->send_msg(msg);
 
-    conn->put();
+    //conn->put();  //return conn with its ownership
     return conn;
 }
 
@@ -330,16 +330,20 @@ void MsgManager::on_conn_recv(Connection *conn, Msg *msg){
             s->set_listen_addr(rdma_listen_addr, msg_ttype_t::RDMA);
             rdma_listen_addr->put();
         }
-        s->add_conn(conn);
+        int r = s->add_conn(conn);
         {
             MutexLocker l(m_mutex);
             if(session_unknown_conns.erase(conn) > 0){
                 conn->put();
             }
         }
-        if(m_msger_cb){
+        if(r){ //add failed.(maybe duplicate)
+            ML(mct, info, "Drop {} due to duplicae", conn->to_string());
+            conn->close();
+        }else if(m_msger_cb){
             m_msger_cb->on_conn_declared(conn, s);
         }
+        
         return;
     }
 

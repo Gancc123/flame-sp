@@ -27,7 +27,7 @@ typedef std::function<void(RdmaRwWork *, RdmaConnection*)> rdma_rw_work_func_t;
 
 struct RdmaRwWork{
     using RdmaBuffer = ib::RdmaBuffer;
-    std::vector<RdmaBuffer *> rbufs;
+    std::vector<RdmaBuffer *> rbufs; //bufs num should <= 8.
     std::vector<RdmaBuffer *> lbufs; //must be same num as rbufs.
     bool is_write;
     uint32_t imm_data = 0; // 0 means no imm data.
@@ -160,6 +160,7 @@ public:
 class RdmaStack : public Stack{
     MsgContext *mct;
     RdmaManager *manager;
+    uint64_t max_msg_size_;
 public:
     explicit RdmaStack(MsgContext *c);
     virtual int init() override;
@@ -175,6 +176,9 @@ public:
             return static_cast<RdmaConnection *>(conn);
         }
         return nullptr;
+    }
+    uint64_t max_msg_size(){
+        return max_msg_size_;
     }
 };
 

@@ -91,6 +91,7 @@ int RdmaWorker::clear_before_stop(){
         ML(mct, info, "wait for all rdma conn cleaned... ({:p})", (void *)this);
         fin_clean_wait();
     }
+    return 0;
 }
 
 void RdmaWorker::clear_qp(uint32_t qpn){
@@ -162,6 +163,7 @@ int RdmaWorker::process_cq_dry_run(){
 void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
     std::vector<Chunk*> tx_chunks;
     std::set<RdmaConnection *> to_wake_conns;
+    auto tx_queue_len = manager->get_ib().get_tx_queue_len();
 
     for (int i = 0; i < n; ++i) {
         ibv_wc* response = &cqe[i];
@@ -170,20 +172,34 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         assert(conn);
         ib::QueuePair *qp = conn->get_qp();
         if(qp){
-            qp->dec_tx_wr(1);
-            //wakeup conn after dec_tx_wr;
-            to_wake_conns.insert(conn);
+            if(is_sel_sig_wrid(response->wr_id)){
+                qp->dec_tx_wr(num_from_sel_sig_wrid(response->wr_id));
+                ML(mct, info, "dec {}", num_from_sel_sig_wrid(response->wr_id));
+            }else{
+                qp->dec_tx_wr(1);
+            }
+            if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) > 
+                tx_queue_len){
+                //wakeup conn after dec_tx_wr;
+                to_wake_conns.insert(conn);
+            }
         }
 
-        if(response->opcode == IBV_WC_RDMA_READ
-            || response->opcode == IBV_WC_RDMA_WRITE){
+        //ignore rdma_write by post_imm_data().
+        if(response->wr_id != 0 && !is_sel_sig_wrid(response->wr_id)
+            && (response->opcode == IBV_WC_RDMA_READ
+                || response->opcode == IBV_WC_RDMA_WRITE)){
             handle_rdma_rw_cqe(*response, conn);
             continue;
         }
         
-        Chunk* chunk = reinterpret_cast<Chunk *>(response->wr_id);
-        ML(mct, info, "QP: {}, addr: {:p} {} {}", response->qp_num, 
+        Chunk* chunk = nullptr;
+        if(!is_sel_sig_wrid(response->wr_id)){
+            chunk = reinterpret_cast<Chunk *>(response->wr_id);
+        }
+        ML(mct, info, "QP: {}, addr: {:p}, imm_data:{} {} {}", response->qp_num, 
                     (void *)chunk, 
+                    (response->wc_flags & IBV_WC_WITH_IMM)?response->imm_data:0,
                     manager->get_ib().wc_opcode_string(response->opcode),
                     manager->get_ib().wc_status_to_string(response->status));
 
@@ -207,17 +223,21 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
 
         //TX completion may come either from regular send message or from 'fin'
-        // message. In the case of 'fin' wr_id points to the QueuePair.
-        if(reinterpret_cast<ib::QueuePair*>(response->wr_id) == qp){
+        // message or from imm_data send. 
+        //In the case of 'fin' wr_id points to the QueuePair.
+        //In the case of imm_data send, wr_id is 0 or it has a magic prefix.
+        //In the case of regular send message, wr_id is the tx_chunks pointer.
+        if(response->wr_id == 0 || is_sel_sig_wrid(response->wr_id)){
+            //ignore.
+        }else if(reinterpret_cast<ib::QueuePair*>(response->wr_id) == qp){
             ML(mct, debug, "sending of the disconnect msg completed");
-        } else if(chunk != nullptr) {
-            // MemoryManager doesn't check whether the chunk is valid.
-            // if you worry about that, may use MemoryManager.is_from().
+        }else {
             tx_chunks.push_back(chunk);
         }
     }
 
-    owner->post_work([to_wake_conns](){
+    owner->post_work([to_wake_conns, this](){
+        ML(this->mct, trace, "in handle_tx_cqe()");
         for(RdmaConnection *conn : to_wake_conns){
             conn->send_msg(nullptr);
         }
@@ -342,6 +362,10 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
                 polled[conn].push_back(*response);
             }
         } else {
+            //Todo 
+            //Not distinguish the error type here.
+            //No need to close the conn for some error types.
+            //But here always close.
             ML(mct, error, "work request returned error for buffer({:p}) "
                             "status({}:{})", (void *)chunk, response->status,
                     manager->get_ib().wc_status_to_string(response->status));
@@ -437,6 +461,7 @@ void RdmaWorker::make_conn_dead(RdmaConnection *conn){
     if(!conn) return;
     if(!get_owner()->am_self()){
         get_owner()->post_work([this, conn](){
+            ML(this->mct, trace, "in make_conn_dead()");
             this->make_conn_dead(conn);
         });
         return;
@@ -528,7 +553,8 @@ int RdmaManager::handle_async_event(){
             for(auto &worker : workers){
                 //Only one worker has the conn.
                 //The others will do nothing.
-                worker->get_owner()->post_work([qpn, worker](){
+                worker->get_owner()->post_work([this, qpn, worker](){
+                    ML(this->mct, trace, "in handle_async_event()");
                     worker->clear_qp(qpn);
                 });
             }
@@ -558,19 +584,24 @@ RdmaManager::~RdmaManager(){
 int RdmaManager::init(){
     int res = (m_ib.init()?0:1);
     if(res) return res;
+    int msg_worker_num = mct->manager->get_worker_num();
     auto worker = mct->manager->get_worker(0); //use the first worker
     assert(worker);
     res = arm_async_event_handler(worker);
     if(res) return res;
 
     int cqp_num = mct->config->rdma_cq_pair_num;
-    int msg_worker_num = mct->manager->get_worker_num();
+    
     if(cqp_num >= msg_worker_num){
         cqp_num = msg_worker_num - 1;
+        if(cqp_num == 0){
+            cqp_num = 1;
+        }
         ML(mct, warn, "config->rdma_cq_pair_num too large, "
                         "set equal to msg_worker_num - 1: {}", 
                         cqp_num);
     }
+    assert(cqp_num > 0);
     workers.reserve(cqp_num);
 
     // int arm_step = (msg_worker_num - 1) / cqp_num;
@@ -581,7 +612,7 @@ int RdmaManager::init(){
     for(int i = 0;i < cqp_num; ++i){
         auto worker = new RdmaWorker(mct, this);
         worker->init();
-        int msg_worker_index = arm_step * i + 1;
+        int msg_worker_index = (arm_step * i + 1) % msg_worker_num;
         res = worker->arm_notify(mct->manager->get_worker(msg_worker_index));
         assert(res == 0);
         workers.push_back(worker);
@@ -593,6 +624,7 @@ int RdmaManager::clear_before_stop(){
     for(auto it : workers){
         it->clear_before_stop();
     }
+    return 0;
 }
 
 RdmaWorker *RdmaManager::get_rdma_worker(int index){
@@ -634,7 +666,10 @@ int RdmaManager::arm_async_event_handler(MsgWorker *worker){
 
 RdmaStack::RdmaStack(MsgContext *c)
 :mct(c), manager(nullptr) {
-
+    auto cfg = mct->config;
+    assert(cfg != nullptr);
+    max_msg_size_ = ((uint64_t)cfg->rdma_buffer_size) 
+                        * cfg->rdma_send_queue_len;
 }
 
 int RdmaStack::init(){

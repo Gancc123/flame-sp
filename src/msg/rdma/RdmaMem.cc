@@ -108,7 +108,7 @@ int RdmaBufferAllocator::fin(){
 }
 
 RdmaBuffer *RdmaBufferAllocator::alloc(size_t s){
-    if(s > (1 << max_level)){ // too large
+    if(s > (1ULL << max_level)){ // too large
         return nullptr;
     }
     void *p = nullptr;
@@ -160,7 +160,7 @@ void RdmaBufferAllocator::free(RdmaBuffer *buf){
 
 int RdmaBufferAllocator::alloc_buffers(size_t s, int cnt, 
                                                 std::vector<RdmaBuffer*> &b){
-    if(s > (1 << max_level)){ // too large
+    if(s > (1ULL << max_level)){ // too large
         return 0;
     }
     int i = 0, i_before_expand = -1;

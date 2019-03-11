@@ -11,6 +11,7 @@
 #include <cassert>
 
 #define FLAME_MSG_LOG_LEVEL_D         "PRINT"
+#define FLAME_MSG_WORKER_NUM_D        "4"
 #define FLAME_MSGER_ID_D              ""
 #define FLAME_NODE_LISTEN_PORTS_D     ""
 #define FLAME_RDMA_ENABLE_D           "false"
@@ -18,6 +19,7 @@
 #define FLAME_RDMA_PORT_NUM_D         ""
 #define FLAME_RDMA_BUFFER_NUM_D       ""
 #define FLAME_RDMA_BUFFER_SIZE_D      "4080"
+#define FLAME_RDMA_MAX_INLINE_DATA    "128"
 #define FLAME_RDMA_SEND_QUEUE_LEN_D   "256"
 #define FLAME_RDMA_RECV_QUEUE_LEN_D   "256"
 #define FLAME_RDMA_ENABLE_HUGEPAGE_D  "true"
@@ -64,6 +66,13 @@ public:
      */
     msg_log_level_t msg_log_level;
     int set_msg_log_level(const std::string &v);
+
+    /**
+     * Msg module workers num
+     * @cfg: msg_worker_num
+     */
+    int msg_worker_num;
+    int set_msg_worker_num(const std::string &v);
 
     /**
      * Msger Id
@@ -115,6 +124,13 @@ public:
      */
     uint32_t rdma_buffer_size;
     int set_rdma_buffer_size(const std::string &v);
+
+    /**
+     * RDMA max inline data
+     * @cfg: rdma_max_inline_data
+     */
+    uint32_t rdma_max_inline_data;
+    int set_rdma_max_inline_data(const std::string &v);
 
     /**
      * RDMA send queue len
