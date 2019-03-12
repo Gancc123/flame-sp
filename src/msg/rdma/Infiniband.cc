@@ -580,6 +580,7 @@ bool Infiniband::init(){
                     dev_attr->max_cq, dev_attr->max_cqe, dev_attr->max_mr);
     ML(mct, info, "device max_srq: {}, max_srq_wr: {}", 
                     dev_attr->max_srq, dev_attr->max_srq_wr);
+    ML(mct, info, "max inline data: {}", mct->config->rdma_max_inline_data);
 
     memory_manager = new MemoryManager(mct, pd);
     

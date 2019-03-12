@@ -46,12 +46,12 @@ int Session::add_conn(Connection *conn, uint8_t sl){
     
     MutexLocker l(conns_mutex);
     for(auto e : conns){
-        if(e.ttype == entry.ttype && e.sl == entry.sl){
-            ML(mct, debug, "Same type conn already exists. ignore {}", 
-                                                            conn->to_string());
-            conn->put();
-            return -1;
-        }
+        // if(e.ttype == entry.ttype && e.sl == entry.sl){
+        //     ML(mct, debug, "Same type conn already exists. ignore {}", 
+        //                                                     conn->to_string());
+        //     conn->put();
+        //     return -1;
+        // }
         if(e.conn == conn){
             conn->put();
             return 0;
