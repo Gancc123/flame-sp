@@ -173,7 +173,7 @@ public:
     int poll_cq(int num_entries, ibv_wc *ret_wc_array);
 
     ibv_cq* get_cq() const { return cq; }
-    int rearm_notify(bool solicited_only=true);
+    int rearm_notify(bool solicited_only=false);
     CompletionChannel* get_cc() const { return channel; }
 private:
     MsgContext *mct;

@@ -143,6 +143,10 @@ public:
         return peer_msg;
     }
 
+    RdmaWorker *get_rdma_worker() const{
+        return rdma_worker;
+    }
+
     static std::string status_str(RdmaStatus s){
         switch(s){
         case RdmaStatus::ERROR:

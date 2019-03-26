@@ -405,29 +405,36 @@ CompletionQueue::~CompletionQueue(){
 }
 
 int CompletionQueue::init(){
+    ibv_comp_channel *ibv_cc = nullptr;
+    if(channel){
+        ibv_cc = channel->get_channel();
+    }
     cq = ibv_create_cq(infiniband.get_device()->ctxt, queue_depth, this, 
-                                                    channel->get_channel(), 0);
+                                                                ibv_cc, 0);
     if (!cq) {
         ML(mct, error, "failed to create receive completion queue: {}", 
                                                         cpp_strerror(errno));
         return -1;
     }
 
-    if (ibv_req_notify_cq(cq, 0)) {
-        ML(mct, error, "ibv_req_notify_cq failed: {}", cpp_strerror(errno));
-        ibv_destroy_cq(cq);
-        cq = nullptr;
-        return -1;
+    if(channel){
+        if (ibv_req_notify_cq(cq, 0)) {
+            ML(mct, error, "ibv_req_notify_cq failed: {}", cpp_strerror(errno));
+            ibv_destroy_cq(cq);
+            cq = nullptr;
+            return -1;
+        }
+        
+        channel->bind_cq(cq);
     }
-
-    channel->bind_cq(cq);
     ML(mct, info, "successfully create cq={:p}", (void *)cq);
     return 0;
 }
 
 int CompletionQueue::rearm_notify(bool solicite_only){
     ML(mct, info, "");
-    int r = ibv_req_notify_cq(cq, 0);
+    if(!channel) return 0;
+    int r = ibv_req_notify_cq(cq, solicite_only?1:0);
     if (r < 0)
         ML(mct, error, "failed to notify cq: {}", cpp_strerror(errno));
     return r;

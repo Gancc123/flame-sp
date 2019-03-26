@@ -296,10 +296,15 @@ int MsgManager::stop(){
 void MsgManager::on_listen_accept(ListenPort *lp, Connection *conn){
     conn->get();
     ML(mct, trace, "{} {}", lp->to_string(), conn->to_string());
-    MutexLocker l(m_mutex);
-    session_unknown_conns.insert(conn);
-    conn->set_listener(this);
-    this->add_conn(conn);
+    {
+        MutexLocker l(m_mutex);
+        session_unknown_conns.insert(conn);
+        conn->set_listener(this);
+        this->add_conn(conn);
+    }
+    if(m_msger_cb){
+        m_msger_cb->on_listen_accept(lp, conn);
+    }
 }
 
 void MsgManager::on_listen_error(NodeAddr *listen_addr){

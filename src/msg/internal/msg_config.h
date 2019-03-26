@@ -12,6 +12,7 @@
 
 #define FLAME_MSG_LOG_LEVEL_D         "PRINT"
 #define FLAME_MSG_WORKER_NUM_D        "4"
+#define FLAME_MSG_WORKER_CPU_MAP_D    ""
 #define FLAME_MSGER_ID_D              ""
 #define FLAME_NODE_LISTEN_PORTS_D     ""
 #define FLAME_RDMA_ENABLE_D           "false"
@@ -19,16 +20,17 @@
 #define FLAME_RDMA_PORT_NUM_D         ""
 #define FLAME_RDMA_BUFFER_NUM_D       ""
 #define FLAME_RDMA_BUFFER_SIZE_D      "4080"
-#define FLAME_RDMA_MAX_INLINE_DATA    "128"
+#define FLAME_RDMA_MAX_INLINE_DATA_D  "128"
 #define FLAME_RDMA_SEND_QUEUE_LEN_D   "256"
 #define FLAME_RDMA_RECV_QUEUE_LEN_D   "256"
 #define FLAME_RDMA_ENABLE_HUGEPAGE_D  "true"
 #define FLAME_RDMA_ENABLE_SRQ_D       "true"
 #define FLAME_RDMA_CQ_PAIR_NUM_D      "1"
-#define FLAME_RDMA_TRAFFIC_CLASS      "0"
+#define FLAME_RDMA_TRAFFIC_CLASS_D    "0"
 #define FLAME_RDMA_PATH_MTU_D         "4096"
-#define FLAME_RDMA_MEM_MIN_LEVEL      "12"
-#define FLAME_RDMA_MEM_MAX_LEVEL      "28"
+#define FLAME_RDMA_MEM_MIN_LEVEL_D    "12"
+#define FLAME_RDMA_MEM_MAX_LEVEL_D    "28"
+#define FLAME_RDMA_POLL_EVENT_D       "true"
 
 
 namespace flame{
@@ -73,6 +75,9 @@ public:
      */
     int msg_worker_num;
     int set_msg_worker_num(const std::string &v);
+
+    std::vector<int> msg_worker_cpu_map;
+    int set_msg_worker_cpu_map(const std::string &v);
 
     /**
      * Msger Id
@@ -196,6 +201,13 @@ public:
      */
     uint8_t rdma_mem_max_level;
     int set_rdma_mem_max_level(const std::string &v);
+
+    /**
+     * RDMA poll event
+     * @cfg: rdma_poll_event
+     */
+    bool rdma_poll_event;
+    int set_rdma_poll_event(const std::string &v);
 
 };
 

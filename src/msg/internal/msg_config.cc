@@ -56,6 +56,13 @@ int MsgConfig::load(){
         return 1;
     }
 
+    res = set_msg_worker_cpu_map(cfg->get("msg_worker_cpu_map", 
+                                                FLAME_MSG_WORKER_CPU_MAP_D));
+    if (res) {
+        perr_arg("msg_worker_cpu_map");
+        return 1;
+    }
+
     res = set_rdma_enable(cfg->get("rdma_enable", FLAME_RDMA_ENABLE_D));
     if (res) {
         perr_arg("rdma_enable");
@@ -93,7 +100,7 @@ int MsgConfig::load(){
         }
 
         res = set_rdma_max_inline_data(cfg->get("rdma_max_inline_data", 
-                                                FLAME_RDMA_MAX_INLINE_DATA));
+                                                FLAME_RDMA_MAX_INLINE_DATA_D));
         if (res) {
             perr_arg("rdma_max_inline_data");
             return 1;
@@ -142,23 +149,30 @@ int MsgConfig::load(){
         }
 
         res = set_rdma_traffic_class(cfg->get("rdma_traffic_class", 
-                                                FLAME_RDMA_TRAFFIC_CLASS));
+                                                FLAME_RDMA_TRAFFIC_CLASS_D));
         if (res) {
             perr_arg("rdma_traffic_class");
             return 1;
         }
 
         res = set_rdma_mem_min_level(cfg->get("rdma_mem_min_level", 
-                                                FLAME_RDMA_MEM_MIN_LEVEL));
+                                                FLAME_RDMA_MEM_MIN_LEVEL_D));
         if (res) {
             perr_arg("rdma_mem_min_level");
             return 1;
         }
 
         res = set_rdma_mem_max_level(cfg->get("rdma_mem_max_level", 
-                                                FLAME_RDMA_MEM_MAX_LEVEL));
+                                                FLAME_RDMA_MEM_MAX_LEVEL_D));
         if (res) {
             perr_arg("rdma_mem_max_level");
+            return 1;
+        }
+
+        res = set_rdma_poll_event(cfg->get("rdma_poll_event", 
+                                                FLAME_RDMA_POLL_EVENT_D));
+        if (res) {
+            perr_arg("rdma_poll_event");
             return 1;
         }
     }
@@ -183,7 +197,7 @@ int MsgConfig::set_msg_log_level(const std::string &v){
     return 1;
 }
 
-int  MsgConfig::set_msg_worker_num(const std::string &v){
+int MsgConfig::set_msg_worker_num(const std::string &v){
     if(v.empty()){
         return 1;
     }
@@ -192,6 +206,24 @@ int  MsgConfig::set_msg_worker_num(const std::string &v){
 
     msg_worker_num = worker_num;
 
+    return 0;
+}
+
+int MsgConfig::set_msg_worker_cpu_map(const std::string &v){
+    std::regex cpu_id_regex("\\S+");
+    auto iter_begin = std::sregex_iterator(v.begin(), v.end(), cpu_id_regex);
+    auto iter_end = std::sregex_iterator();
+
+    if(iter_begin == iter_end && !v.empty()){
+        return 1;
+    }
+    msg_worker_cpu_map.clear();
+    for(auto i = iter_begin;i != iter_end;++i){
+        auto match = *i;
+        int cpu_id = std::stoi(match.str(), nullptr, 10);
+        msg_worker_cpu_map.push_back(cpu_id);
+    }
+    
     return 0;
 }
 
@@ -446,6 +478,15 @@ int MsgConfig::set_rdma_mem_max_level(const std::string &v){
     }
 
     return 1;
+}
+
+int MsgConfig::set_rdma_poll_event(const std::string &v){
+    rdma_poll_event = true;
+    if(v.empty()){
+        return 1;
+    }
+    rdma_poll_event = MsgConfig::get_bool(v);
+    return 0;
 }
 
 } //namespace msg

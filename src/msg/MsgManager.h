@@ -33,6 +33,11 @@ public:
         workers.reserve(worker_num);
         for(int i = 0;i < worker_num; ++i){
             workers.push_back(new ThrMsgWorker(mct, i));
+            if(!mct->config->msg_worker_cpu_map.empty()){
+                int cpu_id = mct->config->msg_worker_cpu_map[i];
+                workers[i]->set_affinity(cpu_id);
+                ML(mct, info, "bind thr{} to cpu{}", i, cpu_id);
+            }
         }
     }
 
