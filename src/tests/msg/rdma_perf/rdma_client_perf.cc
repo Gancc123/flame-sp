@@ -138,10 +138,13 @@ int main(int argc, char *argv[]){
     global_config.perf_type = perf_type_from_str(
                                             std::string(options.get("type")));
     global_config.use_imm_resp = (bool)options.get("imm_resp");
+    global_config.inline_size = std::string(options.get("inline"));
     global_config.size = size_str_to_uint64(std::string(options.get("size")));
     
     global_config.target_rdma_ip = std::string(options.get("address"));
     global_config.target_rdma_port = (int)options.get("port");
+
+    global_config.no_thr_optimize = (bool)options.get("no_thr_opt");
 
     auto mct = new MsgContext(fct);
     ML(mct, info, "num:{} size:{}", global_config.num, global_config.size);
@@ -155,6 +158,7 @@ int main(int argc, char *argv[]){
 
     mct->load_config();
     mct->config->set_msg_log_level(std::string(options.get("log_level")));
+    mct->config->set_rdma_max_inline_data(std::string(options.get("inline")));
 
     ML(mct, info, "before msg module init");
     mct->init(msger, nullptr);

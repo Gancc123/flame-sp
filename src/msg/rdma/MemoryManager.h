@@ -4,6 +4,7 @@
 #include <infiniband/verbs.h>
 #include <boost/pool/pool.hpp>
 #include <map>
+#include <vector>
 
 #include "msg/msg_context.h"
 #include "common/thread/mutex.h"

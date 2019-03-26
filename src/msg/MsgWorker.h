@@ -17,6 +17,9 @@ namespace msg{
 
 typedef std::function<void(void)> work_fn_t;
 
+//Return non-zero means that poller has processed some event.
+typedef std::function<int(void)> poller_fn_t;
+
 class MsgWorker;
 
 class MsgWorkerThread : public Thread{
@@ -51,6 +54,8 @@ public:
     : mct(c), index(i) {};
     virtual ~MsgWorker() {};
 
+    virtual int set_affinity(int id) = 0;
+
     virtual msg_worker_type_t type() const { 
         return msg_worker_type_t::UNKNOWN; 
     }
@@ -67,12 +72,15 @@ public:
     virtual bool am_self() const = 0;
 
     int get_id() const{ return index; }
-    virtual std::string get_name() const = 0;
+    virtual std::string get_name() const = 0; 
 
     virtual uint64_t post_time_work(uint64_t microseconds, 
                                     work_fn_t work_fn) = 0;
     virtual void cancel_time_work(uint64_t time_work_id) = 0;
     virtual void post_work(work_fn_t work) = 0;
+
+    virtual uint64_t reg_poller(poller_fn_t poller_fn) = 0;
+    virtual void unreg_poller(uint64_t poller_id) = 0;
 
     virtual void start() = 0;
     virtual void stop() = 0;
@@ -91,11 +99,13 @@ class ThrMsgWorker : public MsgWorker{
 
     EventPoller event_poller;
 
-    std::atomic<uint64_t> time_work_next_id;
+    std::atomic<uint64_t> next_id;
     std::multimap<time_point, std::pair<uint64_t, work_fn_t>> time_works;
     std::map<uint64_t, 
             std::multimap<time_point, std::pair<uint64_t, work_fn_t>>::iterator
             > tw_map;
+
+    std::list<std::pair<uint64_t, poller_fn_t>> poller_list;
 
     Mutex external_mutex;
     std::deque<work_fn_t> external_queue;
@@ -111,7 +121,10 @@ class ThrMsgWorker : public MsgWorker{
 
     void add_time_work(time_point expire, work_fn_t work_fn, uint64_t id);
     void del_time_work(uint64_t time_work_id);
+    void add_poller(poller_fn_t poller_fn, uint64_t poller_id);
+    void del_poller(uint64_t poller_id);
     int  process_time_works();
+    int  iter_poller();
 
     int set_nonblock(int sd);
 public:
@@ -119,6 +132,8 @@ public:
 
     explicit ThrMsgWorker(MsgContext *c, int i);
     ~ThrMsgWorker();
+
+    virtual int set_affinity(int id) override;
 
     virtual msg_worker_type_t type() const override{
         return msg_worker_type_t::THREAD;
@@ -147,6 +162,9 @@ public:
      * 不保证一定能及时取消掉time_work
      */
     virtual void cancel_time_work(uint64_t time_work_id) override;
+
+    virtual uint64_t reg_poller(poller_fn_t poller_fn) override;
+    virtual void unreg_poller(uint64_t poller_id) override;
 
     virtual void post_work(work_fn_t work) override;
 

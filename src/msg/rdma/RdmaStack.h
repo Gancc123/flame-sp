@@ -73,6 +73,7 @@ class RdmaWorker{
     using Chunk = ib::Chunk; 
     MsgContext *mct;
     MsgWorker *owner = nullptr;
+    uint64_t poller_id = 0;
     RdmaManager *manager;
     ib::MemoryManager *memory_manager = nullptr;
     ib::CompletionChannel *tx_cc = nullptr, *rx_cc = nullptr;
@@ -110,6 +111,8 @@ public:
     int on_buffer_reclaimed();
     int arm_notify(MsgWorker *worker);
     int remove_notify();
+    int reg_poller(MsgWorker *worker);
+    int unreg_poller();
     void reap_dead_conns();
     int process_cq_dry_run();
     int process_tx_cq(ibv_wc *wc, int max_cqes);

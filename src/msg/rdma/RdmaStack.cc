@@ -9,6 +9,8 @@
 
 #include <cassert>
 
+#define FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS 32;
+
 namespace flame{
 namespace msg{
 
@@ -60,10 +62,12 @@ int RdmaWorker::init(){
     ib::Infiniband &ib = manager->get_ib();
     memory_manager = ib.get_memory_manager();
 
-    tx_cc = ib.create_comp_channel(mct);
-    assert(tx_cc);
-    rx_cc = ib.create_comp_channel(mct);
-    assert(rx_cc);
+    if(mct->config->rdma_poll_event){
+        tx_cc = ib.create_comp_channel(mct);
+        assert(tx_cc);
+        rx_cc = ib.create_comp_channel(mct);
+        assert(rx_cc);
+    }
     tx_cq = ib.create_comp_queue(mct, tx_cc);
     assert(tx_cq);
     rx_cq = ib.create_comp_queue(mct, rx_cc);
@@ -118,7 +122,7 @@ void RdmaWorker::fin_clean_signal(){
 }
 
 int RdmaWorker::process_cq_dry_run(){
-    static int MAX_COMPLETIONS = 32;
+    static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
     ibv_wc wc[MAX_COMPLETIONS];
     int total_proc = 0;
     bool has_cq_event = false;
@@ -287,7 +291,7 @@ void RdmaWorker::handle_rdma_rw_cqe(ibv_wc &wc, RdmaConnection *conn){
 }
 
 int RdmaWorker::process_tx_cq_dry_run(){
-    static int MAX_COMPLETIONS = 32;
+    static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
     ibv_wc wc[MAX_COMPLETIONS];
     int total_proc = 0;
     int tx_ret = 0;
@@ -385,7 +389,7 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
 }
 
 int RdmaWorker::process_rx_cq_dry_run(){
-    static int MAX_COMPLETIONS = 32;
+    static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
     ibv_wc wc[MAX_COMPLETIONS];
     int total_proc = 0;
     int rx_ret = 0;
@@ -498,7 +502,7 @@ int RdmaWorker::on_buffer_reclaimed(){
 }
 
 int RdmaWorker::arm_notify(MsgWorker *worker){
-    if(!worker) return 1;
+    if(!worker || !mct->config->rdma_poll_event) return 1;
     tx_notifier = new RdmaTxCqNotifier(mct, this);
     tx_notifier->fd = tx_cc->get_fd();
     rx_notifier = new RdmaRxCqNotifier(mct, this);
@@ -526,6 +530,21 @@ int RdmaWorker::remove_notify(){
         rx_notifier = nullptr;
     }
 
+    return 0;
+}
+
+int RdmaWorker::reg_poller(MsgWorker *worker){
+    if(!worker || mct->config->rdma_poll_event) return 1;
+    owner = worker;
+    poller_id = worker->reg_poller([this]()->int{
+        static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
+        ibv_wc wc[MAX_COMPLETIONS];
+        int total_proc = 0;
+        total_proc += this->process_rx_cq(wc, MAX_COMPLETIONS);
+        total_proc += this->process_tx_cq(wc, MAX_COMPLETIONS);
+        this->reap_dead_conns();
+        return total_proc;
+    });
     return 0;
 }
 
@@ -613,8 +632,14 @@ int RdmaManager::init(){
         auto worker = new RdmaWorker(mct, this);
         worker->init();
         int msg_worker_index = (arm_step * i + 1) % msg_worker_num;
-        res = worker->arm_notify(mct->manager->get_worker(msg_worker_index));
-        assert(res == 0);
+        MsgWorker *msg_worker = mct->manager->get_worker(msg_worker_index);
+        if(mct->config->rdma_poll_event){
+            res = worker->arm_notify(msg_worker);
+            assert(res == 0);
+        }else{
+            res = worker->reg_poller(msg_worker);
+            assert(res == 0);
+        }
         workers.push_back(worker);
     }
     return res;

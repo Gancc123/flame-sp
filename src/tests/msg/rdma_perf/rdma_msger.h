@@ -66,6 +66,8 @@ perf_type_t perf_type_from_str(const std::string &s){
 
 struct perf_config_t{
     bool use_imm_resp;
+    bool no_thr_optimize;
+    std::string inline_size;
     std::string target_rdma_ip;
     int target_rdma_port;
     perf_type_t perf_type;
@@ -80,7 +82,7 @@ struct perf_config_t{
 void dump_result(perf_config_t &cfg){
     double cycle_to_unit = get_cpu_mhz(0); // no warn
     std::vector<cycles_t> deltas;
-    deltas.reserve(cfg.num);
+    deltas.resize(cfg.num, 0);
     for(int i = 0;i < cfg.num;++i){
         deltas[i] = cfg.tposted[i+1] - cfg.tposted[i];
     }
@@ -96,17 +98,31 @@ void dump_result(perf_config_t &cfg){
         if(i > 0) average_sum += t;
     }
     f << "Avg: " << (average_sum / (cfg.num - 1)) << " us\n";
+    std::sort(deltas.begin(), deltas.end());
+    //ignore the largest deltas(it's for conn establish.)
+    double median = 0;
+    size_t dsize = deltas.size() - 1;
+    if(dsize % 2 == 0){
+        median = (deltas[dsize / 2 - 1] + deltas[dsize / 2]) 
+                    / cycle_to_unit / 2;
+    }else{
+        median = deltas[dsize / 2] / cycle_to_unit;
+    }
+    f << "Median: " << median << " us\n";
     f.close();
-    clog(fmt::format("avg lat: {} us", (average_sum / (cfg.num - 1))));
+    clog(fmt::format("avg lat: {} us, median: {} us", 
+                        (average_sum / (cfg.num - 1)), median));
     clog(fmt::format("dump result to {}", cfg.result_file));
 }
 
 void init_resource(perf_config_t &config){
     if(config.result_file == "result.txt"){
-        config.result_file = fmt::format("result_{}_{}_{}.txt",
+        config.result_file = fmt::format("result_{}_{}_{}{}{}.txt",
                                 str_from_perf_type(config.perf_type),
                                 size_str_from_uint64(config.size),
-                                config.use_imm_resp?"imm":"noimm");
+                                config.use_imm_resp?"imm":"noimm",
+                                config.inline_size == "0"?"_noinline":"",
+                                config.no_thr_optimize?"_notp":"");
     }
     assert(config.num > 0);
     config.tposted = new cycles_t[config.num + 1];
@@ -140,6 +156,9 @@ optparse::OptionParser init_parser(){
             .action("store_true")
             .set_default("false")
             .help("use imm data to resp");
+    parser.add_option("--inline")
+        .set_default("128")
+        .help("rdma max inline data size");
     parser.add_option("--log_level").set_default("info");
     parser.add_option("--result_file").set_default("result.txt")
         .help("result file path");
@@ -151,6 +170,11 @@ optparse::OptionParser init_parser(){
         .help("target ip for rdma");
     parser.add_option("-p", "--port").type("int").set_default(7777)
         .help("target port for rdma");
+
+    parser.add_option("--no_thr_opt")
+        .action("store_true")
+        .set_default("false")
+        .help("don't use thread optimization");
 
     return parser;
 }
@@ -444,6 +468,17 @@ void RdmaMsger::on_mem_fetch_resp(Connection *conn, Msg *msg){
 }
 
 void RdmaMsger::on_conn_recv(Connection *conn, Msg *msg){
+    //post work to another thread.
+    if(config->no_thr_optimize && conn->get_owner()->am_self()){
+        assert(mct->manager->get_worker_num() > 1);
+        msg->get();
+        mct->manager->get_worker(0)->post_work([this, conn, msg](){
+            ML(this->mct, trace, "post on_conn_recv");
+            this->on_conn_recv(conn, msg);
+            msg->put();
+        });
+        return;
+    }
     switch(config->perf_type){
     case perf_type_t::MEM_PUSH:
         if(msg->has_rdma() && msg->is_req()){
