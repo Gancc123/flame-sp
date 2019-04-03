@@ -252,7 +252,7 @@ int RdmaConnection::decode_rx_buffer(ib::Chunk *chunk){
     return chunk->get_bound();
 }
 
-ssize_t RdmaConnection::send_msg(Msg *msg){
+ssize_t RdmaConnection::send_msg(Msg *msg, bool more){
     if(status != RdmaStatus::INIT
         && status != RdmaStatus::CAN_WRITE){
         ML(mct, warn, "Conn can't send msg. State: {}", status_str(status));
@@ -270,6 +270,8 @@ ssize_t RdmaConnection::send_msg(Msg *msg){
         MutexLocker l(send_mutex);
         msg_list.push_back(msg);
     }
+
+    if(more) return 0;
 
     submit(false); //submit all rw_works and msgs.
     
@@ -372,16 +374,18 @@ int RdmaConnection::post_rdma_send(std::list<Msg*> &msgs){
     uint32_t tx_queue_len = rdma_worker->get_manager()->get_ib()
                                                             .get_tx_queue_len();
     uint32_t max_wrs = (total_bytes + buf_size - 1) / buf_size;
+    if(max_wrs == 0) return 0;
+
     //limit for tx_queue_len
     uint32_t can_post = qp->add_tx_wr_with_limit(max_wrs, tx_queue_len, true);
-    
-    total_bytes = max_wrs * buf_size;
 
-    if(total_bytes == 0) return 0;
+    if(can_post == 0) return 0;
+    
+    total_bytes = can_post * buf_size;
 
     memory_manager->get_buffers(total_bytes, chunks);
-    if(chunks.size() < max_wrs){
-        qp->dec_tx_wr(max_wrs - chunks.size());
+    if(chunks.size() < can_post){
+        qp->dec_tx_wr(can_post - chunks.size());
         if(chunks.size() == 0){
             return 0;
         }
@@ -613,7 +617,7 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
         ++current_buffer;
     }
 
-    int r = 0;
+    int r = tx_buffers.size();
     //qp->add_tx_wr_with_limit() ensure that send queue won't be full.
     ibv_send_wr *bad_tx_work_request = nullptr;
     if (ibv_post_send(qp->get_qp(), iswr, &bad_tx_work_request)) {

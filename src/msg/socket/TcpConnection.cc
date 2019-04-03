@@ -251,7 +251,7 @@ ssize_t TcpConnection::submit_cur_msg(bool more){
 }
 
 
-ssize_t TcpConnection::send_msg(Msg *msg){
+ssize_t TcpConnection::send_msg(Msg *msg, bool more){
     ssize_t r, write_len;
     ssize_t total = 0;
     if(msg){
@@ -278,7 +278,7 @@ ssize_t TcpConnection::send_msg(Msg *msg){
     while(!cur_msg_is_end()){
         auto msg_p = *cur_msg;
 
-        bool more = (msg_p != msg_list.back());
+        more = more?true:(msg_p != msg_list.back());
         r = submit_cur_msg(more);
 
         ML(mct, trace, "{} total: {}B, actually send: {}B", 

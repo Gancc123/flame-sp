@@ -92,7 +92,7 @@ public:
     ~RdmaConnection();
     virtual msg_ttype_t get_ttype() override { return msg_ttype_t::RDMA; }
 
-    virtual ssize_t send_msg(Msg *msg) override;
+    virtual ssize_t send_msg(Msg *msg, bool more=false) override;
     virtual Msg* recv_msg() override;
     virtual ssize_t send_msgs(std::list<Msg *> &msgs) override;
     virtual int pending_msg() override {
@@ -118,7 +118,7 @@ public:
 
     size_t recv_data();
 
-    ssize_t submit(bool more);
+    ssize_t submit(bool more=false);
 
     int activate();
 

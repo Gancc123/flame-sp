@@ -258,7 +258,7 @@ public:
                 }
                 
             }
-        }while(tx_wr_inflight.compare_exchange_weak(wr_inflight, 
+        }while(!tx_wr_inflight.compare_exchange_weak(wr_inflight, 
                                                     wr_inflight + real_amt, 
                                                     std::memory_order_release,
                                                     std::memory_order_relaxed));

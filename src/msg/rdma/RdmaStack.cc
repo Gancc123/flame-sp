@@ -176,16 +176,15 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         assert(conn);
         ib::QueuePair *qp = conn->get_qp();
         if(qp){
+            if(qp->get_tx_wr()){
+                //wakeup conn after dec_tx_wr;
+                to_wake_conns.insert(conn);
+            }
             if(is_sel_sig_wrid(response->wr_id)){
                 qp->dec_tx_wr(num_from_sel_sig_wrid(response->wr_id));
                 ML(mct, info, "dec {}", num_from_sel_sig_wrid(response->wr_id));
             }else{
                 qp->dec_tx_wr(1);
-            }
-            if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) > 
-                tx_queue_len){
-                //wakeup conn after dec_tx_wr;
-                to_wake_conns.insert(conn);
             }
         }
 
