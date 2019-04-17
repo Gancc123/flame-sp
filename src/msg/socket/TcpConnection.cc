@@ -263,6 +263,7 @@ ssize_t TcpConnection::send_msg(Msg *msg){
             // avoid conn released before posted work called.
             this->get();
             this->get_owner()->post_work([this](){
+                ML(this->mct, trace, "in send_msg()");
                 this->send_msg(nullptr);
                 this->put();
             });

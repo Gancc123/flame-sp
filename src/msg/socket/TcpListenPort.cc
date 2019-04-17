@@ -41,7 +41,7 @@ TcpListenPort* TcpListenPort::create(MsgContext *mct, NodeAddr *listen_addr){
     r = ::bind(sfd, addr->get_sockaddr(), addr->get_sockaddr_len());
     if (r < 0) {
         r = -errno;
-        ML(mct, error, "unable to bind to [{} {}] : ", 
+        ML(mct, error, "unable to bind to [{} {}]: {}", 
                         addr->ip_to_string(), addr->get_port(),
                         cpp_strerror(r));
         ::close(sfd);

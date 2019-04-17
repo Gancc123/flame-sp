@@ -27,7 +27,7 @@ typedef std::function<void(RdmaRwWork *, RdmaConnection*)> rdma_rw_work_func_t;
 
 struct RdmaRwWork{
     using RdmaBuffer = ib::RdmaBuffer;
-    std::vector<RdmaBuffer *> rbufs;
+    std::vector<RdmaBuffer *> rbufs; //bufs num should <= 8.
     std::vector<RdmaBuffer *> lbufs; //must be same num as rbufs.
     bool is_write;
     uint32_t imm_data = 0; // 0 means no imm data.
@@ -73,6 +73,7 @@ class RdmaWorker{
     using Chunk = ib::Chunk; 
     MsgContext *mct;
     MsgWorker *owner = nullptr;
+    uint64_t poller_id = 0;
     RdmaManager *manager;
     ib::MemoryManager *memory_manager = nullptr;
     ib::CompletionChannel *tx_cc = nullptr, *rx_cc = nullptr;
@@ -110,6 +111,8 @@ public:
     int on_buffer_reclaimed();
     int arm_notify(MsgWorker *worker);
     int remove_notify();
+    int reg_poller(MsgWorker *worker);
+    int unreg_poller();
     void reap_dead_conns();
     int process_cq_dry_run();
     int process_tx_cq(ibv_wc *wc, int max_cqes);
@@ -160,6 +163,7 @@ public:
 class RdmaStack : public Stack{
     MsgContext *mct;
     RdmaManager *manager;
+    uint64_t max_msg_size_;
 public:
     explicit RdmaStack(MsgContext *c);
     virtual int init() override;
@@ -175,6 +179,9 @@ public:
             return static_cast<RdmaConnection *>(conn);
         }
         return nullptr;
+    }
+    uint64_t max_msg_size(){
+        return max_msg_size_;
     }
 };
 

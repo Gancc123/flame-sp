@@ -106,8 +106,7 @@ public:
     }
 
     Connection *get_conn(msg_ttype_t ttype=msg_ttype_t::TCP, uint8_t sl=0);
-    int add_conn(Connection *conn, 
-                            msg_ttype_t ttype=msg_ttype_t::TCP, uint8_t sl=0);
+    int add_conn(Connection *conn, uint8_t sl=0);
     int del_conn(Connection *conn);
 
     const msger_id_t peer_msger_id;

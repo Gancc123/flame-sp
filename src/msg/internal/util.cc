@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include "util/fmt.h"
+
 #include <algorithm>
 #include <regex>
 
@@ -25,7 +27,7 @@ uint64_t size_str_to_uint64(const std::string &v) {
     std::smatch m;
     if(std::regex_match(lv, m, size_regex)){
         if(m.size() != 3){
-            return -1;
+            return 0;
         }
         uint64_t num = std::stoull(m[1].str(), nullptr, 0);
         auto unit = m[2].str();
@@ -41,7 +43,29 @@ uint64_t size_str_to_uint64(const std::string &v) {
             }
         }
     }
-    return -1;
+    return 0;
+}
+
+std::string size_str_from_uint64(uint64_t s){
+    static std::string unit_str = "KMGTPE";
+    int unit_index = unit_str.size() - 1;
+    uint64_t unit = 0;
+    while(unit_index >= 0){
+        unit = 1ULL << ((unit_index + 1) * 10);
+        if(s >= unit){
+            break;
+        }
+        --unit_index;
+    }
+    if(unit_index >= 0){
+        if(s % unit == 0){
+            return fmt::format("{}{}", s >> ((unit_index + 1) * 10), 
+                                        unit_str[unit_index]);
+        }
+        double s_double = s * 1.0 / unit;
+        return fmt::format("{:.2f}{}", s_double, unit_str[unit_index]);
+    }
+    return fmt::format("{}", s);
 }
 
 

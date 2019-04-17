@@ -173,7 +173,7 @@ public:
     int poll_cq(int num_entries, ibv_wc *ret_wc_array);
 
     ibv_cq* get_cq() const { return cq; }
-    int rearm_notify(bool solicited_only=true);
+    int rearm_notify(bool solicited_only=false);
     CompletionChannel* get_cc() const { return channel; }
 private:
     MsgContext *mct;
@@ -341,7 +341,6 @@ public:
     int encode_msg(MsgContext *mct, IBSYNMsg& msg, MsgBuffer &buffer);
     int decode_msg(MsgContext *mct, IBSYNMsg& msg, MsgBuffer &buffer);
     static int get_ib_syn_msg_len();
-    static int get_max_inline_data();
     uint16_t get_lid() { return device->get_lid(); }
     ibv_gid get_gid() { return device->get_gid(); }
     MemoryManager* get_memory_manager() { return memory_manager; }

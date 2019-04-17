@@ -207,7 +207,7 @@ Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
     Msg *msg = get_declare_msg();
     conn->send_msg(msg);
 
-    conn->put();
+    //conn->put();  //return conn with its ownership
     return conn;
 }
 
@@ -296,10 +296,15 @@ int MsgManager::stop(){
 void MsgManager::on_listen_accept(ListenPort *lp, Connection *conn){
     conn->get();
     ML(mct, trace, "{} {}", lp->to_string(), conn->to_string());
-    MutexLocker l(m_mutex);
-    session_unknown_conns.insert(conn);
-    conn->set_listener(this);
-    this->add_conn(conn);
+    {
+        MutexLocker l(m_mutex);
+        session_unknown_conns.insert(conn);
+        conn->set_listener(this);
+        this->add_conn(conn);
+    }
+    if(m_msger_cb){
+        m_msger_cb->on_listen_accept(lp, conn);
+    }
 }
 
 void MsgManager::on_listen_error(NodeAddr *listen_addr){
@@ -330,16 +335,25 @@ void MsgManager::on_conn_recv(Connection *conn, Msg *msg){
             s->set_listen_addr(rdma_listen_addr, msg_ttype_t::RDMA);
             rdma_listen_addr->put();
         }
-        s->add_conn(conn);
+        //Alway success though the conn may has the same type and same sl.
+        //Here may has duplicate conns. 
+        int r = s->add_conn(conn);
         {
             MutexLocker l(m_mutex);
             if(session_unknown_conns.erase(conn) > 0){
                 conn->put();
             }
         }
-        if(m_msger_cb){
+        //When the two sides connect to each other at the same time.
+        //Here may drop both.
+        //So, we just reserve both here(r == 0). There may be better solutions.
+        if(r){ //add failed.(maybe duplicate)
+            ML(mct, info, "Drop {} due to duplicae", conn->to_string());
+            conn->close();
+        }else if(m_msger_cb){
             m_msger_cb->on_conn_declared(conn, s);
         }
+        
         return;
     }
 
