@@ -221,13 +221,14 @@ void ThrMsgWorker::unreg_poller(uint64_t poller_id){
 
 void ThrMsgWorker::post_work(work_fn_t work_fn){
     bool wake = false;
-    uint64_t num = 0;
+    int num = 0;
     {
         MutexLocker l(external_mutex);
         external_queue.push_back(work_fn);
-        wake = !external_num.load();
-        num = ++external_num;
     }
+    num = external_num++;
+    wake = !num;
+    ++num;
     if (!worker_thread.am_self() && wake)
         wakeup();
     ML(mct, debug, "{} pending {}", this->name, num);
@@ -280,7 +281,7 @@ int ThrMsgWorker::iter_poller(){
     if(poller_list.size() == 0) return r;
     
     auto first_pair = poller_list.front();
-    r = first_pair.second();
+    r = first_pair.second(); // first_pair.second is a std::function.
     if(r > 0){
         ML(mct, trace, "poller({}) proc {} events", first_pair.first, r);
     }
@@ -363,8 +364,8 @@ void ThrMsgWorker::process(){
             {
                 MutexLocker l(external_mutex);
                 cur_process.swap(external_queue);
-                external_num.store(0);
             }
+            external_num -= cur_process.size();
             numevents += cur_process.size();
             while (!cur_process.empty()) {
                 work_fn_t cb = cur_process.front();
@@ -404,8 +405,8 @@ void ThrMsgWorker::drain(){
         {
             MutexLocker l(external_mutex);
             cur_process.swap(external_queue);
-            external_num.store(0);
         }
+        external_num -= cur_process.size();
         total += cur_process.size();
         while (!cur_process.empty()) {
             work_fn_t cb = cur_process.front();

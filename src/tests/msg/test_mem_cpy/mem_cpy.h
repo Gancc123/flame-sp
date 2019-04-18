@@ -36,6 +36,22 @@ enum class perf_type_t {
     MEM_FETCH_WITH_IMM, //send req + rdma write_with_imm
 };
 
+std::string str_from_perf_type(perf_type_t t){
+    switch(t){
+    case perf_type_t::SEND:
+        return "send";
+    case perf_type_t::SEND_DATA:
+        return "senddata";
+    case perf_type_t::MEM_PUSH:
+        return "mempush";
+    case perf_type_t::MEM_FETCH:
+        return "memfetch";
+    case perf_type_t::MEM_FETCH_WITH_IMM:
+        return "memfetchimm";
+    }
+    return "unknown";
+}
+
 perf_type_t perf_type_from_str(const std::string &s){
     auto lower = str2lower(s);
     if(lower == "mem_push"){
@@ -70,9 +86,17 @@ struct mem_cpy_config_t{
 void dump_result(mem_cpy_config_t &cfg){
     double cycle_to_unit = get_cpu_mhz(0); // no warn
     std::vector<cycles_t> deltas;
-    deltas.reserve(cfg.num);
+    deltas.resize(cfg.num, 0);
     for(int i = 0;i < cfg.num;++i){
         deltas[i] = cfg.tposted[i+1] - cfg.tposted[i];
+    }
+
+    if(cfg.result_file == "result.txt"){
+        cfg.result_file = fmt::format("result_rn{}_{}_{}{}.txt",
+                                cfg.sessions.size(), 
+                                size_str_from_uint64(cfg.size),
+                                str_from_perf_type(cfg.perf_type),
+                                cfg.is_optimized?"_O":"");
     }
 
     //std::sort(deltas.begin(), deltas.end());
@@ -86,7 +110,22 @@ void dump_result(mem_cpy_config_t &cfg){
         average_sum += t;
     }
     f << "Avg: " << (average_sum / cfg.num) << " us\n";
+
+    std::sort(deltas.begin(), deltas.end());
+    //ignore the largest deltas(it's for conn establish.)
+    double median = 0;
+    size_t dsize = deltas.size() - 1;
+    if(dsize % 2 == 0){
+        median = (deltas[dsize / 2 - 1] + deltas[dsize / 2]) 
+                    / cycle_to_unit / 2;
+    }else{
+        median = deltas[dsize / 2] / cycle_to_unit;
+    }
+    f << "Median: " << median << " us\n";
+
     f.close();
+    clog(fmt::format("Avg: {} us, Median: {} us", 
+                        (average_sum / cfg.num), median));
     clog(fmt::format("dump result to {}", cfg.result_file));
 }
 

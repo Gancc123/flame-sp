@@ -47,7 +47,7 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
         dispatcher = new MsgDispatcher(this);
         msger_cb = dispatcher;
     }else{
-        ML(this, info, "use custome MsgerCallback, not init MsgDispatcher.");
+        ML(this, info, "use custom MsgerCallback, not init MsgDispatcher.");
     }
 
     csd_addr_resolver = r;

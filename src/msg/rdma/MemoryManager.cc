@@ -271,17 +271,17 @@ uint64_t MemoryManager::calcu_init_space(MsgContext *mct){
     auto config = mct->config;
 
     uint64_t default_init_space = 
-            2 * (config->rdma_recv_queue_len + config->rdma_send_queue_len);
+            64 * (config->rdma_recv_queue_len + config->rdma_send_queue_len);
 
     size_t chunk_bytes = config->rdma_buffer_size + sizeof(Chunk);
     
-    if(default_init_space 
-                    < (HUGE_PAGE_SIZE - 16 - sizeof(mem_info)) / chunk_bytes){
-        // use a huge page for init: 
-        // mem_info(4K) + chunks(4K * n) == huge_page_size
-        default_init_space = 
-                        (HUGE_PAGE_SIZE - 16 - sizeof(mem_info)) / chunk_bytes;
-    }
+    // if(default_init_space 
+    //                 < (HUGE_PAGE_SIZE - 16 - sizeof(mem_info)) / chunk_bytes){
+    //     // use a huge page for init: 
+    //     // mem_info(4K) + chunks(4K * n) == huge_page_size
+    //     default_init_space = 
+    //                     (HUGE_PAGE_SIZE - 16 - sizeof(mem_info)) / chunk_bytes;
+    // }
 
     if(config->rdma_buffer_num > 0 
         && config->rdma_buffer_num < default_init_space){

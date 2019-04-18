@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <mutex>
+#include <atomic>
 
 #include "msg_common.h"
 #include "Msg.h"
@@ -21,10 +22,12 @@ class Connection : public EventCallBack{
     Session *session;
     MsgWorker *owner;
     ConnectionListener *m_listener;
+    std::atomic<bool> submit_pending;
 public:
     explicit Connection(MsgContext *c)
     :EventCallBack(c, FLAME_EVENT_READABLE | FLAME_EVENT_WRITABLE),
-     session(nullptr), owner(nullptr), m_listener(nullptr){
+     session(nullptr), owner(nullptr), m_listener(nullptr),
+     submit_pending(false){
          
     }
     ~Connection() {};
@@ -34,9 +37,10 @@ public:
     /**
      * put msg to send_msg_list, and actually send if possible
      * @param msg: maybe be nullptr.
+     * @param more: don't submit if true
      * @return: total bytes actually sended. when < 0, error.
      */
-    virtual ssize_t send_msg(Msg *msg) = 0;
+    virtual ssize_t send_msg(Msg *msg, bool more=false) = 0;
     virtual Msg* recv_msg() = 0;
 
     /**
@@ -58,6 +62,17 @@ public:
         }
         return total;
     }
+
+    virtual void post_submit() {
+        if(submit_pending || !owner) return;
+        submit_pending = true;
+        owner->post_work([this](){
+            ML(this->mct, trace, "in post_submit()");
+            submit_pending = false;
+            this->send_msg(nullptr, false);
+        });
+    }
+
     /**
      * the number of msgs to be sended. 
      * @return: the size of send_msg_list

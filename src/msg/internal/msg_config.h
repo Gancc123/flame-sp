@@ -19,17 +19,17 @@
 #define FLAME_RDMA_DEVICE_NAME_D      ""
 #define FLAME_RDMA_PORT_NUM_D         ""
 #define FLAME_RDMA_BUFFER_NUM_D       ""
-#define FLAME_RDMA_BUFFER_SIZE_D      "4080"
+#define FLAME_RDMA_BUFFER_SIZE_D      "4224"
 #define FLAME_RDMA_MAX_INLINE_DATA_D  "128"
-#define FLAME_RDMA_SEND_QUEUE_LEN_D   "256"
-#define FLAME_RDMA_RECV_QUEUE_LEN_D   "256"
+#define FLAME_RDMA_SEND_QUEUE_LEN_D   "64"
+#define FLAME_RDMA_RECV_QUEUE_LEN_D   "1024"
 #define FLAME_RDMA_ENABLE_HUGEPAGE_D  "true"
 #define FLAME_RDMA_ENABLE_SRQ_D       "true"
 #define FLAME_RDMA_CQ_PAIR_NUM_D      "1"
 #define FLAME_RDMA_TRAFFIC_CLASS_D    "0"
 #define FLAME_RDMA_PATH_MTU_D         "4096"
 #define FLAME_RDMA_MEM_MIN_LEVEL_D    "12"
-#define FLAME_RDMA_MEM_MAX_LEVEL_D    "28"
+#define FLAME_RDMA_MEM_MAX_LEVEL_D    "29"
 #define FLAME_RDMA_POLL_EVENT_D       "true"
 
 
@@ -185,7 +185,6 @@ public:
      */
     uint8_t rdma_traffic_class;
     int set_rdma_traffic_class(const std::string &v);
-
 
     /**
      * RDMA RdmaBuffer min size (2^min_level)
