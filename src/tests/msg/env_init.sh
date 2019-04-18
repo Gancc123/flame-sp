@@ -42,3 +42,6 @@ sleep 1 # wait some time
 echo check cpu freq in /proc/cpuinfo
 cat /proc/cpuinfo |grep -i mhz
 
+echo "check HugePages settings"
+cat /proc/meminfo | grep -i hugepage
+

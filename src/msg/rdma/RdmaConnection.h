@@ -44,6 +44,8 @@ class RdmaWorker;
 struct RdmaRwWork;
 
 extern const uint32_t RDMA_RW_WORK_BUFS_LIMIT;
+extern const uint32_t RDMA_BATCH_SEND_WR_MAX;
+extern const uint8_t RDMA_QP_MAX_RD_ATOMIC;
 
 class RdmaConnection : public Connection{
 public:

@@ -281,7 +281,7 @@ int ThrMsgWorker::iter_poller(){
     if(poller_list.size() == 0) return r;
     
     auto first_pair = poller_list.front();
-    r = first_pair.second();
+    r = first_pair.second(); // first_pair.second is a std::function.
     if(r > 0){
         ML(mct, trace, "poller({}) proc {} events", first_pair.first, r);
     }

@@ -11,8 +11,9 @@
 namespace flame{
 namespace msg{
 
-static uint32_t BATCH_SEND_WR_MAX = 32;
 const uint32_t RDMA_RW_WORK_BUFS_LIMIT = 8;
+const uint32_t RDMA_BATCH_SEND_WR_MAX = 32;
+const uint8_t RDMA_QP_MAX_RD_ATOMIC = 4;
 
 void RdmaConnection::recv_msg_cb(Msg *msg){
     if(get_listener()){
@@ -455,7 +456,7 @@ int RdmaConnection::post_rdma_send(std::list<Msg*> &msgs){
 
     size_t l = 0,  r = 1;
     for(;r < filled_chunks;++r){
-        if((r - l) % BATCH_SEND_WR_MAX == 0){
+        if((r - l) % RDMA_BATCH_SEND_WR_MAX == 0){
             auto b = chunks.begin();
             std::vector<Chunk*> sub_chunks(b + l, b + r);
             int result = post_work_request(sub_chunks);
@@ -494,7 +495,7 @@ int RdmaConnection::activate(){
                                             mct->config->rdma_path_mtu);
     qpa.dest_qp_num = peer_msg.qpn;
     qpa.rq_psn = peer_msg.psn;
-    qpa.max_dest_rd_atomic = 1;
+    qpa.max_dest_rd_atomic = RDMA_QP_MAX_RD_ATOMIC;
     qpa.min_rnr_timer = 12;
     //qpa.ah_attr.is_global = 0;
     qpa.ah_attr.is_global = 1;
@@ -546,7 +547,7 @@ int RdmaConnection::activate(){
     // a receive request.
     qpa.rnr_retry = 7; // 7 is infinite retry.
     qpa.sq_psn = my_msg.psn;
-    qpa.max_rd_atomic = 1;
+    qpa.max_rd_atomic = RDMA_QP_MAX_RD_ATOMIC;
 
     r = ibv_modify_qp(qp->get_qp(), &qpa, IBV_QP_STATE |
                                             IBV_QP_TIMEOUT |
@@ -787,7 +788,8 @@ int RdmaConnection::post_imm_data(std::vector<uint32_t> *imm_data_vec){
             imm_data_to_send.swap(imm_data_list);
         }
     }
-    wr_num = std::min((uint32_t)imm_data_to_send.size(), BATCH_SEND_WR_MAX);
+    wr_num = std::min((uint32_t)imm_data_to_send.size(), 
+                        RDMA_BATCH_SEND_WR_MAX);
     if(wr_num == 0){
         return 0;
     }
