@@ -5,7 +5,7 @@
     shallow = true
 
 [submodule "spdk"]
-	path = src/spdk
+	path = spdk
 	url = https://github.com/spdk/spdk.git
 	branch = v18.04.x
     shallow = true
