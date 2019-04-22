@@ -21,7 +21,7 @@ endif(SW_64)
 
 # you should build gperftools with './configure --enable-frame-pointers',
 # as you will compile object with '-fno-omit-frame-pointer'
-option(CPU_PROFILE "Build with profiler(gperftools)." ON)
+option(CPU_PROFILE "Build with profiler(gperftools)." OFF)
 
 #set(CMAKE_BUILD_TYPE Debug)
 # for perf 
