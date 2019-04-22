@@ -6,8 +6,8 @@ target_link_libraries(rdma_client common)
 add_custom_command(
     TARGET rdma_client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg"
-            "${CMAKE_BINARY_DIR}/bin/rdma")
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg
+            ${CMAKE_BINARY_DIR}/bin/rdma)
 
 set_target_properties(rdma_client
     PROPERTIES
@@ -22,8 +22,8 @@ target_link_libraries(rdma_mgr common)
 add_custom_command(
     TARGET rdma_mgr POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg"
-            "${CMAKE_BINARY_DIR}/bin/rdma")
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg
+            ${CMAKE_BINARY_DIR}/bin/rdma)
 
 set_target_properties(rdma_mgr
     PROPERTIES

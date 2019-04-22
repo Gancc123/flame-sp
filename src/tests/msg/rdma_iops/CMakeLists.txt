@@ -12,8 +12,8 @@ set_target_properties(rdma_iops_mgr
 add_custom_command(
     TARGET rdma_iops_mgr POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg"
-            "${M_OUTPUT_DIR}")
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg
+            ${M_OUTPUT_DIR})
 
 add_executable(rdma_iops_client
 rdma_client.cc
@@ -27,12 +27,12 @@ set_target_properties(rdma_iops_client
 add_custom_command(
     TARGET rdma_iops_client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg"
-            "${M_OUTPUT_DIR}")
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg
+            ${M_OUTPUT_DIR})
 
-add_custom_command(
-    TARGET rdma_iops_client POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/../*.sh"
-            "${M_OUTPUT_DIR}")
+file(GLOB SCRIPT_FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../*.sh 
+    )
+
+file(COPY ${SCRIPT_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/rdma_perf)
 
