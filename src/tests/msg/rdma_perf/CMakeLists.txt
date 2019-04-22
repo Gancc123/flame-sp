@@ -10,8 +10,8 @@ set_target_properties(rdma_mgr_perf
 add_custom_command(
     TARGET rdma_mgr_perf POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg
-            ${CMAKE_BINARY_DIR}/bin/rdma_perf)
+            "${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg"
+            "${CMAKE_BINARY_DIR}/bin/rdma_perf")
 
 add_executable(rdma_client_perf
 rdma_client_perf.cc
@@ -25,18 +25,18 @@ set_target_properties(rdma_client_perf
 add_custom_command(
     TARGET rdma_client_perf POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/*.cfg
-            ${CMAKE_BINARY_DIR}/bin/rdma_perf)
+            "${CMAKE_CURRENT_SOURCE_DIR}/*.cfg"
+            "${CMAKE_BINARY_DIR}/bin/rdma_perf")
 add_custom_command(
     TARGET rdma_client_perf POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/../*.sh
-            ${CMAKE_BINARY_DIR}/bin/rdma_perf)
+            "${CMAKE_CURRENT_SOURCE_DIR}/../*.sh"
+            "${CMAKE_BINARY_DIR}/bin/rdma_perf")
 add_custom_command(
     TARGET rdma_client_perf POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/../*.py
-            ${CMAKE_BINARY_DIR}/bin/rdma_perf)
+            "${CMAKE_CURRENT_SOURCE_DIR}/../*.py"
+            "${CMAKE_BINARY_DIR}/bin/rdma_perf")
 
 
 

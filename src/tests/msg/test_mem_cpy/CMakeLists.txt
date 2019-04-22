@@ -10,8 +10,8 @@ set_target_properties(rdma_mem_target
 add_custom_command(
     TARGET rdma_mem_target POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/flame_target.cfg
-            ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
+            "${CMAKE_CURRENT_SOURCE_DIR}/flame_target.cfg"
+            "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy")
 
 add_executable(rdma_mem_forward
 mem_cpy_forward.cc
@@ -25,8 +25,8 @@ set_target_properties(rdma_mem_forward
 add_custom_command(
     TARGET rdma_mem_forward POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/flame_forward.cfg
-            ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
+            "${CMAKE_CURRENT_SOURCE_DIR}/flame_forward.cfg"
+            "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy")
 
 add_executable(local_mem_cpy
 local_mem_cpy.cc
@@ -41,12 +41,12 @@ set_target_properties(local_mem_cpy
 add_custom_command(
     TARGET local_mem_cpy POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/../*.sh
-            ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
+            "${CMAKE_CURRENT_SOURCE_DIR}/../*.sh"
+            "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy")
 
 add_custom_command(
     TARGET local_mem_cpy POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/../*.py
-            ${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy)
+            "${CMAKE_CURRENT_SOURCE_DIR}/../*.py"
+            "${CMAKE_BINARY_DIR}/bin/rdma_mem_cpy")
 
