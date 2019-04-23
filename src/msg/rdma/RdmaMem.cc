@@ -113,7 +113,7 @@ RdmaBuffer *RdmaBufferAllocator::alloc(size_t s){
     }
     void *p = nullptr;
     BuddyAllocator *ap = nullptr;
-    bool can_retry = true;
+    int retry_cnt = 3;
 
 retry:
     auto it = lfl_allocators.elem_iter();
@@ -128,8 +128,8 @@ retry:
         it = it->next;
     }
 
-    if(!p && can_retry){
-        can_retry = false;
+    if(!p && retry_cnt > 0){
+        retry_cnt--;
         if(expand() == 0){  // expand() success.
             goto retry;  // try again.
         }
@@ -150,7 +150,7 @@ retry:
 }
 
 void RdmaBufferAllocator::free(RdmaBuffer *buf){
-    assert(buf);
+    if(!buf) return;
     if(buf->allocator()){
         MutexLocker ml(mutex_of_allocator(buf->allocator()));
         buf->allocator()->free(buf->buffer(), buf->size());
@@ -164,6 +164,7 @@ int RdmaBufferAllocator::alloc_buffers(size_t s, int cnt,
         return 0;
     }
     int i = 0, i_before_expand = -1;
+    int retry_cnt = 3;
 
 retry:
     auto it = lfl_allocators.elem_iter();
@@ -193,8 +194,10 @@ retry:
         it = it->next;
     }
 
-    if(i < cnt && i != i_before_expand){ // alloc failed after expand()?
+    // alloc failed after expand()?
+    if(i < cnt && (i != i_before_expand || retry_cnt > 0 )){ 
         i_before_expand = i;
+        retry_cnt--;
         if(expand() == 0){  // expand() success.
             goto retry;  // try again.
         }
@@ -205,7 +208,7 @@ retry:
 
 void RdmaBufferAllocator::free_buffers(std::vector<RdmaBuffer*> &b){
     for(auto buf : b){
-        assert(buf);
+        if(!buf) continue;
         if(buf->allocator()){
             MutexLocker ml(mutex_of_allocator(buf->allocator()));
             buf->allocator()->free(buf->buffer(), buf->size());

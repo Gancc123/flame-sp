@@ -9,10 +9,10 @@
 
 #include <cassert>
 
-#define FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS 32;
-
 namespace flame{
 namespace msg{
+
+static const int RDMA_CQ_MAX_BATCH_COMPLETIONS = 32;
 
 void RdmaTxCqNotifier::read_cb() {
     worker->process_cq_dry_run();
@@ -122,7 +122,7 @@ void RdmaWorker::fin_clean_signal(){
 }
 
 int RdmaWorker::process_cq_dry_run(){
-    static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
+    static int MAX_COMPLETIONS = RDMA_CQ_MAX_BATCH_COMPLETIONS;
     ibv_wc wc[MAX_COMPLETIONS];
     int total_proc = 0;
     bool has_cq_event = false;
@@ -176,16 +176,15 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         assert(conn);
         ib::QueuePair *qp = conn->get_qp();
         if(qp){
+            if(qp->get_tx_wr()){
+                //wakeup conn after dec_tx_wr;
+                to_wake_conns.insert(conn);
+            }
             if(is_sel_sig_wrid(response->wr_id)){
                 qp->dec_tx_wr(num_from_sel_sig_wrid(response->wr_id));
                 ML(mct, info, "dec {}", num_from_sel_sig_wrid(response->wr_id));
             }else{
                 qp->dec_tx_wr(1);
-            }
-            if(qp->get_tx_wr() +  (RDMA_RW_WORK_BUFS_LIMIT << 1) > 
-                tx_queue_len){
-                //wakeup conn after dec_tx_wr;
-                to_wake_conns.insert(conn);
             }
         }
 
@@ -291,7 +290,7 @@ void RdmaWorker::handle_rdma_rw_cqe(ibv_wc &wc, RdmaConnection *conn){
 }
 
 int RdmaWorker::process_tx_cq_dry_run(){
-    static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
+    static int MAX_COMPLETIONS = RDMA_CQ_MAX_BATCH_COMPLETIONS;
     ibv_wc wc[MAX_COMPLETIONS];
     int total_proc = 0;
     int tx_ret = 0;
@@ -389,7 +388,7 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
 }
 
 int RdmaWorker::process_rx_cq_dry_run(){
-    static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
+    static int MAX_COMPLETIONS = RDMA_CQ_MAX_BATCH_COMPLETIONS;
     ibv_wc wc[MAX_COMPLETIONS];
     int total_proc = 0;
     int rx_ret = 0;
@@ -537,7 +536,7 @@ int RdmaWorker::reg_poller(MsgWorker *worker){
     if(!worker || mct->config->rdma_poll_event) return 1;
     owner = worker;
     poller_id = worker->reg_poller([this]()->int{
-        static int MAX_COMPLETIONS = FLAME_MSG_RDMA_CQ_MAX_BATCH_COMPLETIONS;
+        static int MAX_COMPLETIONS = RDMA_CQ_MAX_BATCH_COMPLETIONS;
         ibv_wc wc[MAX_COMPLETIONS];
         int total_proc = 0;
         total_proc += this->process_rx_cq(wc, MAX_COMPLETIONS);
@@ -559,8 +558,9 @@ int RdmaManager::handle_async_event(){
             if(errno != EAGAIN){
                 ML(mct, error, "ibv_get_async_event failed. (errno= {})",
                                      cpp_strerror(errno));
+                return -1;
             }
-            return -1;
+            break;
         }
         if(async_event.event_type == IBV_EVENT_QP_LAST_WQE_REACHED){
             ib::QueuePair *qp = ib::QueuePair::get_by_ibv_qp(

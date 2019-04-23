@@ -38,7 +38,8 @@ int main(int argc, char *argv[]){
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    global_config.num = (int)options.get("num");
+    global_config.num = (uint32_t)options.get("num");
+    global_config.depth = (uint32_t)options.get("depth");
     global_config.result_file = std::string(options.get("result_file"));
     global_config.perf_type = perf_type_from_str(
                                             std::string(options.get("type")));
@@ -64,6 +65,8 @@ int main(int argc, char *argv[]){
                                          mct->config->msger_id.port);
 
     std::getchar();
+
+    rdma_msger->clear_rw_buffers();
 
     ML(mct, info, "before msg module fin");
     mct->fin();
