@@ -34,10 +34,10 @@ public:
      */
     virtual void entry() = 0;
 
-    void run() { create("worker"); }
+    void run() { create(name_.c_str()); }
 
 protected:
-    WorkerBase(const std::string& name) : name_(name) {}
+    explicit WorkerBase(const std::string& name) : name_(name) {}
 
     std::string name_;
 }; // class WorkerBase

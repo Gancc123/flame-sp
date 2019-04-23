@@ -53,7 +53,7 @@ int ChunkManager::create_bulk(const list<uint64_t>& chk_ids, int cgn, const chk_
     int grp = chk_num / cgn;
     list<uint64_t> csd_list;
     if ((r = layout_->select_bulk(csd_list, grp, cgn, attr.size)) != RC_SUCCESS) {
-        bct_->log()->lerror("select csd faild: %d", r);
+        bct_->log()->lerror("select csd faild: %d", r);//
         return RC_FAILD;
     }
 

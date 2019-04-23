@@ -69,15 +69,15 @@ public:
     friend class SimChunk;
 
 private:
-    SimStore(FlameContext* fct, uint64_t size, const std::string& bk_file) 
-    : ChunkStore(fct), size_(size), bk_file_(bk_file), formated_(false), mounted_(false) {
+    SimStore(FlameContext* fct, uint64_t size, const std::string& bk_file_name) 
+    : ChunkStore(fct), size_(size), bk_file_name_(bk_file_name), formated_(false), mounted_(false) {
         info_.size = size;    
     }
 
     bool formated_;
     bool mounted_;
     uint64_t size_;
-    std::string bk_file_;
+    std::string bk_file_name_;
     cs_info_t info_;
     std::map<uint64_t, simstore_chunk_t> chk_map_;
 

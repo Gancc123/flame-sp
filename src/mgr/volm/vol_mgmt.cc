@@ -155,7 +155,7 @@ int VolumeManager::vol_create(const string& vg_name, const string& vol_name, con
     vol.size = attr.size;
     vol.flags = attr.flags;
     vol.spolicy = attr.spolicy;
-    r = ms_->get_volume_ms()->create_and_get(vol);
+    r = ms_->get_volume_ms()->create_and_get(vol);//先写库
     if (r != RC_SUCCESS) {
         bct_->log()->lerror("insert volume into database faild vg(%s) volume(%s) ", vg_name.c_str(), vol.name.c_str());
         vg_sub_vol_cnt__(vg_id);
