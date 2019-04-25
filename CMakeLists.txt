@@ -19,6 +19,28 @@ if(SW_64)
     set(ON_SW_64 ${SW_64})
 endif(SW_64)
 
+option(WITH_SPDK "Build with SPDK" OFF)
+if(WITH_SPDK)
+    set(SPDK_DIR "$ENV{SPDK_ROOT}")
+    if(NOT SPDK_DIR)
+        set(SPDK_DIR "${PROJECT_SOURCE_DIR}/src/spdk")
+    endif()
+    if(NOT EXISTS ${SPDK_DIR})
+        message(FATAL_ERROR "Can't find SPDK. Please set Env Var SPDK_ROOT")
+    endif()
+
+    set(DPDK_DIR "$ENV{DPDK_ROOT}")
+    if(NOT DPDK_DIR)
+        set(DPDK_DIR "${SPDK_DIR}/dpdk")
+    endif()
+    if(NOT EXISTS ${DPDK_DIR})
+        message(FATAL_ERROR "Can't find DPDK. Please set Env Var DPDK_ROOT")
+    endif()
+
+    include(ImportSPDK)
+    import_spdk(${SPDK_DIR})
+endif()
+
 # you should build gperftools with './configure --enable-frame-pointers',
 # as you will compile object with '-fno-omit-frame-pointer'
 option(CPU_PROFILE "Build with profiler(gperftools)." OFF)
@@ -56,6 +78,13 @@ if(NOT Boost_FOUND)
         message(FATAL_ERROR "Can't find boost.")
     endif(WITH_RDMA)
 endif(NOT Boost_FOUND)
+
+#find AIO
+find_package(aio REQUIRED)
+find_package(protobuf REQUIRED)
+find_package(grpc REQUIRED)
+find_package(mysql REQUIRED)
+find_package(mysqlcppconn REQUIRED)
 
 #put all the libs and binaries in one place
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
