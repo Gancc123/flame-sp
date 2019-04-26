@@ -92,10 +92,14 @@ set(proto_srcs
     )
 
 #Generate gprc proto files
-PROTOBUF_GENERATE_CPP(pb_srcs  pb_hdrs  ${PROJECT_SOURCE_DIR}/src/proto 
+PROTOBUF_GENERATE_CPP(pb_srcs  pb_hdrs  ${CMAKE_BINARY_DIR}/include/proto
      ${proto_srcs})
-GRPC_GENERATE_CPP(grpc_pb_srcs  grpc_pb_hdrs  ${PROJECT_SOURCE_DIR}/src/proto 
+GRPC_GENERATE_CPP(grpc_pb_srcs  grpc_pb_hdrs   ${CMAKE_BINARY_DIR}/include/proto 
      ${proto_srcs})
+
+add_custom_target(x_pb_tgt
+    SOURCES ${pb_hdrs} ${pb_srcs} ${grpc_pb_hdrs} ${grpc_pb_srcs}
+    )
 
 add_library(proto-objs OBJECT
     ${pb_srcs} 
@@ -103,7 +107,6 @@ add_library(proto-objs OBJECT
     )
 
 list(APPEND obj_modules proto)
-
 
 #### service
 add_library(service-objs OBJECT
@@ -114,7 +117,22 @@ add_library(service-objs OBJECT
     service/csds_service.cc
     service/csds_client.cc
     )
+
 list(APPEND obj_modules service)
+
+
+#### cml
+add_library(cml-objs OBJECT
+    cml/flame.cc
+    )
+list(APPEND obj_modules cml)
+
+
+#### csm
+add_library(csm-objs OBJECT
+    csm/csm.cc
+    )
+list(APPEND obj_modules csm)
 
 
 #### orm
@@ -254,6 +272,8 @@ list(APPEND obj_modules csd)
 
 #### gen xxx_objs
 foreach(module IN LISTS obj_modules)
+    # generate *.pb.h first of all
+    add_dependencies(${module}-objs x_pb_tgt)
     set(${module}_objs $<TARGET_OBJECTS:${module}-objs>)
 endforeach()
 
@@ -294,8 +314,14 @@ if(WITH_STATIC_LIBSTDCXX)
       LINK_FLAGS "-static-libstdc++ -static-libgcc")
 endif()
 
+set(flame_grpc_deps
+    gRPC::grpc
+    gRPC::grpc++
+    gRPC::grpc++_reflection
+    protobuf::libprotobuf
+    )
 
-#### csd 
+#### gen csd 
 add_executable(csd 
     ${csd_objs}
     ${chunkstore_objs}
@@ -309,11 +335,30 @@ target_link_libraries(csd PRIVATE
     ${CMAKE_DL_LIBS}
     common 
     ${AIO_LIBS}
-    gRPC::grpc
-    gRPC::grpc++
-    gRPC::grpc++_reflection
-    protobuf::libprotobuf
+    ${flame_grpc_deps}
     ${SPDK_LIBRARIES}
+    )
+
+#### gen cml
+add_executable(cml
+    ${cml_objs}
+    ${proto_objs}
+    service/flame_client.cc
+    )
+target_link_libraries(cml PRIVATE
+    common
+    ${flame_grpc_deps}
+    )
+
+#### gen csm
+add_executable(csm
+    ${csm_objs}
+    ${proto_objs}
+    service/internal_client.cc
+    )
+target_link_libraries(csm PRIVATE
+    common
+    ${flame_grpc_deps}
     )
 
 add_subdirectory(examples)

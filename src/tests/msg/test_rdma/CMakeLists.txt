@@ -33,9 +33,9 @@ set_target_properties(rdma_mgr
     )
 
 
-package_add_test(rdma_buffer_unittest rdma_buffer_unittest.cc)
-target_link_libraries(rdma_buffer_unittest common)
-set_target_properties(rdma_buffer_unittest
+package_add_test(rdma_buffer_ut rdma_buffer_ut.cc)
+target_link_libraries(rdma_buffer_ut common)
+set_target_properties(rdma_buffer_ut
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
     )
