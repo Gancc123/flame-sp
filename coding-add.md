@@ -36,6 +36,7 @@ Flame 编码风格附加说明
 ### 类
 * 类名使用驼峰式命名，如：`TreadPool`
 * 类属性和方法采用下划线分割命名，如：`i_am_a_function()`
+* 类的成员变量以小写字母加下划线命名，必须以下划线结尾，如：`my_class_member_`
 * 为避免与第三方库冲突，自定义类统一放入命名空间（`namespace`) `flame` 中
 * 按访问权限依次放置：`public`, `protected`, `private`
 ```c++

@@ -85,7 +85,7 @@ public:
     bool get() const { return val_; }
     void set(bool val) { val_ = val; }
 
-    operator bool () const { return val_; }
+    operator bool () const { return val_; } //**将switch隐式转换
 
 private:
     
@@ -150,7 +150,7 @@ public:
         register_self();
     }
 
-    Argument(Cmdline* cmd, const std::string& ln, const std::string& des, T dv,
+    Argument(Cmdline* cmd, const std::string& ln, const std::string& des, T dv,//**有默认值就不是必须
     trans_func_t func = def_trans_func<T>)
     : ArgumentBase(cmd, false, '\0', ln, des), val_(dv), def_(dv), func_(func) {
         register_self();
@@ -276,7 +276,6 @@ public:
 
     std::string name() const { return name_; }
     std::string des() const { return des_; }
-    void register_self(Cmdline* parent);
     void register_type(CmdBase* arg);
     void register_submodule(Cmdline* sub, const std::string& name);
     

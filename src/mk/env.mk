@@ -21,5 +21,6 @@ CXX = g++
 
 AIOLIBS = -laio
 THREADLIBS	= -lpthread
+THREADLIB = -pthread
 CXXFLAGS = -std=c++11
 DBGFLAGS = -g -std=c++11

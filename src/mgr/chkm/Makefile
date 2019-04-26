@@ -7,7 +7,7 @@ include $(ROOT)/mk/env.mk
 all: chk_mgmt.o
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) $^ -c $(ISRC)
+	$(CXX) $(DBGFLAGS) $^ -c $(ISRC)
 
 clean:
 	rm -f *.o

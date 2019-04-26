@@ -26,10 +26,10 @@ volm:
 	make -C ./volm
 
 mgr: $(OBJ_MGR) $(OBJ_MGR_CSDM) $(OBJ_COMMON) $(OBJ_METASTORE) $(OBJ_PROTO) $(OBJ_SERVICE) $(OBJ_ORM) $(OBJ_UTIL) $(OBJ_WORK) $(OBJ_CLUSTER) $(OBJ_LAYOUT) $(OBJ_SPOLICY)
-	$(CXX) $(CXXFLAGS) $(MYSQL_CFLAGS) $(IGRPC) $^ -o $@ $(ISRC) $(MYSQL_LIB) $(GRPC_LDFLAGS)  
+	$(CXX) $(DBGFLAGS)  $(IGRPC) $^ -o $@ $(ISRC) $(MYSQL_LIB) $(GRPC_LDFLAGS) $(MYSQL_CFLAGS)
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) $(IGRPC) $^ -c $(ISRC) $(GRPC_LDFLAGS)
+	$(CXX) $(DBGFLAGS) $(IGRPC) $^ -c $(ISRC) $(GRPC_LDFLAGS) 
 
 clean:
 	make -C ./csdm clean

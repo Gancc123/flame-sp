@@ -1,6 +1,7 @@
 #include "mgr/csdm/csd_mgmt.h"
 #include "include/retcode.h"
 #include "log_csdm.h"
+#include "common/context.h"
 
 #include <cassert>
 #include <algorithm>
@@ -19,12 +20,10 @@ int CsdManager::init() {
     list<csd_meta_t> res_list;
     int r = ms_->get_csd_ms()->list_all(res_list);
     if (r != 0) return r;
-    
     uint64_t max_id = 0;
-
     for (auto it = res_list.begin(); it != res_list.end(); ++it) {
         CsdHandle* hdl = create_csd_handle__(it->csd_id);
-        hdl->obj_as_load__();
+        hdl->set_as_down__();
         hdl->get()->meta() = *it;
         hdl->set_latime__(utime_t::get_by_usec(it->latime));
         if (!insert_csd_handle__(it->csd_id, hdl)) 
@@ -57,7 +56,7 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     uint64_t new_id = next_csd_id_.fetch_add(1);
 
     CsdHandle* hdl = create_csd_handle__(new_id);
-    hdl->obj_as_new__();
+    hdl->set_as_none__();
     
     CsdObject* obj = hdl->get();
 
@@ -69,14 +68,13 @@ int CsdManager::csd_register(const csd_reg_attr_t& attr, CsdHandle** hp) {
     obj->set_admin_addr(attr.admin_addr);
     obj->set_ctime_ut(utime_t::now());
     obj->set_latime_ut(utime_t::now());
-
     auto meta = obj->meta();
     auto hlt = obj->health();
 
     bct_->log()->ldebug("meta.csd_id = %llu, hlt.csd_id = %llu", meta.csd_id, hlt.csd_id);
 
     ReadLocker hdl_locker(hdl->get_lock());
-    int r = hdl->save();
+    int r = hdl->save_csd_info();
     if (r != RC_SUCCESS) {
         csd_map_.erase(new_id);
         bct_->log()->lerror("register csd ($llu, %s) faild: save error", new_id, attr.csd_name.c_str());
@@ -175,8 +173,9 @@ int CsdManager::csd_stat_update(uint64_t csd_id, uint32_t stat) {
     if (it == csd_map_.end()) {
         return RC_OBJ_NOT_FOUND;
     }
-
-    it->second->update_stat(stat);
+	bct_->log()->ldebug("lwg:update csd_id:%d it->second->update_stat(stat = %d)",it->first,stat);
+	bct_->log()->ldebug("obj->get_name(): %s", it->second->get()->get_name().c_str());
+	it->second->update_stat(stat);
 
     return RC_SUCCESS;
 }
@@ -257,6 +256,19 @@ void CsdManager::destroy__() {
  * CsdHandle
  */
 
+int CsdHandle::save_csd_info(){
+    int r;
+    if (stat_.load() == CSD_STAT_NONE) {
+        if ((r = ms_->get_csd_ms()->create(obj_->meta())) != RC_SUCCESS)
+            return r;
+        if ((r = ms_->get_csd_health_ms()->create(obj_->health())) != RC_SUCCESS)
+            return r;
+        set_as_down__();
+        return RC_SUCCESS;
+    }
+    return RC_OBJ_EXISTED;
+}
+
 void CsdHandle::update_stat(int st) {
     WriteLocker locker(lock_);
 
@@ -264,8 +276,8 @@ void CsdHandle::update_stat(int st) {
 
     if (st == CSD_STAT_PAUSE || st == CSD_STAT_ACTIVE)
         latime_ = utime_t::now();
-    
     obj_->set_stat(st);
+	FlameContext *fct = FlameContext::get_context();
 }
 
 void CsdHandle::update_health(const csd_hlt_sub_t& hlt) {
@@ -318,12 +330,12 @@ int CsdHandle::save() {
     if(!obj_readable__())
         return RC_FAILD;
 
-    if (stat_.load() == CSD_OBJ_STAT_NEW) {
+    if (obj_stat_.load() == CSD_OBJ_STAT_NEW) {
         if ((r = ms_->get_csd_ms()->create(obj_->meta())) != RC_SUCCESS)
             return r;
         if ((r = ms_->get_csd_health_ms()->create(obj_->health())) != RC_SUCCESS)
             return r;
-    } else if (stat_.load() == CSD_OBJ_STAT_DIRT) {
+    } else if (obj_stat_.load() == CSD_OBJ_STAT_DIRT) {
         if ((r = ms_->get_csd_ms()->update(obj_->meta())) != RC_SUCCESS)
             return r;
         if ((r = ms_->get_csd_health_ms()->update(obj_->health())) != RC_SUCCESS)

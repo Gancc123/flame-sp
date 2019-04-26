@@ -67,6 +67,10 @@ static bool __load(FlameContext* fct, FlameConfig* cfg, std::fstream& fp) {
         if (cfg->has_key(key)) {
             fct->log()->lwarn("config", "duplicate definition with key('%s'), in line %d", key.c_str(), line);
         }
+        if(strcmp(key.c_str(),"cluster_name") == 0)
+            fct->set_cluster_name(value);
+        else if(strcmp(key.c_str(),"csd_name") == 0) //这里应该不仅限于csd_name
+            fct->set_node_name(value);
         cfg->set(key, value);
     }
     return true;
@@ -83,7 +87,6 @@ FlameConfig* FlameConfig::create_config(FlameContext* fct, const std::string &pa
     FlameConfig* config = new FlameConfig();
     
     bool r = __load(fct, config, fp);
-
     fp.close();
 
     if (r)
