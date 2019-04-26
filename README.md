@@ -3,7 +3,7 @@
 ## 编译说明  
 
 ```bash
-git clone http://115.156.135.251:7979/lzmyhzy/flame-sp.git
+git clone http://115.156.135.251:7979/xxx/flame-sp.git
 
 cd flame-sp
 
