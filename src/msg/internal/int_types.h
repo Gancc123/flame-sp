@@ -5,8 +5,7 @@
 
 #include <inttypes.h>
 
-namespace flame{
-namespace msg{
+extern "C"{
 
 #ifdef HAVE_LINUX_TYPES_H
 #include <linux/types.h>
@@ -65,7 +64,7 @@ typedef __u64 __bitwise__ __be64;
 #define BOOST_MPL_LIMIT_MAP_SIZE 30 // or whatever you need
 #endif
 
-} //namespace msg
-} //namespace flame
+}
+
 
 #endif //FLAME_MSG_INTERNAL_INT_TYPES_H
