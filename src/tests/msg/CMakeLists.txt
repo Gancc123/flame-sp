@@ -3,8 +3,8 @@ set(TESTS_MSG_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/tests/msg)
 add_subdirectory(test_msg)
 add_subdirectory(test_rdma)
 add_subdirectory(rdma_perf)
-add_subdirectory(test_mem_cpy)
-add_subdirectory(rdma_iops)
+#add_subdirectory(test_mem_cpy)
+#add_subdirectory(rdma_iops)
 
 package_add_test(buddy_allocator_ut buddy_allocator_ut.cc)
 
