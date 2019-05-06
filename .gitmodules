@@ -1,9 +1,4 @@
-[submodule "src/googletest"]
+[submodule "googletest"]
 	path = src/googletest
 	url = https://github.com/google/googletest.git
-
-[submodule "src/spdk"]
-	path = src/spdk
-	url = https://github.com/spdk/spdk.git
-	branch = v18.04.x
-
+	branch = v1.8.x

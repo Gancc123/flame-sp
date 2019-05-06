@@ -98,11 +98,11 @@ inline __u16 init_le16(__u16 x) {
 } //namespace flame
 
   
-#define cpu_to_le64(x) (mswab((uint64_t)x))
-#define cpu_to_le32(x) (mswab((__u32)x))
-#define cpu_to_le16(x) (mswab((__u16)x))
+#define cpu_to_le64(x) (flame::msg::mswab((uint64_t)x))
+#define cpu_to_le32(x) (flame::msg::mswab((__u32)x))
+#define cpu_to_le16(x) (flame::msg::mswab((__u16)x))
 
-#define le64_to_cpu(x) (mswab((uint64_t)x))
-#define le32_to_cpu(x) (mswab((__u32)x))
-#define le16_to_cpu(x) (mswab((__u16)x))
+#define le64_to_cpu(x) (flame::msg::mswab((uint64_t)x))
+#define le32_to_cpu(x) (flame::msg::mswab((__u32)x))
+#define le16_to_cpu(x) (flame::msg::mswab((__u16)x))
 
