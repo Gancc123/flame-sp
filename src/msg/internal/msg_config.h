@@ -11,6 +11,7 @@
 #include <cassert>
 
 #define FLAME_MSG_LOG_LEVEL_D         "PRINT"
+#define FLAME_MSG_WORKER_TYPE_D       "THREAD"
 #define FLAME_MSG_WORKER_NUM_D        "4"
 #define FLAME_MSG_WORKER_CPU_MAP_D    ""
 #define FLAME_MSGER_ID_D              ""
@@ -38,6 +39,8 @@ namespace flame{
 class FlameContext;
 
 namespace msg{
+
+enum class msg_worker_type_t;
 
 class MsgConfig{
     FlameContext *fct;
@@ -70,12 +73,23 @@ public:
     int set_msg_log_level(const std::string &v);
 
     /**
+     * Msg module msg worker type
+     * @cfg: msg_worker_type
+     */
+    msg_worker_type_t msg_worker_type;
+    int set_msg_worker_type(const std::string &v);
+
+    /**
      * Msg module workers num
      * @cfg: msg_worker_num
      */
     int msg_worker_num;
     int set_msg_worker_num(const std::string &v);
 
+    /**
+     * Msg module msg worker cpu map
+     * @cfg: msg_worker_cpu_map
+     */
     std::vector<int> msg_worker_cpu_map;
     int set_msg_worker_cpu_map(const std::string &v);
 

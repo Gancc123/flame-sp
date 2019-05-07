@@ -210,6 +210,12 @@ if(HAVE_RDMA)
     msg/rdma/RdmaStack.cc)
 endif(HAVE_RDMA)
 
+set(msg_spdk_srcs)
+if(HAVE_SPDK)
+    list(APPEND msg_spdk_srcs
+      msg/spdk/SpdkMsgWorker.cc)
+endif(HAVE_SPDK)
+
 add_library(msg-objs OBJECT
     msg/internal/errno.cc
     msg/internal/node_addr.cc
@@ -228,6 +234,7 @@ add_library(msg-objs OBJECT
     msg/dispatcher/MsgDispatcher.cc
     ${msg_common_srcs}
     ${msg_rdma_common_srcs}
+    ${msg_spdk_srcs}
     msg/Stack.cc
     msg/msg_context.cc
     )

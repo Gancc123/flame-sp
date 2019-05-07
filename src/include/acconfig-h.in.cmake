@@ -59,6 +59,9 @@
 /* Msg RDMA conditional compilation */
 #cmakedefine HAVE_RDMA
 
+/* Define if build with SPDK */
+#cmakedefine HAVE_SPDK
+
 /* Define to 1 if strerror_r returns char *. */
 #cmakedefine STRERROR_R_CHAR_P 1
 

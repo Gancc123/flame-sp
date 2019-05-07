@@ -102,9 +102,16 @@ int ThrMsgWorker::get_job_num(){
 }
 
 void ThrMsgWorker::update_job_num(int v){
-    extra_job_num += v;
-    if(extra_job_num < 0)
-        extra_job_num = 0;
+    int extra_old = extra_job_num.load(std::memory_order_relaxed);
+    int extra_new;
+    do{
+        extra_new = extra_old + v;
+        if(extra_new < 0){
+            extra_new = 0;
+        }
+    }while(!extra_job_num.compare_exchange_weak(extra_old, extra_new,
+                                                std::memory_order_release,
+                                                std::memory_order_relaxed));
 }
 
 int ThrMsgWorker::get_event_num() {

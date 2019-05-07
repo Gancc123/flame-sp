@@ -1,5 +1,6 @@
 #include "msg_config.h"
 #include "msg/msg_context.h"
+#include "msg/MsgWorker.h"
 #include "node_addr.h"
 #include "util.h"
 
@@ -46,6 +47,13 @@ int MsgConfig::load(){
                                             FLAME_NODE_LISTEN_PORTS_D));
     if (res) {
         perr_arg("node_listen_ports");
+        return 1;
+    }
+
+    res = set_msg_worker_type(cfg->get("msg_worker_type", 
+                                            FLAME_MSG_WORKER_TYPE_D));
+    if (res) {
+        perr_arg("msg_worker_type");
         return 1;
     }
 
@@ -194,6 +202,26 @@ int MsgConfig::set_msg_log_level(const std::string &v){
             return 0;
         }
     }
+    return 1;
+}
+
+int MsgConfig::set_msg_worker_type(const std::string &v){
+    static const char *msg_worker_type_strs[] = {
+        "UNKNOWN", "THREAD", "SPDK"
+    };
+    if(v.empty()){
+        return 1;
+    }
+
+    auto type_upper = str2upper(v);
+    uint8_t end = 3;
+    for(uint8_t i = 1;i < end; i++){
+        if(msg_worker_type_strs[i] == type_upper){
+            msg_worker_type = static_cast<msg_worker_type_t>(i);
+            return 0;
+        }
+    }
+    msg_worker_type = msg_worker_type_t::UNKNOWN;
     return 1;
 }
 
@@ -486,6 +514,10 @@ int MsgConfig::set_rdma_poll_event(const std::string &v){
         return 1;
     }
     rdma_poll_event = MsgConfig::get_bool(v);
+    //force to use direct poll
+    if(msg_worker_type == msg_worker_type_t::SPDK){
+        rdma_poll_event = false;
+    }
     return 0;
 }
 

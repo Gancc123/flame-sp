@@ -12,6 +12,13 @@ function(import_spdk spdk_dir)
         import_dpdk(${DPDK_DIR})
     endif()
 
+    if(EXISTS ${spdk_dir}/include/spdk/version.h)
+        set(SPDK_FOUND TRUE PARENT_SCOPE)
+    else()
+        set(SPDK_FOUND FALSE PARENT_SCOPE)
+        return()
+    endif()
+
     find_package(aio REQUIRED)
     find_package(uuid REQUIRED)
 

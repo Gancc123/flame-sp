@@ -12,7 +12,7 @@
 namespace flame{
 namespace msg{
 
-static const int RDMA_CQ_MAX_BATCH_COMPLETIONS = 32;
+static const int RDMA_CQ_MAX_BATCH_COMPLETIONS = 16;
 
 void RdmaTxCqNotifier::read_cb() {
     worker->process_cq_dry_run();
@@ -91,34 +91,20 @@ int RdmaWorker::clear_before_stop(){
 
     is_fin = true;
 
-    if(!qp_conns.empty()){
-        ML(mct, info, "wait for all rdma conn cleaned... ({:p})", (void *)this);
-        fin_clean_wait();
+    if(qp_conns.empty()){
+        get_manager()->worker_clear_done_notify();
     }
     return 0;
 }
 
 void RdmaWorker::clear_qp(uint32_t qpn){
     //remove conn from qp_conns map, and dec its refcount.
-    reg_rdma_conn(qpn, nullptr);
+    int r = reg_rdma_conn(qpn, nullptr);
     //if no qp_conn and  is_fin, signal RdmaWorker.
-    if(is_fin && qp_conns.empty()){
+    if(is_fin && qp_conns.empty() && r == -1){
         remove_notify();
-        fin_clean_signal();
+        get_manager()->worker_clear_done_notify();
     }
-}
-
-void RdmaWorker::fin_clean_wait(){
-    MutexLocker l(fin_clean_mutex);
-    while(!is_fin_clean){
-        fin_clean_cond.wait();
-    }
-}
-
-void RdmaWorker::fin_clean_signal(){
-    MutexLocker l(fin_clean_mutex);
-    is_fin_clean = true;
-    fin_clean_cond.signal();
 }
 
 int RdmaWorker::process_cq_dry_run(){
@@ -427,6 +413,9 @@ int RdmaWorker::process_rx_cq(ibv_wc *wc, int max_cqes){
     return 0;
 }
 
+/**
+ * @return: 0 nothing happend; 1 reg one; -1 unreg one;
+ */
 int RdmaWorker::reg_rdma_conn(uint32_t qpn, RdmaConnection *conn){
     if(conn){
         conn->get();
@@ -437,7 +426,7 @@ int RdmaWorker::reg_rdma_conn(uint32_t qpn, RdmaConnection *conn){
         it->second->put();
         if(!conn){
             qp_conns.erase(it);
-            return 0;
+            return -1;
         }else{
             it->second = conn;
         }
@@ -547,6 +536,17 @@ int RdmaWorker::reg_poller(MsgWorker *worker){
     return 0;
 }
 
+int RdmaWorker::unreg_poller(){
+    if(mct->config->rdma_poll_event) return 1;
+    owner->unreg_poller(poller_id);
+    return 0;
+}
+
+static void clear_qp_fn(void *arg1, void *arg2){
+    RdmaWorker  *worker = (RdmaWorker *)arg1;
+    uint32_t qpn = reinterpret_cast<uint64_t>(arg2);
+    worker->clear_qp(qpn);
+}
 
 int RdmaManager::handle_async_event(){
     auto d = get_ib().get_device();
@@ -572,10 +572,9 @@ int RdmaManager::handle_async_event(){
             for(auto &worker : workers){
                 //Only one worker has the conn.
                 //The others will do nothing.
-                worker->get_owner()->post_work([this, qpn, worker](){
-                    ML(this->mct, trace, "in handle_async_event()");
-                    worker->clear_qp(qpn);
-                });
+                worker->get_owner()->post_work(clear_qp_fn,
+                                                worker, 
+                                                reinterpret_cast<void *>(qpn));
             }
 
         }else{
@@ -595,6 +594,9 @@ RdmaManager::~RdmaManager(){
         async_event_handler = nullptr;
     }
     for(auto it : workers){
+        if(!mct->config->rdma_poll_event){
+            it->unreg_poller();
+        }
         delete it;
     }
     workers.clear();
@@ -631,8 +633,9 @@ int RdmaManager::init(){
     for(int i = 0;i < cqp_num; ++i){
         auto worker = new RdmaWorker(mct, this);
         worker->init();
-        int msg_worker_index = (arm_step * i + 1) % msg_worker_num;
+        int msg_worker_index = (arm_step * i) % (msg_worker_num - 1) + 1;
         MsgWorker *msg_worker = mct->manager->get_worker(msg_worker_index);
+        ML(mct, info, "RdmaWorker{} bind to {}", i, msg_worker->get_name());
         if(mct->config->rdma_poll_event){
             res = worker->arm_notify(msg_worker);
             assert(res == 0);
@@ -645,11 +648,30 @@ int RdmaManager::init(){
     return res;
 }
 
+static void clear_worker_before_stop_fn(void *arg1, void *arg2){
+    RdmaWorker *worker = (RdmaWorker *)arg1;
+    worker->clear_before_stop();
+}
+
 int RdmaManager::clear_before_stop(){
+    clear_done_worker_count = workers.size();
     for(auto it : workers){
-        it->clear_before_stop();
+        it->get_owner()->post_work(clear_worker_before_stop_fn,
+                                    it, nullptr);
     }
     return 0;
+}
+
+void RdmaManager::worker_clear_done_notify(){
+    ML(mct, info, "clear_done_worker_cnt: {}", clear_done_worker_count.load());
+    clear_done_worker_count--;
+    if(clear_done_worker_count <= 0){
+        mct->clear_done_notify();
+    }
+}
+
+inline bool RdmaManager::is_clear_done(){
+    return clear_done_worker_count <= 0;
 }
 
 RdmaWorker *RdmaManager::get_rdma_worker(int index){
@@ -706,6 +728,11 @@ int RdmaStack::init(){
 int RdmaStack::clear_before_stop(){
     if(!manager) return 0;
     return manager->clear_before_stop();
+}
+
+inline bool RdmaStack::is_clear_done(){
+    if(!manager) return true;
+    return manager->is_clear_done();
 }
 
 int RdmaStack::fin(){

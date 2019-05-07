@@ -7,7 +7,7 @@ git clone http://115.156.135.251:7979/xxx/flame-sp.git
 
 cd flame-sp
 
-git update --init #更新git子模块(googletest)
+git submodule update --init #更新git子模块(googletest)
 
 ./do_cmake.sh #进行编译
 ```
@@ -15,7 +15,7 @@ git update --init #更新git子模块(googletest)
 其中,  
 
 * `do_cmake.sh`使用`cmake`生成相关文件，并调用`ninja`或`cmake --build`进行编译  
-* 第一次编译后，将生成`build`文件夹，所有编译过程中生成的文件都可以在`build`文件夹中被找到
+* 第一次编译后，将生成`build`文件夹，所有编译过程中生成的文件都可以在`build`文件夹中被找到  
 * 重新编译时，  
   * 通常可使用`ninja -C build`部分重新编译  
   * 利用`ninja -C build clean`可以清空所有生成文件  
