@@ -175,6 +175,7 @@ static void msg_run(void *arg1, void *arg2){
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
                                          mct->config->msger_id.port);
+    clog("app init done.");
 
     send_first_msg(mct);
 }

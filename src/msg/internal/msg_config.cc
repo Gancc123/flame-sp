@@ -71,6 +71,14 @@ int MsgConfig::load(){
         return 1;
     }
 
+    res = set_msg_worker_spdk_event_poll_period(
+                                cfg->get("msg_worker_spdk_event_poll_period",
+                                FLAME_MSG_WORKER_SPDK_EVENT_POLL_PERIOD_D));
+    if (res) {
+        perr_arg("msg_worker_spdk_event_poll_period");
+        return 1;
+    }
+
     res = set_rdma_enable(cfg->get("rdma_enable", FLAME_RDMA_ENABLE_D));
     if (res) {
         perr_arg("rdma_enable");
@@ -132,6 +140,13 @@ int MsgConfig::load(){
                                                 FLAME_RDMA_ENABLE_HUGEPAGE_D));
         if (res) {
             perr_arg("rdma_enable_hugepage");
+            return 1;
+        }
+
+        res = set_rdma_hugepage_size(cfg->get("rdma_hugepage_size",
+                                                FLAME_RDMA_HUGEPAGE_SIZE_D));
+        if (res) {
+            perr_arg("rdma_hugepage_size");
             return 1;
         }
 
@@ -213,16 +228,21 @@ int MsgConfig::set_msg_worker_type(const std::string &v){
         return 1;
     }
 
+    msg_worker_type = msg_worker_type_t::UNKNOWN;
     auto type_upper = str2upper(v);
     uint8_t end = 3;
     for(uint8_t i = 1;i < end; i++){
         if(msg_worker_type_strs[i] == type_upper){
             msg_worker_type = static_cast<msg_worker_type_t>(i);
-            return 0;
+            break;
         }
     }
-    msg_worker_type = msg_worker_type_t::UNKNOWN;
-    return 1;
+    if(msg_worker_type == msg_worker_type_t::UNKNOWN){
+        return 1;
+    }else if(msg_worker_type == msg_worker_type_t::SPDK){
+        rdma_poll_event = false;
+    }
+    return 0;
 }
 
 int MsgConfig::set_msg_worker_num(const std::string &v){
@@ -252,6 +272,16 @@ int MsgConfig::set_msg_worker_cpu_map(const std::string &v){
         msg_worker_cpu_map.push_back(cpu_id);
     }
     
+    return 0;
+}
+
+int MsgConfig::set_msg_worker_spdk_event_poll_period(const std::string &v){
+    if(v.empty()){
+        return 1;
+    }
+
+    msg_worker_spdk_event_poll_period = std::stoull(v, nullptr, 0);
+
     return 0;
 }
 
@@ -426,6 +456,26 @@ int MsgConfig::set_rdma_enable_hugepage(const std::string &v){
     }
     rdma_enable_hugepage = MsgConfig::get_bool(v);
     return 0;
+}
+
+int MsgConfig::set_rdma_hugepage_size(const std::string &v){
+     if(v.empty()){
+        return 1;
+    }
+    static const char *hugepage_size_strs[] = {
+        "2M", "8M", "1G"
+    };
+
+    auto size_str_upper = str2upper(v);
+    for(int i = 0;i < 3;++i){
+        if(size_str_upper == hugepage_size_strs[i]){
+            rdma_hugepage_size = size_str_to_uint64(v);
+            return 0;
+        }
+    }
+
+    rdma_hugepage_size = 2 * 1024 * 1024;// 2MB
+    return 1;
 }
 
 int MsgConfig::set_rdma_path_mtu(const std::string &v){

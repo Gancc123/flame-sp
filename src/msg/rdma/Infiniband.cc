@@ -560,7 +560,7 @@ bool Infiniband::init(){
         ML(mct, warn, "rdma_recv_queue_len must > 0! now set {}", rx_queue_len);
     }else if (rx_queue_len > mct->config->rdma_recv_queue_len) {
         rx_queue_len = mct->config->rdma_recv_queue_len;
-        ML(mct, info, "receive queue length is {} .", rx_queue_len);
+        ML(mct, info, "receive queue length: {} .", rx_queue_len);
     } else {
         ML(mct, info,"requested receive queue length {} is too big. Setting {}",
                         mct->config->rdma_recv_queue_len, rx_queue_len);
@@ -571,7 +571,7 @@ bool Infiniband::init(){
         ML(mct, warn, "rdma_send_queue_len must > 0! now set {}", tx_queue_len);
     }else if (tx_queue_len > mct->config->rdma_send_queue_len) {
         tx_queue_len = mct->config->rdma_send_queue_len;
-        ML(mct, info, "send queue length is {} .", tx_queue_len);
+        ML(mct, info, "send queue length: {} .", tx_queue_len);
     } else {
         ML(mct, info, "requested send queue length {} is too big. Setting {}",
                         mct->config->rdma_send_queue_len, tx_queue_len);

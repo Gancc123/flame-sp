@@ -28,8 +28,8 @@ void *RdmaMemSrc::alloc(size_t s) {
         MLI(mmgr->mct, error, "RdmaMemSrc failed to allocate {} B of mem.", s);
         return nullptr;
     }
-    // As huge page memory's unit is 2MB(on intel).
-    // Even s < 2MB, m will be at least 2MB.
+    // When huge page memory's unit is 2MB(on intel),
+    // even s < 2MB, m will be at least 2MB.
     // But when reg m(2MB) with s(s < 2MB), ibv_reg_mr give an error????
     mr = ibv_reg_mr(mmgr->get_pd()->pd, m, s, 
                         IBV_ACCESS_LOCAL_WRITE
@@ -94,7 +94,7 @@ int RdmaBufferAllocator::init(){
         ML(mmgr->mct, error, "When use hugepage, (1 << max_level) can't be less"
             " than hugepage size. Or ibv_reg_mr() will fail, when reg a memory "
             "(real size > huge_page_size) with s (reg size < huge_page_size). "
-            "Don't know the reason! rdma_mem_max_level is {} < {}, too small.", 
+            "Don't know the reason! rdma_mem_max_level: {} < {}, too small.", 
             max_level, RDMA_MEM_MAX_LEVEL_MIN);
         return -1;
     }

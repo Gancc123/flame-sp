@@ -1,6 +1,7 @@
 #ifndef FLAME_MSG_INTERNAL_CONFIG_H
 #define FLAME_MSG_INTERNAL_CONFIG_H
 
+#include "acconfig.h"
 #include "util/clog.h"
 #include "types.h"
 #include "msg/msg_def.h"
@@ -14,9 +15,11 @@
 #define FLAME_MSG_WORKER_TYPE_D       "THREAD"
 #define FLAME_MSG_WORKER_NUM_D        "4"
 #define FLAME_MSG_WORKER_CPU_MAP_D    ""
+#define FLAME_MSG_WORKER_SPDK_EVENT_POLL_PERIOD_D "400" //microsecond
 #define FLAME_MSGER_ID_D              ""
 #define FLAME_NODE_LISTEN_PORTS_D     ""
 #define FLAME_RDMA_ENABLE_D           "false"
+#define FLAME_RDMA_HUGEPAGE_SIZE_D    "2M"
 #define FLAME_RDMA_DEVICE_NAME_D      ""
 #define FLAME_RDMA_PORT_NUM_D         ""
 #define FLAME_RDMA_BUFFER_NUM_D       ""
@@ -32,6 +35,11 @@
 #define FLAME_RDMA_MEM_MIN_LEVEL_D    "12"
 #define FLAME_RDMA_MEM_MAX_LEVEL_D    "29"
 #define FLAME_RDMA_POLL_EVENT_D       "true"
+
+#ifdef ON_SW_64
+    #define FLAME_RDMA_HUGEPAGE_SIZE_D "8M"
+#endif 
+
 
 
 namespace flame{
@@ -92,6 +100,14 @@ public:
      */
     std::vector<int> msg_worker_cpu_map;
     int set_msg_worker_cpu_map(const std::string &v);
+
+    /**
+     * Msg module msg worker spdk event poll period
+     * Only for SpdkMsgWorker event poll time interval.
+     * @cfg: msg_worker_spdk_event_poll_period
+     */
+    uint64_t msg_worker_spdk_event_poll_period;
+    int set_msg_worker_spdk_event_poll_period(const std::string &v);
 
     /**
      * Msger Id
@@ -171,6 +187,14 @@ public:
      */
     int rdma_enable_hugepage;
     int set_rdma_enable_hugepage(const std::string &v);
+
+    /**
+     * RDMA hugepage size
+     * @cfg: rdma_hugepage_size
+     * @value: 2M, 8M, 1G
+     */
+    uint32_t rdma_hugepage_size;
+    int set_rdma_hugepage_size(const std::string &v);
 
     /**
      * RDMA path mtu

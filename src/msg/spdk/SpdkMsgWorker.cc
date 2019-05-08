@@ -90,7 +90,13 @@ int SpdkMsgWorker::del_event(int fd){
 
 void SpdkMsgWorker::add_poller(poller_fn_p fn_p, void *arg, uint64_t poller_id){
     assert(am_self());
-    struct spdk_poller *poller = spdk_poller_register(fn_p, arg, 0);
+    uint64_t period_microseconds = 0;
+    if(fn_p == SpdkMsgWorker::event_poller_function){
+        period_microseconds = mct->config->msg_worker_spdk_event_poll_period;
+        ML(mct, info, "{} event poll period: {} us", name, period_microseconds);
+    }
+    struct spdk_poller *poller = spdk_poller_register(fn_p, arg, 
+                                                        period_microseconds);
     assert(poller);
     auto tuple = std::make_tuple(poller_id, poller, fn_p, arg);
     poller_list.push_front(std::move(tuple));

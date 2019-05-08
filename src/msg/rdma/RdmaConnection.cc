@@ -641,7 +641,7 @@ int RdmaConnection::post_work_request(std::vector<Chunk *> &tx_buffers){
             qp->dec_tx_wr(tx_buffers.size() - done_num);
         }
     }
-    // ML(mct, debug, "qp state is {}", 
+    // ML(mct, debug, "qp state: {}", 
     //                     ib::Infiniband::qp_state_string(qp->get_state()));
     return r;
 }
@@ -850,7 +850,7 @@ int RdmaConnection::post_imm_data(std::vector<uint32_t> *imm_data_vec){
             sended_num = done_num;
         }
     }
-    // ML(mct, debug, "qp state is {}", 
+    // ML(mct, debug, "qp state: {}", 
     //                     ib::Infiniband::qp_state_string(qp->get_state()));
     if(imm_data_to_send.size() > sended_num){
         MutexLocker l(send_mutex);

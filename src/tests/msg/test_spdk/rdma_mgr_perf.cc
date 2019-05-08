@@ -51,6 +51,8 @@ static void msg_run(void *arg1, void *arg2){
 
     ML(mct, info, "msger_id {:x} {:x} ", mct->config->msger_id.ip,
                                          mct->config->msger_id.port);
+
+    clog("app init done.");
 }
 
 int main(int argc, char *argv[]){
@@ -101,8 +103,9 @@ int main(int argc, char *argv[]){
     struct spdk_app_opts opts;
     spdk_app_opts_init(&opts);
     opts.name = "rdma_mgr_perf_spdk";
+    // opts.config_file = "/etc/flame/nvme.conf";
     opts.rpc_addr = "/var/tmp/rdma_mgr_perf_spdk.sock";
-    opts.reactor_mask = "0xf";
+    opts.reactor_mask = "0x1e";
     opts.shutdown_cb = shutdown_cb;
     int rc = 0;
     rc = spdk_app_start(&opts, msg_run, mct, rdma_msger);

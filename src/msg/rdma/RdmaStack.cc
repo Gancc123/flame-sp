@@ -207,7 +207,7 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
                     manager->get_ib().wc_status_to_string(response->status));
             }
 
-            ML(mct, info, "qp state is : {}", conn->get_qp_state());
+            ML(mct, info, "qp state: {}", conn->get_qp_state());
             conn->fault();
         }
 
@@ -262,7 +262,7 @@ void RdmaWorker::handle_rdma_rw_cqe(ibv_wc &wc, RdmaConnection *conn){
                 ib::Infiniband::wc_status_to_string(wc.status));
         }
 
-        ML(mct, info, "qp state is : {}", conn->get_qp_state());
+        ML(mct, info, "qp state: {}", conn->get_qp_state());
         conn->fault();
         work->failed_indexes.push_back(work->lbufs.size() - work->cnt);
     }
@@ -629,6 +629,8 @@ int RdmaManager::init(){
     int arm_step = 1;
     ML(mct, info, "rdma_worker_num(rdma_cq_pair_num): {}, msg_worker_num: {},"
                         " arm_step:{}", cqp_num, msg_worker_num, arm_step);
+    ML(mct, info, "poll mode: {}", 
+                            mct->config->rdma_poll_event?"epoll":"direct poll");
 
     for(int i = 0;i < cqp_num; ++i){
         auto worker = new RdmaWorker(mct, this);
