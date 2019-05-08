@@ -19,6 +19,7 @@ public:
     static int init_all_stack(MsgContext *mct);
     static int clear_all_before_stop();
     static int fin_all_stack();
+    static bool is_all_clear_done();
 
     static TcpStack* get_tcp_stack();
 #ifdef HAVE_RDMA
@@ -28,6 +29,7 @@ public:
     virtual int init() { return 0; };
     // clear before worker threads stop
     virtual int clear_before_stop() { return 0; } 
+    virtual bool is_clear_done() { return true; }
     virtual int fin()  { return 0; }
     virtual ~Stack() {};
 
