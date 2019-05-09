@@ -12,10 +12,20 @@ function(import_spdk spdk_dir)
         import_dpdk(${DPDK_DIR})
     endif()
 
+    if(EXISTS ${spdk_dir}/include/spdk/version.h)
+        set(SPDK_FOUND TRUE PARENT_SCOPE)
+    else()
+        set(SPDK_FOUND FALSE PARENT_SCOPE)
+        return()
+    endif()
+
+    set(SPDK_INCLUDE_DIR "${spdk_dir}/include")
+
     find_package(aio REQUIRED)
     find_package(uuid REQUIRED)
-
-    foreach(c 
+    find_package(rdma REQUIRED)
+    
+    foreach(c
             copy_ioat
             ioat
             bdev_malloc
@@ -48,31 +58,45 @@ function(import_spdk spdk_dir)
             lvol
             jsonrpc
             json
-            rpc
+            rpc)
+        add_library(spdk::${c} STATIC IMPORTED)
+        set(spdk_${c}_LIBRARY
+            "${spdk_dir}/build/lib/${CMAKE_STATIC_LIBRARY_PREFIX}spdk_${c}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        set_target_properties(spdk::${c} PROPERTIES
+            IMPORTED_LOCATION "${spdk_${c}_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${SPDK_INCLUDE_DIR}")
+        list(APPEND SPDK_LIBRARIES_WHOLE_ARCHIVE "${spdk_${c}_LIBRARY}")
+    endforeach()
+
+    add_library(spdk::spdk_whole_archive INTERFACE IMPORTED)
+    add_dependencies(spdk::spdk_whole_archive ${SPDK_LIBRARIES_WHOLE_ARCHIVE})
+
+    set_target_properties(spdk::spdk_whole_archive PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES ${SPDK_INCLUDE_DIR})
+
+    set_target_properties(spdk::bdev_aio PROPERTIES
+        INTERFACE_LINK_LIBRARIES ${AIO_LIBS})
+
+    list(APPEND SPDK_LIBRARIES spdk::spdk_whole_archive)
+
+    foreach(c 
             env_dpdk)
         add_library(spdk::${c} STATIC IMPORTED)
         set_target_properties(spdk::${c} PROPERTIES
             IMPORTED_LOCATION "${spdk_dir}/build/lib/${CMAKE_STATIC_LIBRARY_PREFIX}spdk_${c}${CMAKE_STATIC_LIBRARY_SUFFIX}"
-            INTERFACE_INCLUDE_DIRECTORIES "${spdk_dir}/include")
-        list(APPEND SPDK_LIBRARIES spdk::${c})
+            INTERFACE_INCLUDE_DIRECTORIES ${SPDK_INCLUDE_DIR})
     endforeach()
-
-    set_target_properties(spdk::bdev_aio PROPERTIES
-        INTERFACE_LINK_LIBRARIES ${AIO_LIBS})
 
     set_property(TARGET spdk::env_dpdk PROPERTY
         INTERFACE_LINK_LIBRARIES 
         dpdk::dpdk numa dl rt crypto
         )
 
-    set_target_properties(spdk::lvol PROPERTIES
-        INTERFACE_LINK_LIBRARIES spdk::util)
-    
-    set_target_properties(spdk::util PROPERTIES
-        INTERFACE_LINK_LIBRARIES ${UUID_LIBS})
-    
-    set(SPDK_INCLUDE_DIR "${spdk_dir}/include")
+    set_property(TARGET spdk::spdk_whole_archive PROPERTY
+        INTERFACE_LINK_LIBRARIES 
+        "-Wl,--whole-archive $<JOIN:${SPDK_LIBRARIES_WHOLE_ARCHIVE}, > -Wl,--no-whole-archive" aio uuid rdmacm ibverbs spdk::env_dpdk)
 
+    
     set(SPDK_INCLUDE_DIR ${SPDK_INCLUDE_DIR} PARENT_SCOPE)
     set(SPDK_LIBRARIES ${SPDK_LIBRARIES} PARENT_SCOPE)
 

@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/bash -x
 if test -e build; then
     echo 'build dir already exists; rm -rf build and re-run'
     exit 1
@@ -18,7 +18,7 @@ fi
 
 MACHINE=`uname -i`
 NINJA_ARGS=" "
-if [ "$MACHINE" == "sw_64" ]; then
+if [ "x$MACHINE" == "xsw_64" ]; then
     NINJA_ARGS="-j14"
 fi
 

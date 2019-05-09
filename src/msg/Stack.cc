@@ -56,6 +56,18 @@ int Stack::fin_all_stack(){
     return r;
 }
 
+bool Stack::is_all_clear_done(){
+    if(!Stack::get_tcp_stack()->is_clear_done()){
+        return false;
+    }
+#ifdef HAVE_RDMA
+    if(!Stack::get_rdma_stack()->is_clear_done()){
+        return false;
+    }
+#endif
+    return true;
+}
+
 #ifdef HAVE_RDMA
 RdmaStack* Stack::get_rdma_stack(){
     if(!Stack::mct->config->rdma_enable){

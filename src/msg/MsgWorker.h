@@ -20,6 +20,9 @@ typedef std::function<void(void)> work_fn_t;
 //Return non-zero means that poller has processed some event.
 typedef std::function<int(void)> poller_fn_t;
 
+typedef void(* work_fn_p)(void *arg1, void *arg2);
+typedef int(* poller_fn_p)(void *ctx);
+
 class MsgWorker;
 
 class MsgWorkerThread : public Thread{
@@ -77,9 +80,20 @@ public:
     virtual uint64_t post_time_work(uint64_t microseconds, 
                                     work_fn_t work_fn) = 0;
     virtual void cancel_time_work(uint64_t time_work_id) = 0;
+
     virtual void post_work(work_fn_t work) = 0;
+    virtual void post_work(work_fn_p work_fn, void *arg1, void *arg2){
+        post_work([work_fn, arg1, arg2](){
+            work_fn(arg1, arg2);
+        });
+    }
 
     virtual uint64_t reg_poller(poller_fn_t poller_fn) = 0;
+    virtual uint64_t reg_poller(poller_fn_p poller_fn, void *arg){
+        return reg_poller([poller_fn, arg]()->int{
+            return poller_fn(arg);
+        });
+    }
     virtual void unreg_poller(uint64_t poller_id) = 0;
 
     virtual void start() = 0;

@@ -41,6 +41,14 @@ if(WITH_SPDK)
     import_spdk(${SPDK_DIR})
 endif()
 
+if(SPDK_FOUND)
+    set(HAVE_SPDK TRUE)
+else()
+    if(WITH_SPDK)
+        message(FATAL_ERROR "Can't find SPDK.")
+    endif()
+endif()
+
 # you should build gperftools with './configure --enable-frame-pointers',
 # as you will compile object with '-fno-omit-frame-pointer'
 option(CPU_PROFILE "Build with profiler(gperftools)." OFF)
@@ -94,7 +102,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(
     ${PROJECT_BINARY_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
-    ${Boost_INCLUDE_DIRS})
+    ${Boost_INCLUDE_DIRS}
+    ${SPDK_INCLUDE_DIR})
 
 #Check Includes
 include(CheckIncludeFiles)
