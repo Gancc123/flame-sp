@@ -89,8 +89,7 @@ private:
     int reap_send_msg();
     RdmaConnection(MsgContext *mct);
 public:
-    static RdmaConnection *create(MsgContext *mct, RdmaWorker *w, 
-                                                                uint8_t sl=0);
+    static RdmaConnection *create(MsgContext *mct, RdmaWorker *w, uint8_t sl=0);
     ~RdmaConnection();
     virtual msg_ttype_t get_ttype() override { return msg_ttype_t::RDMA; }
 

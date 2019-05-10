@@ -36,6 +36,7 @@ union cmd_num_t {
 #define CMD_CLS_MGR 0x00U   // 0x00 ~ 0x0F for MGR
 #define CMD_CLS_CSD 0x10U   // 0x10 ~ 0x1F for CSD
 #define CMD_CLS_TGT 0x20U   // 0x20 ~ 0x2F for TGT / GW
+#define CMD_CLS_MSG 0x30U   // 0x30 ~ 0x3F for MSG Module
 
 // 数据平面
 #define CMD_CLS_IO_CHK 0xF0U    // Chunk

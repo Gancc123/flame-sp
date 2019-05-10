@@ -19,6 +19,22 @@
 namespace flame{
 namespace msg{
 
+struct RdmaSendWr{
+    virtual ibv_send_wr& get_ibv_send_wr() = 0;
+    virtual void on_wr_done(ibv_wc &cqe) = 0;
+    virtual void on_wr_cancelled() = 0;
+
+    void *s_ctx; //用于获取原始结构体指针
+};
+
+struct RdmaRecvWr{
+    virtual ibv_recv_wr& get_ibv_recv_wr() = 0;
+    virtual void on_wr_done(ibv_wc &cqe) = 0;
+    virtual void on_wr_cancelled() = 0;
+
+    void *r_ctx; //用于获取原始结构体指针
+};
+
 class RdmaWorker;
 class RdmaManager;
 

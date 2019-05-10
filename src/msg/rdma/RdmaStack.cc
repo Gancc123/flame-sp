@@ -2,6 +2,7 @@
 #include "Infiniband.h"
 #include "RdmaListenPort.h"
 #include "RdmaConnection.h"
+#include "RdmaConnectionV2.h"
 #include "RdmaPrepConn.h"
 #include "msg/msg_def.h"
 #include "msg/MsgManager.h"
@@ -768,7 +769,7 @@ Connection* RdmaStack::connect(NodeAddr *addr){
     worker->add_event(prep_conn);
     prep_conn->set_owner(worker);
 
-    RdmaConnection *conn = prep_conn->get_rdma_conn();
+    Connection *conn = prep_conn->get_rdma_conn();
     prep_conn->put();
     return conn;
 }
