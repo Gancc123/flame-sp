@@ -150,6 +150,10 @@ int MsgContext::fin(){
     }
 #endif //HAVE_SPDK
 
+    if(this->state == msg_module_state_t::INIT){
+        return 0;
+    }
+
     bool next_ready;
     auto msg_manager = manager;
 

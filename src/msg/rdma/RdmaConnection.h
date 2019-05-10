@@ -133,6 +133,7 @@ public:
     }
     void fin();
     void fault();
+    bool is_closed() const { return status == RdmaStatus::CLOSED; }
     bool is_error() const { return status == RdmaStatus::ERROR; }
     ib::QueuePair *get_qp() const { return this->qp; }
     uint32_t get_tx_wr() const { return this->qp->get_tx_wr(); }
@@ -147,6 +148,10 @@ public:
 
     RdmaWorker *get_rdma_worker() const{
         return rdma_worker;
+    }
+
+    static inline RdmaConnection *get_by_qp(ib::QueuePair *qp){
+        return (RdmaConnection *)qp->user_ctx;
     }
 
     static std::string status_str(RdmaStatus s){

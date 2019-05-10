@@ -145,7 +145,6 @@ public:
     int clear_before_stop();
     void worker_clear_done_notify();
     bool is_clear_done();
-    void post_buffers_to_worker();
     int arm_async_event_handler(MsgWorker *worker);
     int handle_async_event();
     int get_rdma_worker_num() { return workers.size(); }

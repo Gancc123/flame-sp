@@ -82,6 +82,8 @@ RdmaConnection *RdmaConnection::create(MsgContext *mct, RdmaWorker *w,
         }
     }
 
+    qp->user_ctx = conn;
+
     return conn;
 }
 
@@ -185,16 +187,15 @@ size_t RdmaConnection::recv_data(){
         ++it;
     }
 
-    // when disconnected, release all rx buffers.
+    // When disconnected, release rx buffers.
     if(status == RdmaStatus::CLOSING_PASSIVE
         || status == RdmaStatus::CLOSED
-        || status == RdmaStatus::ERROR){
-        //release rx buffers 
+        || status == RdmaStatus::ERROR){ 
         rdma_worker->get_memory_manager()->release_buffers(chunks);
     }else if(qp->has_srq()){
         //release rx buffers 
         rdma_worker->get_memory_manager()->release_buffers(chunks);
-    }else{
+    }else {
         //return to self rq if no srq.
         rdma_worker->post_chunks_to_rq(chunks, qp->get_qp());
     }
@@ -915,6 +916,9 @@ void RdmaConnection::close(){
 }
 
 void RdmaConnection::fault(){
+    if(status == RdmaStatus::ERROR){
+        return;
+    }
     status = RdmaStatus::ERROR;
     this->get_listener()->on_conn_error(this);
     if(is_dead_pending){
@@ -924,6 +928,7 @@ void RdmaConnection::fault(){
     rdma_worker->make_conn_dead(this);
     
 }
+
 
 } //namespace msg
 } //namespace flame

@@ -225,12 +225,17 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
         }
     }
 
-    owner->post_work([to_wake_conns, this](){
-        ML(this->mct, trace, "in handle_tx_cqe()");
-        for(RdmaConnection *conn : to_wake_conns){
-            conn->send_msg(nullptr);
-        }
-    });
+    for(RdmaConnection *conn : to_wake_conns){
+        if(conn->is_error() || conn->is_closed()) continue;
+        conn->send_msg(nullptr);
+    }
+
+    // owner->post_work([to_wake_conns, this](){
+    //     ML(this->mct, trace, "in handle_tx_cqe()");
+    //     for(RdmaConnection *conn : to_wake_conns){
+    //         conn->send_msg(nullptr);
+    //     }
+    // });
 
     memory_manager->release_buffers(tx_chunks);
 }
@@ -350,7 +355,10 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
             } else {
                 polled[conn].push_back(*response);
             }
-        } else {
+        }else if(response->status == IBV_WC_WR_FLUSH_ERR){
+            //QP transitioned into Error State. Release all rx chunks.
+            memory_manager->release_buffer(chunk);
+        }else{
             //Todo 
             //Not distinguish the error type here.
             //No need to close the conn for some error types.
@@ -565,17 +573,23 @@ int RdmaManager::handle_async_event(){
         if(async_event.event_type == IBV_EVENT_QP_LAST_WQE_REACHED){
             ib::QueuePair *qp = ib::QueuePair::get_by_ibv_qp(
                                                         async_event.element.qp);
+            RdmaConnection *rdma_conn = RdmaConnection::get_by_qp(qp);
+            RdmaWorker *rdma_worker = rdma_conn->get_rdma_worker();
+
             uint32_t qpn = qp->get_local_qp_number();
             ML(mct, info, "event associated qp={} evt: {}, destroy it.", qpn,
                                     ibv_event_type_str(async_event.event_type));
             
-            for(auto &worker : workers){
-                //Only one worker has the conn.
-                //The others will do nothing.
-                worker->get_owner()->post_work(clear_qp_fn,
-                                                worker, 
+            rdma_worker->get_owner()->post_work(clear_qp_fn,
+                                                rdma_worker,
                                                 reinterpret_cast<void *>(qpn));
-            }
+            // for(auto &worker : workers){
+            //     //Only one worker has the conn.
+            //     //The others will do nothing.
+            //     worker->get_owner()->post_work(clear_qp_fn,
+            //                                     worker, 
+            //                                     reinterpret_cast<void *>(qpn));
+            // }
 
         }else{
             ML(mct, info, "ibv_get_async_event: dev={} evt: {}", 
@@ -665,8 +679,8 @@ int RdmaManager::clear_before_stop(){
 }
 
 void RdmaManager::worker_clear_done_notify(){
-    ML(mct, info, "clear_done_worker_cnt: {}", clear_done_worker_count.load());
-    clear_done_worker_count--;
+    int32_t cnt = --clear_done_worker_count;
+    ML(mct, info, "clear_done_worker_cnt: {} -> {}", cnt + 1, cnt);
     if(clear_done_worker_count <= 0){
         mct->clear_done_notify();
     }
