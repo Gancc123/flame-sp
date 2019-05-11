@@ -1,4 +1,4 @@
-#include "libflame/libflame.h"
+#include "include/libflame.h"
 
 namespace libflame {
 
