@@ -28,7 +28,7 @@ extern "C" {
  * Command Number
  * @length: 16 bit (2 Bytes)
  */
-struct cmd_num_t {
+union cmd_num_t {
     uint8_t cls;    // command class
     uint8_t seq;    // command sequence
 } __attribute__((packed));
@@ -457,7 +457,7 @@ protected:
 
 class CmdServerStub;
 
-typedef void (cmd_svi_fn_t*)(const CmdServerStub* srv, const Command& cmd);
+typedef void (cmd_svi_fn_t*)(const CommandServer* srv, const Command& cmd);
 
 class CmdService {
 public:
@@ -478,16 +478,12 @@ private:
 class CmdServerStub {
 public:
     
-    int call_service();
-
-    int msg_rdma_write();
-
-    int msg_rdma_read();
+    int call_service()
 
 protected:
     CmdServerStub() {}
     virtual ~CmdServerStub() {}
-}; // class CmdServerStub
+}; // class CommandServer
 
 } // namespace flame
 
