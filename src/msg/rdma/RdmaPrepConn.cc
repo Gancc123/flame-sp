@@ -75,8 +75,7 @@ RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, int cfd){
     return prep_conn;
 }
 
-RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr, 
-                                                                uint8_t sl){
+RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr, uint8_t sl){
     try{
         int fd = RdmaPrepConn::connect(mct, addr);
         auto conn = new RdmaPrepConn(mct);
@@ -92,8 +91,7 @@ RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr,
         conn->real_conn = real_conn;
         real_conn->get();
 
-        ib::Infiniband &ib = 
-                Stack::get_rdma_stack()->get_manager()->get_ib();
+        ib::Infiniband &ib = Stack::get_rdma_stack()->get_manager()->get_ib();
         auto &my_msg = real_conn->get_my_msg();
         my_msg.peer_qpn = 0;
 
@@ -129,7 +127,10 @@ void RdmaPrepConn::set_rdma_listen_port(RdmaListenPort *lp){
 }
 
 int RdmaPrepConn::send_my_msg(){
-    int r, write_len, total_bytes = 0;
+    int r = 0, write_len = 0, total_bytes = 0;
+    if(my_msg_buffer_offset == my_msg_buffer.offset()){
+        return 0;
+    }
     while(my_msg_buffer_offset < my_msg_buffer.offset()){
         r = ::send(fd, my_msg_buffer.data() + my_msg_buffer_offset, 
                                 my_msg_buffer.offset() - my_msg_buffer_offset,
@@ -153,13 +154,16 @@ int RdmaPrepConn::send_my_msg(){
             break;
         }
     }
-    ML(mct, trace, "RdmaPrepConn {} send {} bytes, msg_buffer {} bytes",
+    ML(mct, trace, "RdmaPrepConn {} send {} bytes, msg_buffer {} bytes.",
             fd, total_bytes, my_msg_buffer.length());
     return total_bytes;
 }
 
 int RdmaPrepConn::recv_peer_msg(){
-    int r, recv_len, total_bytes = 0;
+    int r = 0, recv_len = 0, total_bytes = 0;
+    if(peer_msg_buffer_offset == peer_msg_buffer.length()){
+        return 0;
+    }
     while(peer_msg_buffer_offset < peer_msg_buffer.length()){
         r = ::recv(fd, peer_msg_buffer.data() + peer_msg_buffer_offset, 
                             peer_msg_buffer.length() - peer_msg_buffer_offset,
@@ -226,6 +230,8 @@ void RdmaPrepConn::read_cb(){
                     ML(mct, error, "RdmaConn activate() failed."
                                     " Close related RdmaPrepConn.");
                     this->close();
+                }else{
+                    send_my_msg();
                 }
             }else{
                 return;
@@ -254,6 +260,8 @@ void RdmaPrepConn::read_cb(){
                     ML(mct, error, "RdmaConn activate() failed."
                                     " Close related RdmaPrepConn.");
                     this->close();
+                }else{
+                    send_my_msg();
                 }
             }
         }else if(status == PrepStatus::SYNED_MY_MSG){
@@ -340,7 +348,7 @@ void RdmaPrepConn::close_rdma_conn_if_need(){
     // close rdma conn when prep conn failed.
     if(!real_conn->is_connected()){
         ML(mct, warn, "close RdmaConn {:p}", (void *)real_conn);
-        real_conn->error_cb();
+        real_conn->close();
     }
 }
 

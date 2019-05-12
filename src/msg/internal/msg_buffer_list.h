@@ -383,7 +383,7 @@ public:
         return buffer.offset();
     }
 
-    int clear(){
+    void clear(){
         m_buffer_list.clear();
         off = 0;
         len = 0;

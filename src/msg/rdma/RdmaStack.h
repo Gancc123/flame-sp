@@ -27,7 +27,7 @@ typedef std::function<void(RdmaRwWork *, RdmaConnection*)> rdma_rw_work_func_t;
 
 struct RdmaRwWork{
     using RdmaBuffer = ib::RdmaBuffer;
-    std::vector<RdmaBuffer *> rbufs;
+    std::vector<RdmaBuffer *> rbufs; //bufs num should <= 8.
     std::vector<RdmaBuffer *> lbufs; //must be same num as rbufs.
     bool is_write;
     uint32_t imm_data = 0; // 0 means no imm data.
@@ -73,6 +73,7 @@ class RdmaWorker{
     using Chunk = ib::Chunk; 
     MsgContext *mct;
     MsgWorker *owner = nullptr;
+    uint64_t poller_id = 0;
     RdmaManager *manager;
     ib::MemoryManager *memory_manager = nullptr;
     ib::CompletionChannel *tx_cc = nullptr, *rx_cc = nullptr;
@@ -88,10 +89,6 @@ class RdmaWorker{
     //This will ensure that all tx_buffer will be returned to memory manager.
     std::list<RdmaConnection *> dead_conns;
 
-    Mutex fin_clean_mutex;
-    Cond  fin_clean_cond;
-    bool is_fin_clean = false;
-
     std::atomic<bool> is_fin;
 
     void handle_tx_cqe(ibv_wc *cqe, int n);
@@ -99,17 +96,16 @@ class RdmaWorker{
     void handle_rx_cqe(ibv_wc *cqe, int n);
 public:
     explicit RdmaWorker(MsgContext *c, RdmaManager *m)
-    :mct(c), manager(m), fin_clean_mutex(MUTEX_TYPE_ADAPTIVE_NP), 
-     fin_clean_cond(fin_clean_mutex), is_fin(false) {}
+    :mct(c), manager(m) {}
     ~RdmaWorker();
     int init();
     int clear_before_stop();
     void clear_qp(uint32_t qpn);
-    void fin_clean_wait();
-    void fin_clean_signal();
     int on_buffer_reclaimed();
     int arm_notify(MsgWorker *worker);
     int remove_notify();
+    int reg_poller(MsgWorker *worker);
+    int unreg_poller();
     void reap_dead_conns();
     int process_cq_dry_run();
     int process_tx_cq(ibv_wc *wc, int max_cqes);
@@ -140,12 +136,15 @@ class RdmaManager{
     RdmaAsyncEventHandler *async_event_handler = nullptr;
 
     std::vector<RdmaWorker *> workers;
+    std::atomic<int32_t> clear_done_worker_count;
 public:
     explicit RdmaManager(MsgContext *c)
-    :mct(c), m_ib(c) {};
+    :mct(c), m_ib(c), clear_done_worker_count(0) {};
     ~RdmaManager();
     int init();
     int clear_before_stop();
+    void worker_clear_done_notify();
+    bool is_clear_done();
     void post_buffers_to_worker();
     int arm_async_event_handler(MsgWorker *worker);
     int handle_async_event();
@@ -154,16 +153,19 @@ public:
     RdmaWorker *get_lightest_load_rdma_worker();
     MsgWorker *get_owner() const { return this->owner; }
     ib::Infiniband &get_ib() { return m_ib; }
+
 };
 
 
 class RdmaStack : public Stack{
     MsgContext *mct;
     RdmaManager *manager;
+    uint64_t max_msg_size_;
 public:
     explicit RdmaStack(MsgContext *c);
     virtual int init() override;
     virtual int clear_before_stop() override;
+    virtual bool is_clear_done() override;
     virtual int fin() override;
     virtual ListenPort* create_listen_port(NodeAddr *addr) override;
     virtual Connection* connect(NodeAddr *addr) override;
@@ -175,6 +177,9 @@ public:
             return static_cast<RdmaConnection *>(conn);
         }
         return nullptr;
+    }
+    uint64_t max_msg_size(){
+        return max_msg_size_;
     }
 };
 

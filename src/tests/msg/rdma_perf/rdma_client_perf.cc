@@ -30,85 +30,110 @@ void send_first_msg(MsgContext *mct){
     if(global_config.perf_type == perf_type_t::MEM_PUSH){
         ML(mct, info, "send first msg (mem_push)");
         auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
-        
-        auto buf = allocator->alloc(global_config.size); 
-        assert(buf);
-        msg_rdma_header_d rdma_header(1, false);
-        rdma_header.rdma_bufs.push_back(buf);
-        buf->buffer()[0] = 'A';
-        buf->buffer()[buf->size() - 1] = 'Z';
-        buf->data_len = buf->size();
-        global_config.rw_buffer = buf;
 
-        global_config.tposted[0] = get_cycles();
+        for(int iter = 0;iter < global_config.depth;++iter){
+            uint32_t index = iter * (global_config.num + 1);
 
-        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
-        req_msg->set_flags(FLAME_MSG_FLAG_RDMA);
-        req_msg->set_rdma_cnt(1);
-        req_msg->append_data(rdma_header);
+            auto buf = allocator->alloc(global_config.size);
+            assert(buf);
+            buf->data_len = buf->size();
+            msg_rdma_header_d rdma_header(1, false);
+            rdma_header.rdma_bufs.push_back(buf);
+            buf->buffer()[0] = 'A';
+            buf->buffer()[buf->size() - 1] = 'Z';
+            buf->data_len = buf->size();
+            global_config.rw_buffers.push_back(buf);
 
-        msg_incre_d incre_data;
-        incre_data.num = 0;
-        req_msg->append_data(incre_data);
+            global_config.tposted[index] = get_cycles();
 
-        conn->send_msg(req_msg);
-        req_msg->put();
+            auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+
+            req_msg->set_flags(FLAME_MSG_FLAG_RDMA);
+            req_msg->set_rdma_cnt(1);
+            req_msg->append_data(rdma_header);
+
+            msg_incre_d incre_data;
+            incre_data.index = iter;
+            incre_data.num = 0;
+            req_msg->append_data(incre_data);
+
+            conn->send_msg(req_msg, true);
+            req_msg->put();
+        }
+        conn->send_msg(nullptr, false);
     }else if(global_config.perf_type == perf_type_t::MEM_FETCH
                 || global_config.perf_type == perf_type_t::MEM_FETCH_WITH_IMM){
         ML(mct, info, "send first msg (mem_fetch)");
         auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
-        
-        auto buf = allocator->alloc(global_config.size);
-        assert(buf);
-        buf->data_len = buf->size();
-        msg_rdma_header_d rdma_header(1, false);
-        rdma_header.rdma_bufs.push_back(buf);
-        global_config.rw_buffer = buf;
 
-        global_config.tposted[0] = get_cycles();
+        for(int iter = 0;iter < global_config.depth;++iter){
+            uint32_t index = iter * (global_config.num + 1);
+            auto buf = allocator->alloc(global_config.size);
+            assert(buf);
+            buf->data_len = buf->size();
+            msg_rdma_header_d rdma_header(1, false);
+            rdma_header.rdma_bufs.push_back(buf);
+            global_config.rw_buffers.push_back(buf);
 
-        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
-        req_msg->set_flags(FLAME_MSG_FLAG_RDMA);
-        req_msg->set_rdma_cnt(1);
-        req_msg->append_data(rdma_header);
+            global_config.tposted[index] = get_cycles();
 
-        msg_incre_d incre_data;
-        incre_data.num = 0;
-        req_msg->append_data(incre_data);
+            auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
 
-        conn->send_msg(req_msg);
-        req_msg->put();
+            req_msg->set_flags(FLAME_MSG_FLAG_RDMA);
+            req_msg->set_rdma_cnt(1);
+            req_msg->append_data(rdma_header);
+
+            msg_incre_d incre_data;
+            incre_data.index = iter;
+            incre_data.num = 0;
+            req_msg->append_data(incre_data);
+
+            conn->send_msg(req_msg, true);
+            req_msg->put();
+        }
+        conn->send_msg(nullptr, false);
     }else if(global_config.perf_type == perf_type_t::SEND){
         ML(mct, info, "send first msg (send)");
-        global_config.tposted[0] = get_cycles();
-        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
 
-        msg_incre_d incre_data;
-        incre_data.num = 0;
-        req_msg->append_data(incre_data);
+        for(int iter = 0;iter < global_config.depth;++iter){
+            uint32_t index = iter * (global_config.num + 1);
+            global_config.tposted[index] = get_cycles();
 
-        conn->send_msg(req_msg);
-        req_msg->put();
+            auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+            msg_incre_d incre_data;
+            incre_data.index = iter;
+            incre_data.num = 0;
+            req_msg->append_data(incre_data);
+
+            conn->send_msg(req_msg, true);
+            req_msg->put();
+        }
+        conn->send_msg(nullptr, false);
     }else if(global_config.perf_type == perf_type_t::SEND_DATA){
-        ML(mct, info, "send first msg (send)");
+        ML(mct, info, "send first msg (senddata)");
 
-        auto buf = new MsgBuffer(global_config.size);
-        assert(buf);
-        buf->set_offset(global_config.size);
-        (*buf)[0] = 'A';
-        (*buf)[buf->offset() - 1] = 'Z';
-        global_config.data_buffer = buf;
+        for(int iter = 0;iter < global_config.depth;++iter){
+            uint32_t index = iter * (global_config.num + 1);
+            global_config.tposted[index] = get_cycles();
 
-        global_config.tposted[0] = get_cycles();
-        auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+            auto req_msg = Msg::alloc_msg(mct, msg_ttype_t::RDMA);
+            msg_incre_d incre_data;
+            incre_data.index = iter;
+            incre_data.num = 0;
 
-        msg_incre_d incre_data;
-        incre_data.num = 0;
-        req_msg->append_data(incre_data);
-        req_msg->append_data(*buf);
+            req_msg->append_data(incre_data);
 
-        conn->send_msg(req_msg);
-        req_msg->put();
+            MsgBuffer buf(global_config.size);
+            buf.set_offset(global_config.size);
+            buf[0] = 'A';
+            buf[buf.offset() - 1] = 'Z';
+
+            req_msg->data_buffer_list().append_nocp(std::move(buf));
+
+            conn->send_msg(req_msg, true);
+            req_msg->put();
+        }
+        conn->send_msg(nullptr, false);
     }
     rdma_addr->put();
     addr->put();
@@ -133,17 +158,23 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    global_config.num = (int)options.get("num");
+    global_config.num = (uint32_t)options.get("num");
+    global_config.depth = (uint32_t)options.get("depth");
     global_config.result_file = std::string(options.get("result_file"));
     global_config.perf_type = perf_type_from_str(
                                             std::string(options.get("type")));
+    global_config.use_imm_resp = (bool)options.get("imm_resp");
+    global_config.inline_size = std::string(options.get("inline"));
     global_config.size = size_str_to_uint64(std::string(options.get("size")));
     
     global_config.target_rdma_ip = std::string(options.get("address"));
     global_config.target_rdma_port = (int)options.get("port");
 
+    global_config.no_thr_optimize = (bool)options.get("no_thr_opt");
+
     auto mct = new MsgContext(fct);
-    ML(mct, info, "num:{} size:{}", global_config.num, global_config.size);
+    ML(mct, info, "num:{} depth:{} size:{}", global_config.num,
+                                    global_config.depth, global_config.size);
 
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
@@ -154,6 +185,7 @@ int main(int argc, char *argv[]){
 
     mct->load_config();
     mct->config->set_msg_log_level(std::string(options.get("log_level")));
+    mct->config->set_rdma_max_inline_data(std::string(options.get("inline")));
 
     ML(mct, info, "before msg module init");
     mct->init(msger, nullptr);
@@ -165,6 +197,8 @@ int main(int argc, char *argv[]){
     send_first_msg(mct);
 
     std::getchar();
+
+    msger->clear_rw_buffers();
 
     ML(mct, info, "before msg module fin");
     mct->fin();

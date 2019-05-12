@@ -38,11 +38,16 @@ int main(int argc, char *argv[]){
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    global_config.num = (int)options.get("num");
+    global_config.num = (uint32_t)options.get("num");
+    global_config.depth = (uint32_t)options.get("depth");
     global_config.result_file = std::string(options.get("result_file"));
     global_config.perf_type = perf_type_from_str(
                                             std::string(options.get("type")));
+    global_config.use_imm_resp = (bool)options.get("imm_resp");
+    global_config.inline_size = std::string(options.get("inline"));
     global_config.size = size_str_to_uint64(std::string(options.get("size")));
+    
+    global_config.no_thr_optimize = (bool)options.get("no_thr_opt");
 
     init_resource(global_config);
 
@@ -50,6 +55,7 @@ int main(int argc, char *argv[]){
 
     mct->load_config();
     mct->config->set_msg_log_level(std::string(options.get("log_level")));
+    mct->config->set_rdma_max_inline_data(std::string(options.get("inline")));
 
     ML(mct, info, "before msg module init");
     mct->init(rdma_msger, nullptr);
@@ -59,6 +65,8 @@ int main(int argc, char *argv[]){
                                          mct->config->msger_id.port);
 
     std::getchar();
+
+    rdma_msger->clear_rw_buffers();
 
     ML(mct, info, "before msg module fin");
     mct->fin();

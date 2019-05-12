@@ -6,14 +6,8 @@
 #include <cstdlib>
 #include <sys/mman.h>
 
-#ifdef ON_SW_64
-    #define HUGE_PAGE_SIZE (8 * 1024 * 1024)
-#else
-    #define HUGE_PAGE_SIZE (2 * 1024 * 1024)
-#endif
-
-#define ALIGN_TO_PAGE_SIZE(x) \
-  (((x) + HUGE_PAGE_SIZE -1) / HUGE_PAGE_SIZE * HUGE_PAGE_SIZE)
+#define ALIGN_TO_PAGE_SIZE(x, page_size) \
+  (((x) + (page_size) -1) / (page_size) * (page_size))
 
 namespace flame{
 namespace msg{
@@ -119,7 +113,8 @@ char *PoolAllocator::malloc(const size_type bytes){
 
     size_t real_size;
     if(mct->config->rdma_enable_hugepage){
-        real_size = ALIGN_TO_PAGE_SIZE(bytes + sizeof(*m));
+        uint32_t page_size = mmgr->get_hugepage_size();
+        real_size = ALIGN_TO_PAGE_SIZE(bytes + sizeof(*m), page_size);
     }else{
         real_size = bytes + sizeof(*m);
     }
@@ -179,6 +174,7 @@ void PoolAllocator::free(char * const block){
 
 MemoryManager::MemoryManager(MsgContext *c, ProtectionDomain *p)
 : mct(c), pd(p), buffer_size(c->config->rdma_buffer_size),
+    hugepage_size(c->config->rdma_hugepage_size),
     lock(MUTEX_TYPE_ADAPTIVE_NP), huge_page_map_lock(MUTEX_TYPE_ADAPTIVE_NP),
     mem_pool(this, sizeof(Chunk) + mct->config->rdma_buffer_size,
                                                         calcu_init_space(c)){
@@ -186,6 +182,7 @@ MemoryManager::MemoryManager(MsgContext *c, ProtectionDomain *p)
     assert(rdma_buffer_allocator);
     int r = rdma_buffer_allocator->init();
     assert(r == 0);
+    ML(mct, info, "hugepage size: {}", size_str_from_uint64(hugepage_size));
 }
 
 MemoryManager::~MemoryManager(){
@@ -195,12 +192,12 @@ MemoryManager::~MemoryManager(){
 }
 
 void* MemoryManager::huge_pages_malloc(size_t size){
-    size_t real_size = ALIGN_TO_PAGE_SIZE(size);
+    size_t real_size = ALIGN_TO_PAGE_SIZE(size, hugepage_size);
     char *ptr = (char *)mmap(nullptr, real_size, PROT_READ | PROT_WRITE,
                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE | MAP_HUGETLB,
                     -1, 0);
     if (ptr == MAP_FAILED) {
-        ML(mct, info, "Alloc huge page failed. Use malloc. {} ({}) B",
+        ML(mct, warn, "Alloc huge page failed. Use malloc. {} ({}) B",
             size, real_size);
         ptr = (char *)std::malloc(real_size);
         if (ptr == nullptr) return nullptr;
@@ -219,7 +216,7 @@ void MemoryManager::huge_pages_free(void *ptr){
     auto it = huge_page_map.find(ptr);
     if(it != huge_page_map.end()){
         size_t real_size = it->second;
-        assert(real_size % HUGE_PAGE_SIZE == 0);
+        assert(real_size % hugepage_size == 0);
         munmap(ptr, real_size);
         huge_page_map.erase(it);
     }else{
@@ -271,17 +268,17 @@ uint64_t MemoryManager::calcu_init_space(MsgContext *mct){
     auto config = mct->config;
 
     uint64_t default_init_space = 
-            2 * (config->rdma_recv_queue_len + config->rdma_send_queue_len);
+            64 * (config->rdma_recv_queue_len + config->rdma_send_queue_len);
 
     size_t chunk_bytes = config->rdma_buffer_size + sizeof(Chunk);
     
-    if(default_init_space 
-                    < (HUGE_PAGE_SIZE - 16 - sizeof(mem_info)) / chunk_bytes){
-        // use a huge page for init: 
-        // mem_info(4K) + chunks(4K * n) == huge_page_size
-        default_init_space = 
-                        (HUGE_PAGE_SIZE - 16 - sizeof(mem_info)) / chunk_bytes;
-    }
+    // if(default_init_space 
+    //                 < (hugepage_size - 16 - sizeof(mem_info)) / chunk_bytes){
+    //     // use a huge page for init: 
+    //     // mem_info(4K) + chunks(4K * n) == huge_page_size
+    //     default_init_space = 
+    //                     (hugepage_size - 16 - sizeof(mem_info)) / chunk_bytes;
+    // }
 
     if(config->rdma_buffer_num > 0 
         && config->rdma_buffer_num < default_init_space){

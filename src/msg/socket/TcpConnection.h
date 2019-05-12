@@ -44,7 +44,7 @@ public:
 
     virtual msg_ttype_t get_ttype() override { return msg_ttype_t::TCP; }
     
-    virtual ssize_t send_msg(Msg *msg) override;
+    virtual ssize_t send_msg(Msg *msg, bool more=false) override;
     virtual Msg* recv_msg() override;
     virtual int pending_msg() override {
         MutexLocker locker(msg_list_mutex);

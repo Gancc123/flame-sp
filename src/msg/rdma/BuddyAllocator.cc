@@ -24,13 +24,13 @@ BuddyAllocator *BuddyAllocator::create(MsgContext *c,
         return nullptr;
     }
 
-    char *base = reinterpret_cast<char *>(src->alloc(1 << max_level));
+    char *base = reinterpret_cast<char *>(src->alloc(1ULL << max_level));
     if(!base){
-        ML(c, error, "mem_src->alloc( {}B ) failed! ", 1 << max_level);
+        ML(c, error, "mem_src->alloc( {}B ) failed! ", 1ULL << max_level);
         return nullptr;
     }
 
-    size_t bm_size = 1 << levels;
+    size_t bm_size = 1ULL << levels;
 
     BitMap *bm = BitMap::create(bm_size);
     if(!bm){
@@ -54,7 +54,7 @@ BuddyAllocator *BuddyAllocator::create(MsgContext *c,
     ap->free_list.resize(levels, nullptr);
 
     ap->base = base;
-    ap->mem_free = 1 << max_level;
+    ap->mem_free = 1ULL << max_level;
 
     ap->mem_src = src;
 
@@ -99,13 +99,13 @@ void *BuddyAllocator::alloc(size_t s){
             //use the left chunk 
             bit_map->set(index_of_p(par_p, level_it), true);
             //the right chunk will be pushed to freelist
-            push_chunk_of_level(par_p + (1 << level_it) , level_it);
+            push_chunk_of_level(par_p + (1ULL << level_it) , level_it);
             --level_it;
         }
         p = par_p;
     }
-    mem_free -= (1 << level);
-    return mem_src->prep_mem_before_return(p, base, (1 << level));
+    mem_free -= (1ULL << level);
+    return mem_src->prep_mem_before_return(p, base, (1ULL << level));
 }
 
 void BuddyAllocator::free(void *pvoid, size_t s){
@@ -117,7 +117,7 @@ void BuddyAllocator::free(void *pvoid, size_t s){
     }else{
         level = find_level_for_free(p);
     }
-    mem_free += (1 << level);
+    mem_free += (1ULL << level);
 
     while(level < max_level){
         size_t index = index_of_p(p, level);
@@ -126,13 +126,13 @@ void BuddyAllocator::free(void *pvoid, size_t s){
             if(bit_map->at(index + 1)){
                 break;
             }
-            remove_chunk_of_level(p + (1 << level), level);
+            remove_chunk_of_level(p + (1ULL << level), level);
         }else{ // cur buddy is at right
             if(bit_map->at(index - 1)){
                 break;
             }
             // cur buddy expands to its parent.
-            p -= (1 << level);
+            p -= (1ULL << level);
             remove_chunk_of_level(p, level);
         }
         ++level;
@@ -148,7 +148,7 @@ std::string BuddyAllocator::get_stat() const{
     fmt::memory_buffer out;
     fmt::format_to(out, "{}/{} {}%: ", used, total, used*100/total);
     for(uint8_t l = max_level;l >= min_level;--l){
-        fmt::format_to(out, "L{}({}B)={} ", (uint32_t)l, (1 << l), 
+        fmt::format_to(out, "L{}({}B)={} ", (uint32_t)l, (1ULL << l), 
                                                         chunks_of_level(l));
     }
     return fmt::to_string(out);

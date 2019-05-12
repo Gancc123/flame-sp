@@ -1,6 +1,7 @@
 #ifndef FLAME_MSG_INTERNAL_CONFIG_H
 #define FLAME_MSG_INTERNAL_CONFIG_H
 
+#include "acconfig.h"
 #include "util/clog.h"
 #include "types.h"
 #include "msg/msg_def.h"
@@ -11,22 +12,34 @@
 #include <cassert>
 
 #define FLAME_MSG_LOG_LEVEL_D         "PRINT"
+#define FLAME_MSG_WORKER_TYPE_D       "THREAD"
+#define FLAME_MSG_WORKER_NUM_D        "4"
+#define FLAME_MSG_WORKER_CPU_MAP_D    ""
+#define FLAME_MSG_WORKER_SPDK_EVENT_POLL_PERIOD_D "400" //microsecond
 #define FLAME_MSGER_ID_D              ""
 #define FLAME_NODE_LISTEN_PORTS_D     ""
 #define FLAME_RDMA_ENABLE_D           "false"
+#define FLAME_RDMA_HUGEPAGE_SIZE_D    "2M"
 #define FLAME_RDMA_DEVICE_NAME_D      ""
 #define FLAME_RDMA_PORT_NUM_D         ""
 #define FLAME_RDMA_BUFFER_NUM_D       ""
-#define FLAME_RDMA_BUFFER_SIZE_D      "4080"
-#define FLAME_RDMA_SEND_QUEUE_LEN_D   "256"
-#define FLAME_RDMA_RECV_QUEUE_LEN_D   "256"
+#define FLAME_RDMA_BUFFER_SIZE_D      "4224"
+#define FLAME_RDMA_MAX_INLINE_DATA_D  "128"
+#define FLAME_RDMA_SEND_QUEUE_LEN_D   "64"
+#define FLAME_RDMA_RECV_QUEUE_LEN_D   "1024"
 #define FLAME_RDMA_ENABLE_HUGEPAGE_D  "true"
 #define FLAME_RDMA_ENABLE_SRQ_D       "true"
 #define FLAME_RDMA_CQ_PAIR_NUM_D      "1"
-#define FLAME_RDMA_TRAFFIC_CLASS      "0"
+#define FLAME_RDMA_TRAFFIC_CLASS_D    "0"
 #define FLAME_RDMA_PATH_MTU_D         "4096"
-#define FLAME_RDMA_MEM_MIN_LEVEL      "12"
-#define FLAME_RDMA_MEM_MAX_LEVEL      "28"
+#define FLAME_RDMA_MEM_MIN_LEVEL_D    "12"
+#define FLAME_RDMA_MEM_MAX_LEVEL_D    "29"
+#define FLAME_RDMA_POLL_EVENT_D       "true"
+
+#ifdef ON_SW_64
+    #define FLAME_RDMA_HUGEPAGE_SIZE_D "8M"
+#endif 
+
 
 
 namespace flame{
@@ -34,6 +47,8 @@ namespace flame{
 class FlameContext;
 
 namespace msg{
+
+enum class msg_worker_type_t;
 
 class MsgConfig{
     FlameContext *fct;
@@ -64,6 +79,35 @@ public:
      */
     msg_log_level_t msg_log_level;
     int set_msg_log_level(const std::string &v);
+
+    /**
+     * Msg module msg worker type
+     * @cfg: msg_worker_type
+     */
+    msg_worker_type_t msg_worker_type;
+    int set_msg_worker_type(const std::string &v);
+
+    /**
+     * Msg module workers num
+     * @cfg: msg_worker_num
+     */
+    int msg_worker_num;
+    int set_msg_worker_num(const std::string &v);
+
+    /**
+     * Msg module msg worker cpu map
+     * @cfg: msg_worker_cpu_map
+     */
+    std::vector<int> msg_worker_cpu_map;
+    int set_msg_worker_cpu_map(const std::string &v);
+
+    /**
+     * Msg module msg worker spdk event poll period
+     * Only for SpdkMsgWorker event poll time interval.
+     * @cfg: msg_worker_spdk_event_poll_period
+     */
+    uint64_t msg_worker_spdk_event_poll_period;
+    int set_msg_worker_spdk_event_poll_period(const std::string &v);
 
     /**
      * Msger Id
@@ -117,6 +161,13 @@ public:
     int set_rdma_buffer_size(const std::string &v);
 
     /**
+     * RDMA max inline data
+     * @cfg: rdma_max_inline_data
+     */
+    uint32_t rdma_max_inline_data;
+    int set_rdma_max_inline_data(const std::string &v);
+
+    /**
      * RDMA send queue len
      * @cfg: rdma_send_queue_len
      */
@@ -136,6 +187,14 @@ public:
      */
     int rdma_enable_hugepage;
     int set_rdma_enable_hugepage(const std::string &v);
+
+    /**
+     * RDMA hugepage size
+     * @cfg: rdma_hugepage_size
+     * @value: 2M, 8M, 1G
+     */
+    uint32_t rdma_hugepage_size;
+    int set_rdma_hugepage_size(const std::string &v);
 
     /**
      * RDMA path mtu
@@ -165,7 +224,6 @@ public:
     uint8_t rdma_traffic_class;
     int set_rdma_traffic_class(const std::string &v);
 
-
     /**
      * RDMA RdmaBuffer min size (2^min_level)
      * @cfg: rdma_mem_min_level
@@ -180,6 +238,13 @@ public:
      */
     uint8_t rdma_mem_max_level;
     int set_rdma_mem_max_level(const std::string &v);
+
+    /**
+     * RDMA poll event
+     * @cfg: rdma_poll_event
+     */
+    bool rdma_poll_event;
+    int set_rdma_poll_event(const std::string &v);
 
 };
 

@@ -1,3 +1,5 @@
+set(OUTPUT_DIR "${TESTS_MSG_OUTPUT_DIR}/msg")
+
 add_executable(flame_test_msg_client
     test_msg_client.cc
     )
@@ -8,11 +10,11 @@ add_custom_command(
     TARGET flame_test_msg_client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg
-            ${CMAKE_BINARY_DIR}/bin/msg)
+            ${OUTPUT_DIR})
 
 set_target_properties(flame_test_msg_client
     PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/msg"
+    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
     )
 
 
@@ -26,11 +28,11 @@ add_custom_command(
     TARGET flame_test_msg_manager POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_SOURCE_DIR}/flame_manager.cfg
-            ${CMAKE_BINARY_DIR}/bin/msg)
+            ${OUTPUT_DIR})
 
 set_target_properties(flame_test_msg_manager
     PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/msg"
+    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
     )
 
 

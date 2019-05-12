@@ -19,9 +19,39 @@ if(SW_64)
     set(ON_SW_64 ${SW_64})
 endif(SW_64)
 
+option(WITH_SPDK "Build with SPDK" OFF)
+if(WITH_SPDK)
+    set(SPDK_DIR "$ENV{SPDK_ROOT}")
+    if(NOT SPDK_DIR)
+        set(SPDK_DIR "${PROJECT_SOURCE_DIR}/src/spdk")
+    endif()
+    if(NOT EXISTS ${SPDK_DIR})
+        message(FATAL_ERROR "Can't find SPDK. Please set Env Var SPDK_ROOT")
+    endif()
+
+    set(DPDK_DIR "$ENV{DPDK_ROOT}")
+    if(NOT DPDK_DIR)
+        set(DPDK_DIR "${SPDK_DIR}/dpdk")
+    endif()
+    if(NOT EXISTS ${DPDK_DIR})
+        message(FATAL_ERROR "Can't find DPDK. Please set Env Var DPDK_ROOT")
+    endif()
+
+    include(ImportSPDK)
+    import_spdk(${SPDK_DIR})
+endif()
+
+if(SPDK_FOUND)
+    set(HAVE_SPDK TRUE)
+else()
+    if(WITH_SPDK)
+        message(FATAL_ERROR "Can't find SPDK.")
+    endif()
+endif()
+
 # you should build gperftools with './configure --enable-frame-pointers',
 # as you will compile object with '-fno-omit-frame-pointer'
-option(CPU_PROFILE "Build with profiler(gperftools)." ON)
+option(CPU_PROFILE "Build with profiler(gperftools)." OFF)
 
 #set(CMAKE_BUILD_TYPE Debug)
 # for perf 
@@ -57,6 +87,13 @@ if(NOT Boost_FOUND)
     endif(WITH_RDMA)
 endif(NOT Boost_FOUND)
 
+#find AIO
+find_package(aio REQUIRED)
+find_package(protobuf REQUIRED)
+find_package(grpc REQUIRED)
+find_package(mysql REQUIRED)
+find_package(mysqlcppconn REQUIRED)
+
 #put all the libs and binaries in one place
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -65,7 +102,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(
     ${PROJECT_BINARY_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
-    ${Boost_INCLUDE_DIRS})
+    ${Boost_INCLUDE_DIRS}
+    ${SPDK_INCLUDE_DIR})
 
 #Check Includes
 include(CheckIncludeFiles)

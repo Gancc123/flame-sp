@@ -4,6 +4,7 @@
 #include <infiniband/verbs.h>
 #include <boost/pool/pool.hpp>
 #include <map>
+#include <vector>
 
 #include "msg/msg_context.h"
 #include "common/thread/mutex.h"
@@ -135,6 +136,10 @@ public:
         mem_pool.free(chunk);
     }
 
+    uint32_t get_hugepage_size() const{
+        return hugepage_size;
+    }
+
     uint32_t get_buffer_size() const{
         return buffer_size;
     }
@@ -174,6 +179,7 @@ private:
     Mutex huge_page_map_lock;
     std::map<void *, size_t> huge_page_map;
     const uint32_t buffer_size;
+    const uint32_t hugepage_size;
     /**
      * Not thread safe.
      * When used in slow_malloc, already take lock.

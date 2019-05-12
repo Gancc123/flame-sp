@@ -11,10 +11,6 @@
 #include "msg/msg_def.h"
 #include "MemoryManager.h"
 
-#define HUGE_PAGE_SIZE (2 * 1024 * 1024)
-#define ALIGN_TO_PAGE_SIZE(x) \
-  (((x) + HUGE_PAGE_SIZE -1) / HUGE_PAGE_SIZE * HUGE_PAGE_SIZE)
-
 
 namespace flame{
 namespace msg{
@@ -173,7 +169,7 @@ public:
     int poll_cq(int num_entries, ibv_wc *ret_wc_array);
 
     ibv_cq* get_cq() const { return cq; }
-    int rearm_notify(bool solicited_only=true);
+    int rearm_notify(bool solicited_only=false);
     CompletionChannel* get_cc() const { return channel; }
 private:
     MsgContext *mct;
@@ -258,7 +254,7 @@ public:
                 }
                 
             }
-        }while(tx_wr_inflight.compare_exchange_weak(wr_inflight, 
+        }while(!tx_wr_inflight.compare_exchange_weak(wr_inflight, 
                                                     wr_inflight + real_amt, 
                                                     std::memory_order_release,
                                                     std::memory_order_relaxed));
@@ -341,7 +337,6 @@ public:
     int encode_msg(MsgContext *mct, IBSYNMsg& msg, MsgBuffer &buffer);
     int decode_msg(MsgContext *mct, IBSYNMsg& msg, MsgBuffer &buffer);
     static int get_ib_syn_msg_len();
-    static int get_max_inline_data();
     uint16_t get_lid() { return device->get_lid(); }
     ibv_gid get_gid() { return device->get_gid(); }
     MemoryManager* get_memory_manager() { return memory_manager; }

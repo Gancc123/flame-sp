@@ -10,8 +10,35 @@
     #include "rdma/RdmaStack.h"
 #endif
 
+#ifdef HAVE_SPDK
+    #include "spdk/SpdkMsgWorker.h"
+#endif 
+
 namespace flame{
 namespace msg{
+
+MsgManager::MsgManager(MsgContext *c, int worker_num)
+: mct(c), is_running(false), m_mutex(MUTEX_TYPE_ADAPTIVE_NP){
+    workers.reserve(worker_num);
+    for(int i = 0;i < worker_num; ++i){
+        MsgWorker *msg_worker = nullptr;
+        if(mct->config->msg_worker_type == msg_worker_type_t::THREAD){
+            msg_worker = new ThrMsgWorker(mct, i);
+#ifdef HAVE_SPDK
+        }else if(mct->config->msg_worker_type == msg_worker_type_t::SPDK){
+            msg_worker = new SpdkMsgWorker(mct, i);
+#endif //HAVE_SPDK
+        }else{ //use ThrMsgWorker as default.
+            msg_worker = new ThrMsgWorker(mct, i);
+        }
+        workers.push_back(msg_worker);
+        if(!mct->config->msg_worker_cpu_map.empty()){
+            int cpu_id = mct->config->msg_worker_cpu_map[i];
+            workers[i]->set_affinity(cpu_id);
+            ML(mct, info, "bind thr{} to cpu{}", i, cpu_id);
+        }
+    }
+}
 
 MsgManager::~MsgManager(){
     MutexLocker l(m_mutex);
@@ -207,7 +234,7 @@ Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
     Msg *msg = get_declare_msg();
     conn->send_msg(msg);
 
-    conn->put();
+    //conn->put();  //return conn with its ownership
     return conn;
 }
 
@@ -251,6 +278,7 @@ int MsgManager::del_session(msger_id_t msger_id){
 
 int MsgManager::start(){
     ML(mct, trace, "");
+    clear_done = false;
     MutexLocker l(m_mutex);
     if(is_running) return 0;
     is_running = true;
@@ -279,6 +307,7 @@ int MsgManager::clear_before_stop(){
         pair.second->put();
     }
     session_map.clear();
+    clear_done = true;
 }
 
 int MsgManager::stop(){
@@ -296,10 +325,15 @@ int MsgManager::stop(){
 void MsgManager::on_listen_accept(ListenPort *lp, Connection *conn){
     conn->get();
     ML(mct, trace, "{} {}", lp->to_string(), conn->to_string());
-    MutexLocker l(m_mutex);
-    session_unknown_conns.insert(conn);
-    conn->set_listener(this);
-    this->add_conn(conn);
+    {
+        MutexLocker l(m_mutex);
+        session_unknown_conns.insert(conn);
+        conn->set_listener(this);
+        this->add_conn(conn);
+    }
+    if(m_msger_cb){
+        m_msger_cb->on_listen_accept(lp, conn);
+    }
 }
 
 void MsgManager::on_listen_error(NodeAddr *listen_addr){
@@ -330,16 +364,25 @@ void MsgManager::on_conn_recv(Connection *conn, Msg *msg){
             s->set_listen_addr(rdma_listen_addr, msg_ttype_t::RDMA);
             rdma_listen_addr->put();
         }
-        s->add_conn(conn);
+        //Alway success though the conn may has the same type and same sl.
+        //Here may has duplicate conns. 
+        int r = s->add_conn(conn);
         {
             MutexLocker l(m_mutex);
             if(session_unknown_conns.erase(conn) > 0){
                 conn->put();
             }
         }
-        if(m_msger_cb){
+        //When the two sides connect to each other at the same time.
+        //Here may drop both.
+        //So, we just reserve both here(r == 0). There may be better solutions.
+        if(r){ //add failed.(maybe duplicate)
+            ML(mct, info, "Drop {} due to duplicae", conn->to_string());
+            conn->close();
+        }else if(m_msger_cb){
             m_msger_cb->on_conn_declared(conn, s);
         }
+        
         return;
     }
 

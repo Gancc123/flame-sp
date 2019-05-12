@@ -28,8 +28,8 @@ void *RdmaMemSrc::alloc(size_t s) {
         MLI(mmgr->mct, error, "RdmaMemSrc failed to allocate {} B of mem.", s);
         return nullptr;
     }
-    // As huge page memory's unit is 2MB(on intel).
-    // Even s < 2MB, m will be at least 2MB.
+    // When huge page memory's unit is 2MB(on intel),
+    // even s < 2MB, m will be at least 2MB.
     // But when reg m(2MB) with s(s < 2MB), ibv_reg_mr give an error????
     mr = ibv_reg_mr(mmgr->get_pd()->pd, m, s, 
                         IBV_ACCESS_LOCAL_WRITE
@@ -94,7 +94,7 @@ int RdmaBufferAllocator::init(){
         ML(mmgr->mct, error, "When use hugepage, (1 << max_level) can't be less"
             " than hugepage size. Or ibv_reg_mr() will fail, when reg a memory "
             "(real size > huge_page_size) with s (reg size < huge_page_size). "
-            "Don't know the reason! rdma_mem_max_level is {} < {}, too small.", 
+            "Don't know the reason! rdma_mem_max_level: {} < {}, too small.", 
             max_level, RDMA_MEM_MAX_LEVEL_MIN);
         return -1;
     }
@@ -108,12 +108,12 @@ int RdmaBufferAllocator::fin(){
 }
 
 RdmaBuffer *RdmaBufferAllocator::alloc(size_t s){
-    if(s > (1 << max_level)){ // too large
+    if(s > (1ULL << max_level)){ // too large
         return nullptr;
     }
     void *p = nullptr;
     BuddyAllocator *ap = nullptr;
-    bool can_retry = true;
+    int retry_cnt = 3;
 
 retry:
     auto it = lfl_allocators.elem_iter();
@@ -128,8 +128,8 @@ retry:
         it = it->next;
     }
 
-    if(!p && can_retry){
-        can_retry = false;
+    if(!p && retry_cnt > 0){
+        retry_cnt--;
         if(expand() == 0){  // expand() success.
             goto retry;  // try again.
         }
@@ -150,7 +150,7 @@ retry:
 }
 
 void RdmaBufferAllocator::free(RdmaBuffer *buf){
-    assert(buf);
+    if(!buf) return;
     if(buf->allocator()){
         MutexLocker ml(mutex_of_allocator(buf->allocator()));
         buf->allocator()->free(buf->buffer(), buf->size());
@@ -160,10 +160,11 @@ void RdmaBufferAllocator::free(RdmaBuffer *buf){
 
 int RdmaBufferAllocator::alloc_buffers(size_t s, int cnt, 
                                                 std::vector<RdmaBuffer*> &b){
-    if(s > (1 << max_level)){ // too large
+    if(s > (1ULL << max_level)){ // too large
         return 0;
     }
     int i = 0, i_before_expand = -1;
+    int retry_cnt = 3;
 
 retry:
     auto it = lfl_allocators.elem_iter();
@@ -193,8 +194,10 @@ retry:
         it = it->next;
     }
 
-    if(i < cnt && i != i_before_expand){ // alloc failed after expand()?
+    // alloc failed after expand()?
+    if(i < cnt && (i != i_before_expand || retry_cnt > 0 )){ 
         i_before_expand = i;
+        retry_cnt--;
         if(expand() == 0){  // expand() success.
             goto retry;  // try again.
         }
@@ -205,7 +208,7 @@ retry:
 
 void RdmaBufferAllocator::free_buffers(std::vector<RdmaBuffer*> &b){
     for(auto buf : b){
-        assert(buf);
+        if(!buf) continue;
         if(buf->allocator()){
             MutexLocker ml(mutex_of_allocator(buf->allocator()));
             buf->allocator()->free(buf->buffer(), buf->size());

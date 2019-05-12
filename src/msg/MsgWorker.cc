@@ -17,7 +17,6 @@ void MsgWorkerThread::entry(){
     worker->drain();
 }
 
-
 void HandleNotifyCallBack::read_cb(){
     char c[256];
     int r = 0;
@@ -59,7 +58,7 @@ int ThrMsgWorker::set_nonblock(int sd){
 ThrMsgWorker::ThrMsgWorker(MsgContext *c, int i)
 : MsgWorker(c, i), event_poller(c, 128), worker_thread(this), 
     is_running(false), extra_job_num(0), external_mutex(), external_num(0),
-    time_work_next_id(1){
+    next_id(1){
     int r;
     name = "ThrMsgWorker" + std::to_string(i);
 
@@ -94,14 +93,25 @@ ThrMsgWorker::~ThrMsgWorker(){
         ::close(notify_send_fd);
 }
 
+int ThrMsgWorker::set_affinity(int id){
+    return worker_thread.set_affinity(id);
+}
+
 int ThrMsgWorker::get_job_num(){
     return event_poller.get_event_num() + extra_job_num;
 }
 
 void ThrMsgWorker::update_job_num(int v){
-    extra_job_num += v;
-    if(extra_job_num < 0)
-        extra_job_num = 0;
+    int extra_old = extra_job_num.load(std::memory_order_relaxed);
+    int extra_new;
+    do{
+        extra_new = extra_old + v;
+        if(extra_new < 0){
+            extra_new = 0;
+        }
+    }while(!extra_job_num.compare_exchange_weak(extra_old, extra_new,
+                                                std::memory_order_release,
+                                                std::memory_order_relaxed));
 }
 
 int ThrMsgWorker::get_event_num() {
@@ -151,7 +161,7 @@ void ThrMsgWorker::del_time_work(uint64_t time_work_id){
 }
 
 uint64_t ThrMsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
-    uint64_t id = time_work_next_id++;
+    uint64_t id = next_id++;
     auto now = clock_type::now();
     ML(mct, trace, "id={} trigger after {} us", id, microseconds);
     time_point expire = now + std::chrono::microseconds(microseconds);
@@ -159,6 +169,7 @@ uint64_t ThrMsgWorker::post_time_work(uint64_t microseconds, work_fn_t work_fn){
         add_time_work(expire, work_fn, id);
     }else{
         post_work([expire, work_fn, id, this](){
+            ML(this->mct, trace, "in post_time_work()");
             this->add_time_work(expire, work_fn, id);
         });
     }
@@ -170,20 +181,61 @@ void ThrMsgWorker::cancel_time_work(uint64_t id){
         del_time_work(id);
     }else{
         post_work([id, this](){
+            ML(this->mct, trace, "in cancel_time_work()");
             this->del_time_work(id);
+        });
+    }
+}
+
+void ThrMsgWorker::add_poller(poller_fn_t poller_fn, uint64_t poller_id){
+    assert(worker_thread.am_self());
+    auto pair = std::make_pair(poller_id, poller_fn);
+    poller_list.push_front(std::move(pair));
+}
+
+void ThrMsgWorker::del_poller(uint64_t poller_id){
+    assert(worker_thread.am_self());
+    poller_list.remove_if(
+        [poller_id](std::pair<uint64_t, poller_fn_t> pair)->bool{
+            return pair.first == poller_id;
+        }
+    );
+}
+
+uint64_t ThrMsgWorker::reg_poller(poller_fn_t poller_fn) {
+    uint64_t id = next_id++;
+    if(worker_thread.am_self()){
+        add_poller(poller_fn, id);
+    }else{
+        post_work([poller_fn, id, this]{
+            ML(this->mct, trace, "in reg_poller()");
+            this->add_poller(poller_fn, id);
+        });
+    }
+    return id;
+}
+
+void ThrMsgWorker::unreg_poller(uint64_t poller_id){
+    if(worker_thread.am_self()){
+        del_poller(poller_id);
+    }else{
+        post_work([poller_id, this]{
+            ML(this->mct, trace, "in unreg_poller()");
+            this->del_poller(poller_id);
         });
     }
 }
 
 void ThrMsgWorker::post_work(work_fn_t work_fn){
     bool wake = false;
-    uint64_t num = 0;
+    int num = 0;
     {
         MutexLocker l(external_mutex);
         external_queue.push_back(work_fn);
-        wake = !external_num.load();
-        num = ++external_num;
     }
+    num = external_num++;
+    wake = !num;
+    ++num;
     if (!worker_thread.am_self() && wake)
         wakeup();
     ML(mct, debug, "{} pending {}", this->name, num);
@@ -231,6 +283,20 @@ int ThrMsgWorker::process_time_works(){
     return processed;
 }
 
+int ThrMsgWorker::iter_poller(){
+    int r = 0;
+    if(poller_list.size() == 0) return r;
+    
+    auto first_pair = poller_list.front();
+    r = first_pair.second(); // first_pair.second is a std::function.
+    if(r > 0){
+        ML(mct, trace, "poller({}) proc {} events", first_pair.first, r);
+    }
+    poller_list.splice(poller_list.end(), poller_list, poller_list.begin());
+    
+    return r;
+}
+
 void ThrMsgWorker::process(){
     ML(mct, debug, "{} start", this->name);
     std::vector<FiredEvent> fevents;
@@ -242,7 +308,7 @@ void ThrMsgWorker::process(){
         bool trigger_time = false;
         auto now = clock_type::now();
         auto tw_it = time_works.begin();
-        bool blocking = !external_num.load();
+        bool blocking = (!external_num.load()) && (!poller_list.size());
         if(!blocking){
             if(tw_it != time_works.end() && now >= tw_it->first){
                 trigger_time = true;
@@ -267,6 +333,11 @@ void ThrMsgWorker::process(){
                 timeout.tv_usec = 0;
             }
 
+        }
+
+        int poller_events = 0;
+        if(poller_list.size() > 0){
+            poller_events += iter_poller();
         }
 
         numevents = event_poller.process_events(fevents, &timeout);
@@ -300,18 +371,18 @@ void ThrMsgWorker::process(){
             {
                 MutexLocker l(external_mutex);
                 cur_process.swap(external_queue);
-                external_num.store(0);
             }
+            external_num -= cur_process.size();
             numevents += cur_process.size();
             while (!cur_process.empty()) {
                 work_fn_t cb = cur_process.front();
-                ML(mct, trace, "{} do func {:p}", this->name,
-                                            (void *)cb.target<void(void)>());
+                ML(mct, trace, "{} do func", this->name);
                 cb();
                 cur_process.pop_front();
             }
         }
 
+        numevents += poller_events;
         if(numevents > 0){
             ML(mct, trace, "{} process {} event and work", this->name, 
                                                                 numevents);
@@ -326,19 +397,27 @@ void ThrMsgWorker::drain(){
     // only executed when stop.
     if(is_running) return;
     int total = 0;
+    bool took_action = true;
     ML(mct, trace, "{} drain start", this->name);
-    while(external_num.load() > 0){
+
+    while(external_num.load() > 0 || took_action){
+        took_action = false;
+        for(auto i = poller_list.size(); i > 0;--i){
+            if(iter_poller() > 0){
+                took_action = true;
+            }
+        }
+
         std::deque<work_fn_t> cur_process;
         {
             MutexLocker l(external_mutex);
             cur_process.swap(external_queue);
-            external_num.store(0);
         }
+        external_num -= cur_process.size();
         total += cur_process.size();
         while (!cur_process.empty()) {
             work_fn_t cb = cur_process.front();
-            ML(mct, trace, "{} do func {:p}", this->name,
-                                        (void *)cb.target<void()>());
+            ML(mct, trace, "{} do func", this->name);
             cb();
             cur_process.pop_front();
         }

@@ -21,6 +21,7 @@ class MsgManager : public ListenPortListener, public ConnectionListener{
     std::vector<MsgWorker *> workers;
     MsgerCallback *m_msger_cb;
     std::atomic<bool> is_running;
+    std::atomic<bool> clear_done;
 
     std::set<Connection *> session_unknown_conns;
     Msg *declare_msg = nullptr;
@@ -28,13 +29,7 @@ class MsgManager : public ListenPortListener, public ConnectionListener{
     Mutex m_mutex;
 
 public:
-    explicit MsgManager(MsgContext *c, int worker_num=4)
-    :mct(c), is_running(false), m_mutex(MUTEX_TYPE_ADAPTIVE_NP){
-        workers.reserve(worker_num);
-        for(int i = 0;i < worker_num; ++i){
-            workers.push_back(new ThrMsgWorker(mct, i));
-        }
-    }
+    explicit MsgManager(MsgContext *c, int worker_num=4);
 
     ~MsgManager();
 
@@ -71,6 +66,7 @@ public:
     int start();
     int clear_before_stop();
     int stop();
+    bool is_clear_done() const { return this->clear_done; }
     bool running() const { return this->is_running; }
 
     virtual void on_listen_accept(ListenPort *lp, Connection *conn) override;

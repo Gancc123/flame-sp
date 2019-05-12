@@ -13,7 +13,6 @@ namespace msg{
 namespace ib{
 
 static const uint32_t MAX_SHARED_RX_SGE_COUNT = 1;
-static const uint32_t MAX_INLINE_DATA = 72;
 static const uint32_t TCP_MSG_LEN = 
  sizeof("0000:00000000:00000000:00000000:00:00000000000000000000000000000000");
 static const uint32_t CQ_DEPTH = 30000;
@@ -161,7 +160,7 @@ int QueuePair::init(){
                                         mct->config->rdma_buffer_size);
         return -1;
     } 
-    ML(mct, info, "started.");
+
     ibv_qp_init_attr qpia;
     memset(&qpia, 0, sizeof(qpia));
     qpia.qp_context = this;
@@ -177,7 +176,7 @@ int QueuePair::init(){
     qpia.cap.max_send_wr  = max_send_wr; // max outstanding send requests
     qpia.cap.max_send_sge = 1;           // max send scatter-gather elements
     // max bytes of immediate data on send q
-    qpia.cap.max_inline_data = MAX_INLINE_DATA;  
+    qpia.cap.max_inline_data = mct->config->rdma_max_inline_data;  
     // RC, UC, UD, or XRC(only RC supported now!!)
     qpia.qp_type = type;                 
     qpia.sq_sig_all = 0;                 // only generate CQEs on requested WQEs
@@ -406,29 +405,36 @@ CompletionQueue::~CompletionQueue(){
 }
 
 int CompletionQueue::init(){
+    ibv_comp_channel *ibv_cc = nullptr;
+    if(channel){
+        ibv_cc = channel->get_channel();
+    }
     cq = ibv_create_cq(infiniband.get_device()->ctxt, queue_depth, this, 
-                                                    channel->get_channel(), 0);
+                                                                ibv_cc, 0);
     if (!cq) {
         ML(mct, error, "failed to create receive completion queue: {}", 
                                                         cpp_strerror(errno));
         return -1;
     }
 
-    if (ibv_req_notify_cq(cq, 0)) {
-        ML(mct, error, "ibv_req_notify_cq failed: {}", cpp_strerror(errno));
-        ibv_destroy_cq(cq);
-        cq = nullptr;
-        return -1;
+    if(channel){
+        if (ibv_req_notify_cq(cq, 0)) {
+            ML(mct, error, "ibv_req_notify_cq failed: {}", cpp_strerror(errno));
+            ibv_destroy_cq(cq);
+            cq = nullptr;
+            return -1;
+        }
+        
+        channel->bind_cq(cq);
     }
-
-    channel->bind_cq(cq);
     ML(mct, info, "successfully create cq={:p}", (void *)cq);
     return 0;
 }
 
 int CompletionQueue::rearm_notify(bool solicite_only){
     ML(mct, info, "");
-    int r = ibv_req_notify_cq(cq, 0);
+    if(!channel) return 0;
+    int r = ibv_req_notify_cq(cq, solicite_only?1:0);
     if (r < 0)
         ML(mct, error, "failed to notify cq: {}", cpp_strerror(errno));
     return r;
@@ -554,7 +560,7 @@ bool Infiniband::init(){
         ML(mct, warn, "rdma_recv_queue_len must > 0! now set {}", rx_queue_len);
     }else if (rx_queue_len > mct->config->rdma_recv_queue_len) {
         rx_queue_len = mct->config->rdma_recv_queue_len;
-        ML(mct, info, "receive queue length is {} .", rx_queue_len);
+        ML(mct, info, "receive queue length: {} .", rx_queue_len);
     } else {
         ML(mct, info,"requested receive queue length {} is too big. Setting {}",
                         mct->config->rdma_recv_queue_len, rx_queue_len);
@@ -565,16 +571,23 @@ bool Infiniband::init(){
         ML(mct, warn, "rdma_send_queue_len must > 0! now set {}", tx_queue_len);
     }else if (tx_queue_len > mct->config->rdma_send_queue_len) {
         tx_queue_len = mct->config->rdma_send_queue_len;
-        ML(mct, info, "send queue length is {} .", tx_queue_len);
+        ML(mct, info, "send queue length: {} .", tx_queue_len);
     } else {
         ML(mct, info, "requested send queue length {} is too big. Setting {}",
                         mct->config->rdma_send_queue_len, tx_queue_len);
     }
 
+    auto dev_attr = device->device_attr;
     //mct->config->rdma_buffer_num no use now.
-
-    ML(mct, info, "device allow {} completion entries.", 
-                                                device->device_attr->max_cqe);
+    ML(mct, info, "device max_mr_size: {}, page_size_cap: {}", 
+                    dev_attr->max_mr_size, dev_attr->page_size_cap);
+    ML(mct, info, "device max_qp: {}, max_qp_wr:{}", 
+                    dev_attr->max_qp, dev_attr->max_qp_wr);
+    ML(mct, info, "device max_cq: {}, max_cqe: {}, max_mr: {}", 
+                    dev_attr->max_cq, dev_attr->max_cqe, dev_attr->max_mr);
+    ML(mct, info, "device max_srq: {}, max_srq_wr: {}", 
+                    dev_attr->max_srq, dev_attr->max_srq_wr);
+    ML(mct, info, "max inline data: {}", mct->config->rdma_max_inline_data);
 
     memory_manager = new MemoryManager(mct, pd);
     
@@ -760,7 +773,7 @@ int Infiniband::encode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
     gid_to_wire_gid(&(im.gid), gid);
     sprintf(buffer.data(), "%04x:%08x:%08x:%08x:%02x:%s", 
                             im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
-    ML(mct, info, ": {}, {}, {}, {}, {}, {}", 
+    ML(mct, info, "{}, {}, {}, {}, {}, {}", 
                             im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
     buffer.set_offset(TCP_MSG_LEN);
     return TCP_MSG_LEN;
@@ -773,16 +786,12 @@ int Infiniband::decode_msg(MsgContext *mct, IBSYNMsg& im, MsgBuffer &buffer){
     sscanf(buffer.data(), "%hu:%x:%x:%x:%hhx:%s", &(im.lid), &(im.qpn), 
                                     &(im.psn), &(im.peer_qpn), &(im.sl), gid);
     wire_gid_to_gid(gid, &(im.gid));
-    ML(mct, info, ": {}, {}, {}, {}, {}, {}", 
+    ML(mct, info, "{}, {}, {}, {}, {}, {}", 
                         im.lid, im.qpn, im.psn, im.peer_qpn, im.sl, gid);
     return TCP_MSG_LEN;
 }
 int Infiniband::get_ib_syn_msg_len(){
     return TCP_MSG_LEN;
-}
-
-int Infiniband::get_max_inline_data(){
-    return MAX_INLINE_DATA;
 }
 
 void Infiniband::wire_gid_to_gid(const char *wgid, union ibv_gid *gid){

@@ -1,9 +1,9 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-security")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-security -Wno-return-type")
 
 # requeired by spdlog
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 if(CPU_PROFILE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
@@ -58,6 +58,128 @@ if(HAVE_RDMA)
     list(APPEND flame_common_deps ${RDMA_LIBRARY})
 endif(HAVE_RDMA)
 
+
+#### util
+add_library(util-objs OBJECT
+    util/str_util.cc
+    util/fs_util.cc
+    util/option_parser.cc
+    )
+list(APPEND obj_modules util)
+
+
+#### common
+add_library(common-objs OBJECT
+    common/thread/io_priority.cc
+    common/thread/signal.cc
+    common/thread/mutex.cc
+    common/thread/thread.cc
+    common/log.cc
+    common/config.cc
+    common/context.cc
+    common/cmdline.cc
+    common/convert.cc
+    )
+list(APPEND obj_modules common)
+
+
+#### proto
+set(proto_srcs
+    ${PROJECT_SOURCE_DIR}/proto/csds.proto
+    ${PROJECT_SOURCE_DIR}/proto/flame.proto
+    ${PROJECT_SOURCE_DIR}/proto/gateway.proto
+    ${PROJECT_SOURCE_DIR}/proto/internal.proto
+    )
+
+#Generate gprc proto files
+PROTOBUF_GENERATE_CPP(pb_srcs  pb_hdrs  ${CMAKE_BINARY_DIR}/include/proto
+     ${proto_srcs})
+GRPC_GENERATE_CPP(grpc_pb_srcs  grpc_pb_hdrs   ${CMAKE_BINARY_DIR}/include/proto 
+     ${proto_srcs})
+
+add_custom_target(x_pb_tgt
+    SOURCES ${pb_hdrs} ${pb_srcs} ${grpc_pb_hdrs} ${grpc_pb_srcs}
+    )
+
+add_library(proto-objs OBJECT
+    ${pb_srcs} 
+    ${grpc_pb_srcs}
+    )
+
+list(APPEND obj_modules proto)
+
+#### service
+add_library(service-objs OBJECT
+    service/flame_service.cc
+    service/flame_client.cc
+    service/internal_service.cc
+    service/internal_client.cc
+    service/csds_service.cc
+    service/csds_client.cc
+    )
+
+list(APPEND obj_modules service)
+
+
+#### cml
+add_library(cml-objs OBJECT
+    cml/flame.cc
+    )
+list(APPEND obj_modules cml)
+
+
+#### csm
+add_library(csm-objs OBJECT
+    csm/csm.cc
+    )
+list(APPEND obj_modules csm)
+
+
+#### orm
+add_library(orm-objs OBJECT
+    orm/stmt.cc
+    orm/my_impl/my_impl.cc
+    orm/engine.cc
+    )
+list(APPEND obj_modules orm)
+
+
+#### metastore
+add_library(metastore-objs OBJECT
+    metastore/sqlms/sqlms.cc
+    metastore/ms.cc
+    )
+list(APPEND obj_modules metastore)
+
+
+#### chunkstore
+set(nvmestore_srcs)
+if(WITH_SPDK)
+    set(nvmestore_srcs
+        chunkstore/nvmestore/chunkblobmap.cc
+        chunkstore/nvmestore/iochannels.cc
+        chunkstore/nvmestore/nvmechunkmap.cc
+        chunkstore/nvmestore/nvmechunk.cc
+        chunkstore/nvmestore/nvmeconf.cc
+        chunkstore/nvmestore/nvmestore.cc
+        )
+endif(WITH_SPDK)
+
+add_library(chunkstore-objs OBJECT
+    chunkstore/simstore/simstore.cc
+    chunkstore/filestore/filestore.cc
+    chunkstore/filestore/filechunk.cc
+    chunkstore/filestore/filechunkmap.cc
+    chunkstore/filestore/filestoreconf.cc
+    chunkstore/filestore/chunkutil.cc
+    chunkstore/filestore/object.cc
+    chunkstore/cs.cc
+    ${nvmestore_srcs}
+    )
+list(APPEND obj_modules chunkstore)
+
+
+#### msg
 set(msg_common_srcs
     msg/internal/errno.cc
     msg/internal/node_addr.cc
@@ -68,7 +190,6 @@ set(msg_common_srcs
     msg/event/EventPoller.cc
     msg/Msg.cc
     msg/MsgWorker.cc
-    msg/Connection.cc
     msg/Session.cc
     msg/MsgManager.cc
     msg/socket/TcpListenPort.cc
@@ -89,32 +210,96 @@ if(HAVE_RDMA)
     msg/rdma/RdmaStack.cc)
 endif(HAVE_RDMA)
 
-set(libcommon_files
-    common/thread/io_priority.cc
-    common/thread/signal.cc
-    common/thread/mutex.cc
-    common/thread/thread.cc
-    common/log.cc
-    common/config.cc
-    common/context.cc
-    util/fs_util.cc
-    util/str_util.cc
-    util/option_parser.cc
+set(msg_spdk_srcs)
+if(HAVE_SPDK)
+    list(APPEND msg_spdk_srcs
+      msg/spdk/SpdkMsgWorker.cc)
+endif(HAVE_SPDK)
+
+add_library(msg-objs OBJECT
+    msg/internal/errno.cc
+    msg/internal/node_addr.cc
+    msg/internal/msg_config.cc
+    msg/internal/types_helper.cc
+    msg/internal/util.cc
+    msg/NetHandler.cc
+    msg/event/EventPoller.cc
+    msg/Msg.cc
+    msg/MsgWorker.cc
+    msg/Session.cc
+    msg/MsgManager.cc
+    msg/socket/TcpListenPort.cc
+    msg/socket/TcpConnection.cc
+    msg/socket/TcpStack.cc
+    msg/dispatcher/MsgDispatcher.cc
     ${msg_common_srcs}
     ${msg_rdma_common_srcs}
+    ${msg_spdk_srcs}
     msg/Stack.cc
     msg/msg_context.cc
     )
+list(APPEND obj_modules msg)
 
 
-add_library(common-objs OBJECT ${libcommon_files})
+#### work
+add_library(work-objs OBJECT
+    work/timer_work.cc
+    )
+list(APPEND obj_modules work)
 
+
+#### cluster
+add_library(cluster-objs OBJECT
+    cluster/clt_my/my_mgmt.cc
+    )
+list(APPEND obj_modules cluster)
+
+
+#### layout
+add_library(layout-objs OBJECT
+    layout/calculator.cc
+    )
+list(APPEND obj_modules layout)
+
+
+#### spolicy
+add_library(spolicy-objs OBJECT
+    spolicy/spolicy.cc
+    )
+list(APPEND obj_modules spolicy)
+
+
+#### csd 
+add_library(csd-objs OBJECT
+    csd/csd.cc
+    csd/csd_admin.cc
+    )
+list(APPEND obj_modules csd)
+
+
+#### gen xxx_objs
+foreach(module IN LISTS obj_modules)
+    # generate *.pb.h first of all
+    add_dependencies(${module}-objs x_pb_tgt)
+    set(${module}_objs $<TARGET_OBJECTS:${module}-objs>)
+endforeach()
+
+
+#### lib common
 set(flame_common_objs
-    $<TARGET_OBJECTS:common-objs>)
+    ${util_objs}
+    ${common_objs}
+    ${msg_objs}
+    )
+
+# foreach(o IN LISTS flame_common_objs)
+#     message(STATUS "${o}")
+# endforeach()
 
 add_library(common STATIC ${flame_common_objs})
 target_link_libraries(common
-  PRIVATE ${flame_common_deps} ${ALLOC_LIBS})
+  PRIVATE ${flame_common_deps} ${ALLOC_LIBS}
+  PUBLIC ${SPDK_LIBRARIES})
 if(WITH_STATIC_LIBSTDCXX)
     # the apps linking against libcommon are daemons also written in C++, so we
     # need to link them against libstdc++.
@@ -135,6 +320,53 @@ if(WITH_STATIC_LIBSTDCXX)
     set_target_properties(flame-common PROPERTIES
       LINK_FLAGS "-static-libstdc++ -static-libgcc")
 endif()
+
+set(flame_grpc_deps
+    gRPC::grpc
+    gRPC::grpc++
+    gRPC::grpc++_reflection
+    protobuf::libprotobuf
+    )
+
+#### gen csd 
+add_executable(csd 
+    ${csd_objs}
+    ${chunkstore_objs}
+    ${proto_objs}
+    ${work_objs}
+    ${mgr_objs}
+    service/internal_client.cc
+    service/csds_service.cc
+    )
+target_link_libraries(csd PRIVATE 
+    ${CMAKE_DL_LIBS}
+    common 
+    ${AIO_LIBS}
+    ${flame_grpc_deps}
+    ${SPDK_LIBRARIES}
+    )
+
+#### gen cml
+add_executable(cml
+    ${cml_objs}
+    ${proto_objs}
+    service/flame_client.cc
+    )
+target_link_libraries(cml PRIVATE
+    common
+    ${flame_grpc_deps}
+    )
+
+#### gen csm
+add_executable(csm
+    ${csm_objs}
+    ${proto_objs}
+    service/internal_client.cc
+    )
+target_link_libraries(csm PRIVATE
+    common
+    ${flame_grpc_deps}
+    )
 
 add_subdirectory(examples)
 add_subdirectory(tests)
