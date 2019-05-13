@@ -11,5 +11,7 @@
 #define CFG_CSD_HEART_BEAT_CYCLE "heart_beat_cycle"
 #define CFG_CSD_NAME "csd_name"
 #define CFG_CSD_CONSOLE_LOG "console_log"
+#define CFG_CSD_REACTOR_MASK "0x0f"
+#define CFG_CSD_NVME_CONF  "nvme_conf"
 
 #endif // FLAME_CSD_CONFIG_H

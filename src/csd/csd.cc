@@ -19,6 +19,8 @@
 #include <memory>
 #include <string>
 
+#define LINE_LENGTH 128
+
 using namespace std;
 using namespace flame;
 using namespace flame::cli;
@@ -42,12 +44,49 @@ public:
     Argument<string>    log_level   {this, CFG_CSD_LOG_LEVEL, 
         "log level. {PRINT, TRACE, DEBUG, INFO, WARN, ERROR, WRONG, CRITICAL, DEAD}", "INFO"};
 
+    Argument<string>    reactor_mask {this, 'r', CFG_CSD_REACTOR_MASK, "reactor mask", "0x3f"};
+    Argument<string>    nvme_conf   {this, 'f', CFG_CSD_NVME_CONF, "Nvme config file path", "/etc/flame/nvme.conf"};
+
     // Switch
     Switch  console_log {this, CFG_CSD_CONSOLE_LOG, "print log in console"};
     Switch  force_format{this, "force_format", "force reformat the device"};
 
     HelpAction help {this};
 }; // class CsdCli
+
+struct app_opts {
+    char csd_name[LINE_LENGTH];
+    char reactor_mask[LINE_LENGTH];
+    char nvme_conf[LINE_LENGTH];
+    char print_level[LINE_LENGTH];
+public:
+    app_opts() {
+
+    }
+
+    app_opts(CsdCli *csd_cli) {
+        strcpy(csd_name, csd_cli->csd_name.get().c_str());
+        strcpy(nvme_conf, csd_cli->nvme_conf.get().c_str());
+        strcpy(reactor_mask, csd_cli->reactor_mask.get().c_str());
+        strcpy(print_level, csd_cli->log_level.get().c_str());
+    }
+
+    void convert_to_spdk_app_opts(struct spdk_app_opts *opts) {
+        opts->name = csd_name;
+        opts->config_file = nvme_conf;
+        opts->reactor_mask = reactor_mask;
+
+        if(strcmp(print_level, "TRACE") == 0 || strcmp(print_level, "DEBUG")) {
+            opts->print_level = SPDK_LOG_DEBUG;
+        } else if(strcmp(print_level, "INFO") == 0) {
+            opts->print_level = SPDK_LOG_INFO;
+        } else if(strcmp(print_level, "WARN") == 0) {
+            opts->print_level = SPDK_LOG_WARN;
+        } else if(strcmp(print_level, "ERROR") == 0) {
+            opts->print_level = SPDK_LOG_ERROR;
+        }
+    }   
+};
 
 class CsdAdminThread;
 
@@ -480,6 +519,7 @@ void pre_exit_csd(int signum){
     exit(signum); 
 }
 
+/*
 int main(int argc, char** argv) {
     CsdCli* csd_cli = new CsdCli();
     int r = csd_cli->parser(argc,  argv);
@@ -517,4 +557,72 @@ int main(int argc, char** argv) {
 
     // 运行CSD主程序
     return csd.run();
+}
+*/
+
+static void csd_start(void *arg1, void *arg2) {
+    CsdContext *cct = static_cast<CsdContext *>(arg1);
+    CsdCli *csd_cli = static_cast<CsdCli *>(arg2);
+
+    std::cout << "csd_start...." << std::endl;
+
+    CSD *csd = new CSD(cct);
+    assert(csd);
+
+    g_csd = csd;
+
+    if(csd->init(csd_cli) != 0) {
+        exit(-1);
+    }
+
+    delete csd_cli;
+
+    csd->run();
+
+    return ;
+}
+
+int main(int argc, char *argv[]) {
+    // 解析Csd的命令行参数，获取配置参数
+    CsdCli *csd_cli = new CsdCli();
+    int r = csd_cli->parser(argc, argv);
+    if(r != CmdRetCode::SUCCESS) {
+        csd_cli->print_error();
+        return r;
+    } else if(csd_cli->help.done()) {
+        csd_cli->print_help();
+        return 0;
+    }
+
+    signal(SIGNT, pre_exit_csd);
+
+    //获取全局上下文
+    FlameContext *fct = FlameContext::get_context();
+    if(!fct->init_config(csd_cli->config_path)) {
+        //clog("init config failed.");
+        fct->log()->lerror("init config failed.");
+        return -1;
+    }
+
+    CsdContext *cct = new CsdContext(fct);
+
+    // 初始化spdk应用程序启动的配置参数
+    struct spdk_app_opts opts = {};
+    struct app_opts temp_opt(csd_cli);
+
+    int rc = 0;
+    spdk_app_opts_init(&opts);
+
+    temp_opt.convert_to_spdk_app_opts(&opts);
+
+    rc = spdk_app_start(&opts, csd_start, cct, csd_cli);
+    if(rc) {
+        SPDK_NOTICELOG("spdk app start: ERROR!\n");
+    } else {
+        SPDK_NOTICELOG("SUCCESS.\n");
+    }
+
+    spdk_app_fini();
+
+    return 0;
 }
