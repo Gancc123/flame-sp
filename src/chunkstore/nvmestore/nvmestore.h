@@ -320,6 +320,8 @@ private:
 
     NvmeStore(FlameContext *fct): ChunkStore(fct), bdev(nullptr), bs_dev(nullptr),
                                 blobstore(nullptr), read_channels(nullptr), write_channels(nullptr), 
+                                store_id(0), cluster_name(""), name(""), cluster_size(0), 
+                                format_time(0), used_size(0), data_cluster_count(0),
                                 meta_channel(nullptr), page_size(0), chunk_pages(0), total_chunks(0), unit_size(0),
                                 state(NVMESTORE_STATE_NEW), chunk_map(nullptr), chunk_blob_map(nullptr) {
         formated = false;
@@ -343,6 +345,8 @@ private:
             const std::string& _device_name, 
             const std::string& _info_file): ChunkStore(fct), bdev(nullptr), bs_dev(nullptr), blobstore(nullptr), 
                                             read_channels(nullptr), write_channels(nullptr), meta_channel(nullptr),
+                                            store_id(0), cluster_name(""), name(""), cluster_size(0), 
+                                            format_time(0), used_size(0), data_cluster_count(0),
                                             page_size(0), chunk_pages(0), total_chunks(0), unit_size(0), 
                                             state(NVMESTORE_STATE_NEW), chunk_map(nullptr), chunk_blob_map(nullptr),
                                             dev_name(_device_name), config_file(_info_file) {

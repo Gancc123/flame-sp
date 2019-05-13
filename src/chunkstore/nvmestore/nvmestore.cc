@@ -424,12 +424,9 @@ free_map:
     if(chunk_blob_map)
         delete chunk_blob_map;
 
-    std::cout << "---xxx----xxxx-----xxx----\n";
 free_arg:
     if(arg)
         delete arg;
-
-    std::cout << "------------------>:)" << std::endl;
 
     return ret;
 }
@@ -467,6 +464,7 @@ void NvmeStore::bs_load_cb(void *cb_arg, struct spdk_blob_store *bs, int bserrno
     nvmestore->page_size    = spdk_bs_get_page_size(bs);
     nvmestore->unit_size    = spdk_bs_get_io_unit_size(bs);
     nvmestore->cluster_size = spdk_bs_get_cluster_size(bs);
+    nvmestore->data_cluster_count = spdk_bs_free_cluster_count(bs);
 /*
     //需要在不同的线程中分配io_channel,异步操作,需要同步等待
     if(nvmestore->get_meta_core() == nvmestore->get_io_core(0)) {
