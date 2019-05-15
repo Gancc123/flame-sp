@@ -370,3 +370,5 @@ target_link_libraries(csm PRIVATE
 
 add_subdirectory(examples)
 add_subdirectory(tests)
+
+add_subdirectory(libflame)

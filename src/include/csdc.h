@@ -80,10 +80,10 @@ namespace flame {
 class ChunkReadCmd : public Command {
 public:
     ChunkReadCmd(cmd_t* cmdp) 
-    : Command(&rd_cmd), rd_cmd(*cmdp), rd_((cmd_chk_io_rd_t*)get_content()) {}
+    : Command(&rd_cmd_), rd_cmd_(*cmdp), rd_((cmd_chk_io_rd_t*)get_content()) {}
 
-    ChunkReadCmd(uint64_t chk_id, uint64_t off, uint32_t len, const MemroyArea& ma)
-    : Command(&rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {
+    ChunkReadCmd(uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea& ma)
+    : Command(&rd_cmd_), rd_((cmd_chk_io_rd_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_READ, 0, sizeof(cmd_t));
         
         rd_->chk_id = chk_id;
@@ -95,36 +95,36 @@ public:
 
     ~ChunkReadCmd() {}
 
-    void copy(void* buff) {
-        memcpy(buff, (void*)&rd_cmd, sizeof(cmd_t));
+    inline void copy(void* buff) {
+        memcpy(buff, (void*)&rd_cmd_, sizeof(cmd_t));
     }
 
     inline uint64_t get_chk_id() const { return rd_->chk_id; }
 
     inline uint64_t get_off() const { return rd_->off; }
 
-    inline uint32_t get_len() const { return rd_->ma.len; }
+    inline uint32_t get_ma_len() const { return rd_->ma.len; }
 
     inline uint64_t get_ma_addr() const { return rd_->ma.addr; }
 
     inline uint32_t get_ma_key() const { return rd_->ma.key; }
 
 private:
-    cmd_t rd_cmd;
+    cmd_t rd_cmd_;
     cmd_chk_io_rd_t* rd_;
 }; // class ChunkReadCmd
 
 class ChunkWriteCmd : public Command {
 public:
     ChunkWriteCmd(cmd_t* cmdp)
-    : Command(&wr_cmd), wr_cmd(*cmdp), wr_((cmd_chk_io_wr_t*)get_content()) {
+    : Command(&wr_cmd_), wr_cmd_(*cmdp), wr_((cmd_chk_io_wr_t*)get_content()) {
         if (get_imm_data_len() != 0) { // 存在立即数据
             cmd_ = cmdp;
         }
     }
 
-    ChunkWriteCmd(uint64_t chk_id, uint64_t off, uint32_t len, const MemroyArea&  ma, bool forch_imm)
-    : Command(&wr_cmd), wr_((cmd_chk_io_wr_t*)get_content()) {
+    ChunkWriteCmd(uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea&  ma, bool forch_imm)
+    : Command(&wr_cmd_), wr_((cmd_chk_io_wr_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_WRITE, 0, sizeof(cmd_t));
         
         wr_->chk_id = chk_id;
@@ -142,7 +142,7 @@ public:
     ~ChunkWriteCmd() {}
 
     virtual void copy(void* buff) {
-        memcpy(buff, &wr_cmd, sizeof(cmd_t));
+        memcpy(buff, &wr_cmd_, sizeof(cmd_t));
         if (get_imm_data_len() != 0) {
             memcpy(buff + sizeof(cmd_t), (void*)wr_->ma.addr, get_imm_data_len());
         }
@@ -152,7 +152,7 @@ public:
 
     inline uint64_t get_off() const { return wr_->off; }
 
-    inline uint32_t get_len() const { return wr_->ma.len; }
+    inline uint32_t get_ma_len() const { return wr_->ma.len; }
 
     inline uint64_t get_ma_addr() const { return wr_->ma.addr; }
 
@@ -163,17 +163,17 @@ public:
     inline void* get_imm_data_addr() const { return (void*)cmd_ + sizeof(cmd_t); }
 
 private:
-    cmd_t wr_cmd;
+    cmd_t wr_cmd_;
     cmd_chk_io_wr_t* wr_;
 }; // class ChunkWriteCmd
 
 class ChunkSetCmd : Command {
 public:
     ChunkSetCmd(cmd_t* cmdp) 
-    : Command(&set_cmd), set_cmd(*cmdp), set_((cmd_chk_io_set_t*)get_content()) {}
+    : Command(&set_cmd_), set_cmd_(*cmdp), set_((cmd_chk_io_set_t*)get_content()) {}
 
     ChunkSetCmd(uint64_t chk_id, uint64_t off, uint32_t len)
-    : Command(&set_cmd), set_((cmd_chk_io_set_t*)get_content()) {
+    : Command(&set_cmd_), set_((cmd_chk_io_set_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_SET, 0, sizeof(cmd_t));
         
         set_->chk_id = chk_id;
@@ -184,27 +184,27 @@ public:
     ~ChunkSetCmd() {}
 
     void copy(void* buff) {
-        memcpy(buff, (void*)&set_cmd, sizeof(cmd_t));
+        memcpy(buff, (void*)&set_cmd_, sizeof(cmd_t));
     }
 
     inline uint64_t get_chk_id() const { return set_->chk_id; }
 
     inline uint64_t get_off() const { return set_->off; }
 
-    inline uint32_t get_len() const { return set_->len; }
+    inline uint32_t get_set_len() const { return set_->len; }
 
 private:
-    cmd_t set_cmd;
+    cmd_t set_cmd_;
     cmd_chk_io_set_t* set_;
 }; // class ChunkSetCmd
 
 class ChunkResetCmd : Command {
 public:
     ChunkResetCmd(cmd_t* cmdp) 
-    : Command(&set_cmd), set_cmd(*cmdp), set_((cmd_chk_io_set_t*)get_content()) {}
+    : Command(&set_cmd_), set_cmd_(*cmdp), set_((cmd_chk_io_set_t*)get_content()) {}
 
     ChunkResetCmd(uint64_t chk_id, uint64_t off, uint32_t len)
-    : Command(&set_cmd), set_((cmd_chk_io_set_t*)get_content()) {
+    : Command(&set_cmd_), set_((cmd_chk_io_set_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_RESET, 0, sizeof(cmd_t));
         
         set_->chk_id = chk_id;
@@ -214,24 +214,24 @@ public:
 
     ~ChunkResetCmd() {}
 
-    void copy(void* buff) {
-        memcpy(buff, (void*)&set_cmd, sizeof(cmd_t));
+    inline void copy(void* buff) {
+        memcpy(buff, (void*)&set_cmd_, sizeof(cmd_t));
     }
 
     inline uint64_t get_chk_id() const { return set_->chk_id; }
 
     inline uint64_t get_off() const { return set_->off; }
 
-    inline uint32_t get_len() const { return set_->len; }
+    inline uint32_t get_reset_len() const { return set_->len; }
 
 private:
-    cmd_t set_cmd;
+    cmd_t set_cmd_;
     cmd_chk_io_set_t* set_;
 }; // class ChunkSetCmd
 
 class CommonRes : public Response {
 public:
-    CommonRes(const Command& cmd, cmd_rc_t rc)
+    CommonRes(const cmd_t& cmd, cmd_rc_t rc)
     : Response(&com_res_) {
         cpy_hdr(cmd);
         set_len(sizeof(cmd_res_t));
@@ -240,7 +240,7 @@ public:
 
     ~CommonRes() {}
 
-    void copy(void* buff) {
+    inline void copy(void* buff) {
         memcpy(buff, &com_res_, sizeof(cmd_res_t));
     }
 
@@ -250,7 +250,7 @@ private:
 
 class ChunkReadRes : public Response {
 public:
-    ChunkReadRes(const ChunkReadCmd& cmd, cmd_rc_t rc)
+    ChunkReadRes(const cmd_t& cmd, cmd_rc_t rc)
     : Response(&rd_res_), imm_data_(nullptr), rd_((res_chk_io_rd_t*)res_->cont) {
         cpy_hdr(cmd);
         set_len(sizeof(cmd_res_t));
@@ -258,7 +258,7 @@ public:
         rd_->imm_data_len = 0;
     }
 
-    ChunkReadRes(const ChunkReadCmd& cmd, cmd_rc_t rc, void* imm_buff, uint32_t len)
+    ChunkReadRes(const cmd_t& cmd, cmd_rc_t rc, void* imm_buff, uint32_t len)
     : Response(&rd_res_), imm_data_(imm_buff), rd_((res_chk_io_rd_t*)res_->cont) {
         cpy_hdr(cmd);
         set_len(sizeof(cmd_res_t) + len);
@@ -268,7 +268,7 @@ public:
 
     ~ChunkReadRes() {}
 
-    void copy(void* buff) {
+    inline void copy(void* buff) {
         memcpy(buff, &rd_res_, sizeof(cmd_res_t));
         if (imm_data_) {
             memcpy(buff + sizeof(cmd_res_t), imm_data_, rd_->imm_data_len);

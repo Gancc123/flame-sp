@@ -15,6 +15,10 @@
 #define CACHE_LINE_SIZE     (1U << CACHE_LINE_SHIFT)
 
 #include <stdint.h>
+#include <queue>
+#include <map>
+
+#include "msg/msg_core.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,7 +32,7 @@ extern "C" {
  * Command Number
  * @length: 16 bit (2 Bytes)
  */
-union cmd_num_t {
+struct cmd_num_t {
     uint8_t cls;    // command class
     uint8_t seq;    // command sequence
 } __attribute__((packed));
@@ -330,11 +334,11 @@ public:
      */
     inline void* get_content() const { return res_->cont; }
 
-    inline void cpy_hdr(const Command& cmd) {
-        res_->hdr.cn = cmd.cmd_->hdr.cn;
-        res_->hdr.cqg = cmd.cmd_->hdr.cqg;
-        res_->hdr.cqn = cmd.cmd_->hdr.cqn;
-        res_->hdr.flg = cmd.cmd_->hdr.flg;
+    inline void cpy_hdr(const cmd_t& cmd) {
+        res_->hdr.cn = cmd.hdr.cn;
+        res_->hdr.cqg = cmd.hdr.cqg;
+        res_->hdr.cqn = cmd.hdr.cqn;
+        res_->hdr.flg = cmd.hdr.flg;
     }
 
 protected:
@@ -392,7 +396,7 @@ protected:
     cmd_res_t* res_;
 }; // class Response
 
-class MemroyArea {
+class MemoryArea {
 public:
     /**
      * @brief 是否可直接用于DMA/RDMA传输
@@ -438,30 +442,29 @@ public:
     virtual cmd_ma_t get() const = 0;
 
 protected:
-    MemroyArea() {}
-    virtual ~MemroyArea() {}
+    MemoryArea() {}
+    virtual ~MemoryArea() {}
 };
 
-typedef void(cmd_cb_fn_t*)(const Response& res, void* arg);
+typedef void(*cmd_cb_fn_t)(const Response& res, void* arg);
 
 class CmdClientStub {
 public:
-    static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port);
-
-    int submit(const Command& cmd, cmd_cb_fn_t* cb_fn, void* cb_arg);
-
+    // static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port) = 0;
+    
+    virtual int submit(Command& cmd, cmd_cb_fn_t cb_fn, void* cb_arg) = 0;
 protected:
     CmdClientStub() {}
     ~CmdClientStub() {}
-}; // class CommandStub
+ 
+}; // class CommandStub 
+
 
 class CmdServerStub;
 
-typedef void (cmd_svi_fn_t*)(const CommandServer* srv, const Command& cmd);
-
 class CmdService {
 public:
-    virtual void call(const CmdServerStub& srv, const Command& cmd) = 0;
+    virtual int call(msg::Connection* connection, cmd_t& cmd) = 0;
 
 protected:
     CmdService() {}
@@ -470,20 +473,35 @@ protected:
 
 class CmdServiceMapper {
 public:
-    void register_service(uint8_t cmd_cls, uint8_t cmd_num, CmdService* svi);
-private:
+    CmdServiceMapper(){}
 
+    ~CmdServiceMapper(){}
+
+    static CmdServiceMapper* g_cmd_service_mapper;
+
+    static CmdServiceMapper* get_cmd_service_mapper(){
+        if (g_cmd_service_mapper == nullptr) {
+            g_cmd_service_mapper = new CmdServiceMapper();
+        }
+        return CmdServiceMapper::g_cmd_service_mapper; 
+    }
+
+    void register_service(uint8_t cmd_cls, uint8_t cmd_num, CmdService* svi);
+
+    CmdService* get_service(uint8_t cmd_cls, uint8_t cmd_num);
+private:
+    std::map<uint16_t, CmdService*> service_mapper_;
 }; // class CmdServiceMapper
 
 class CmdServerStub {
 public:
     
-    int call_service()
+    int call_service();
 
 protected:
     CmdServerStub() {}
     virtual ~CmdServerStub() {}
-}; // class CommandServer
+}; // class CmdServerStub
 
 } // namespace flame
 
