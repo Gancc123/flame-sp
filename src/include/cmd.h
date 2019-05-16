@@ -135,6 +135,13 @@ public:
     virtual void copy(void* buff) = 0;
 
     /**
+     * @brief Get cmd_t
+     * 
+     * @return cmd_t 
+     */
+    inline cmd_t get_cmd() const { return *cmd_; }
+
+    /**
      * @brief Get Command Number
      * 
      * @return uint16_t 
@@ -334,11 +341,11 @@ public:
      */
     inline void* get_content() const { return res_->cont; }
 
-    inline void cpy_hdr(const cmd_t& cmd) {
-        res_->hdr.cn = cmd.hdr.cn;
-        res_->hdr.cqg = cmd.hdr.cqg;
-        res_->hdr.cqn = cmd.hdr.cqn;
-        res_->hdr.flg = cmd.hdr.flg;
+    inline void cpy_hdr(const Command& command) {
+        res_->hdr.cn  = command.get_num();
+        res_->hdr.cqg = command.get_cqg();
+        res_->hdr.cqn = command.get_cqn();
+        // res_->hdr.flg = command.get
     }
 
 protected:
@@ -462,7 +469,7 @@ protected:
 
 class CmdService {
 public:
-    virtual int call(msg::Connection* connection, cmd_t& cmd) = 0;
+    virtual int call(msg::Connection* connection, const Command& cmd) = 0;
 
 protected:
     CmdService() {}

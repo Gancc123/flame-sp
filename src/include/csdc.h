@@ -231,9 +231,9 @@ private:
 
 class CommonRes : public Response {
 public:
-    CommonRes(const cmd_t& cmd, cmd_rc_t rc)
+    CommonRes(const Command& command, cmd_rc_t rc)
     : Response(&com_res_) {
-        cpy_hdr(cmd);
+        cpy_hdr(command);
         set_len(sizeof(cmd_res_t));
         set_rc(rc);
     }
@@ -250,17 +250,17 @@ private:
 
 class ChunkReadRes : public Response {
 public:
-    ChunkReadRes(const cmd_t& cmd, cmd_rc_t rc)
+    ChunkReadRes(const Command& command, cmd_rc_t rc)
     : Response(&rd_res_), imm_data_(nullptr), rd_((res_chk_io_rd_t*)res_->cont) {
-        cpy_hdr(cmd);
+        cpy_hdr(command);
         set_len(sizeof(cmd_res_t));
         set_rc(rc);
         rd_->imm_data_len = 0;
     }
 
-    ChunkReadRes(const cmd_t& cmd, cmd_rc_t rc, void* imm_buff, uint32_t len)
+    ChunkReadRes(const Command& command, cmd_rc_t rc, void* imm_buff, uint32_t len)
     : Response(&rd_res_), imm_data_(imm_buff), rd_((res_chk_io_rd_t*)res_->cont) {
-        cpy_hdr(cmd);
+        cpy_hdr(command);
         set_len(sizeof(cmd_res_t) + len);
         set_rc(rc);
         rd_->imm_data_len = len;

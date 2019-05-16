@@ -196,7 +196,7 @@ public:
      * @brief 清楚引用
      * 
      */
-    inline void clear() { ptr_.reset(nullptr); }
+     inline void clear() { ptr_.reset(); }
 
     Buffer(const Buffer&) = default;
     Buffer(Buffer&&) = default;

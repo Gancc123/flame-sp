@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-13 15:07:59
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-15 11:20:11
+ * @LastEditTime: 2019-05-16 19:06:14
  */
 #ifndef FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
 #define FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
@@ -94,9 +94,10 @@ public:
 
 class WriteCmdService final : public CmdService {
 public:
-    inline virtual int call(msg::Connection* connection, cmd_t& cmd) override{
+    inline virtual int call(msg::Connection* connection, const Command& command) override{
         FlameContext* flame_context = FlameContext::get_context();
         msg::MsgContext* mct = connection->get_session()->get_msg_context();
+        cmd_t cmd = command.get_cmd();
         ChunkWriteCmd* cmd_chunk_write = new ChunkWriteCmd(&cmd);
         auto allocator = msg::Stack::get_rdma_stack()->get_rdma_allocator();
         msg::ib::RdmaBuffer* lbuf = allocator->alloc(cmd_chunk_write->get_ma_len()); //获取一片本地的内存
@@ -151,7 +152,7 @@ public:
 
 class ReadZerosCmdService final : public CmdService {
 public:
-    inline virtual int call(msg::Connection* connection, cmd_t& cmd) override{
+    inline virtual int call(msg::Connection* connection, const Command& cmd) override{
         return 0;
     }
 
@@ -163,7 +164,7 @@ public:
 
 class WriteZerosCmdService final : public CmdService {
 public:
-    inline virtual int call(msg::Connection* connection, cmd_t& cmd) override{
+    inline virtual int call(msg::Connection* connection, const Command& cmd) override{
         return 0;
     }
 
