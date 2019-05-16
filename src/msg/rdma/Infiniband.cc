@@ -12,7 +12,7 @@ namespace flame{
 namespace msg{
 namespace ib{
 
-static const uint32_t MAX_SHARED_RX_SGE_COUNT = 1;
+static const uint32_t MAX_SHARED_RX_SGE_COUNT = 2;
 static const uint32_t TCP_MSG_LEN = 
  sizeof("0000:00000000:00000000:00000000:00:00000000000000000000000000000000");
 static const uint32_t CQ_DEPTH = 30000;
@@ -170,11 +170,11 @@ int QueuePair::init(){
         qpia.srq = srq;                  // use the same shared receive queue
     }else{
         qpia.cap.max_recv_wr = max_recv_wr;
-        qpia.cap.max_recv_sge = 1;
+        qpia.cap.max_recv_sge = 2;
     }
     
     qpia.cap.max_send_wr  = max_send_wr; // max outstanding send requests
-    qpia.cap.max_send_sge = 1;           // max send scatter-gather elements
+    qpia.cap.max_send_sge = 2;           // max send scatter-gather elements
     // max bytes of immediate data on send q
     qpia.cap.max_inline_data = mct->config->rdma_max_inline_data;  
     // RC, UC, UD, or XRC(only RC supported now!!)

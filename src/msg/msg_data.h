@@ -95,15 +95,17 @@ struct msg_declare_id_d : public MsgData{
 
     virtual size_t size() override {
         return sizeof(msger_id_t) 
-                + sizeof(bool) * 2 
+                + sizeof(char)
                 + sizeof(msg_node_addr_t) * 2;
     }
 
     virtual int encode(MsgBufferList& bl) override{
         int write_len = 0;
         write_len += M_ENCODE(bl, msger_id);
-        write_len += M_ENCODE(bl, has_tcp_lp);
-        write_len += M_ENCODE(bl, has_rdma_lp);
+        char flags = 0;
+        if(has_tcp_lp) flags |= 1;
+        if(has_rdma_lp) flags |= 2;
+        write_len += M_ENCODE(bl, flags);
         if(has_tcp_lp){
             write_len += M_ENCODE(bl, tcp_listen_addr);
         }
@@ -115,10 +117,11 @@ struct msg_declare_id_d : public MsgData{
 
     virtual int decode(MsgBufferList::iterator& it) override{
         int read_len = 0;
-        
         read_len += M_DECODE(it, msger_id);
-        read_len += M_DECODE(it, has_tcp_lp);
-        read_len += M_DECODE(it, has_rdma_lp);
+        char flags;
+        read_len += M_DECODE(it, flags);
+        if(flags & 1) has_tcp_lp = true;
+        if(flags & 2) has_rdma_lp = true;
         if(has_tcp_lp){
             read_len += M_DECODE(it, tcp_listen_addr);
         }

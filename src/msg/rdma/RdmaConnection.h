@@ -43,6 +43,9 @@ inline uint64_t sel_sig_wrid_from_num(uint32_t num){
 class RdmaWorker;
 struct RdmaRwWork;
 
+class RdmaSendWr;
+class RdmaRecvWr;
+
 extern const uint32_t RDMA_RW_WORK_BUFS_LIMIT;
 extern const uint32_t RDMA_BATCH_SEND_WR_MAX;
 extern const uint8_t RDMA_QP_MAX_RD_ATOMIC;
@@ -80,6 +83,10 @@ private:
     std::atomic<RdmaStatus> status;
     std::atomic<bool> fin_msg_pending;
 
+    //for RdmaConnection V2
+    std::deque<RdmaSendWr *> pending_send_wrs;
+    void fin_v2(bool do_close);
+
     void recv_msg_cb(Msg *msg);
     int post_work_request(std::vector<Chunk *> &tx_buffers);
     int post_rdma_send(std::list<Msg *> &msg);
@@ -89,8 +96,7 @@ private:
     int reap_send_msg();
     RdmaConnection(MsgContext *mct);
 public:
-    static RdmaConnection *create(MsgContext *mct, RdmaWorker *w, 
-                                                                uint8_t sl=0);
+    static RdmaConnection *create(MsgContext *mct, RdmaWorker *w, uint8_t sl=0);
     ~RdmaConnection();
     virtual msg_ttype_t get_ttype() override { return msg_ttype_t::RDMA; }
 
@@ -133,6 +139,8 @@ public:
     }
     void fin();
     void fault();
+    void do_close();
+    bool is_closed() const { return status == RdmaStatus::CLOSED; }
     bool is_error() const { return status == RdmaStatus::ERROR; }
     ib::QueuePair *get_qp() const { return this->qp; }
     uint32_t get_tx_wr() const { return this->qp->get_tx_wr(); }
@@ -147,6 +155,16 @@ public:
 
     RdmaWorker *get_rdma_worker() const{
         return rdma_worker;
+    }
+
+    //for RdmaConnection V2
+    void post_send(RdmaSendWr *wr, bool more=false);
+    void post_recv(RdmaRecvWr *wr);
+    int post_recvs(std::vector<RdmaRecvWr *> &wrs);
+    void close_msg_arrive();
+
+    static inline RdmaConnection *get_by_qp(ib::QueuePair *qp){
+        return (RdmaConnection *)qp->user_ctx;
     }
 
     static std::string status_str(RdmaStatus s){
@@ -168,6 +186,7 @@ public:
         }
     }
 
+    static void event_fn_send_fin_msg(void *arg1, void *arg2);
 };
 
 } //namespace msg
