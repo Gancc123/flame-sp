@@ -60,7 +60,7 @@ public:
      * 
      * @return void* 
      */
-    virtual void* end() const { return addr() + size(); }
+    virtual void* end() const { return (char *)addr() + size(); }
 
     /**
      * @brief Buffer类型
@@ -196,7 +196,7 @@ public:
      * @brief 清楚引用
      * 
      */
-    inline void clear() { ptr_.reset(nullptr); }
+    inline void clear() { ptr_.reset((BufferPtr *)nullptr); }
 
     Buffer(const Buffer&) = default;
     Buffer(Buffer&&) = default;

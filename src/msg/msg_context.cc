@@ -37,6 +37,11 @@ int MsgContext::load_config(){
 }
 
 int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
+    int ret = 0;
+    std::string transport;
+    std::string address;
+    int min_port, max_port, i;
+    NodeAddr *addr = nullptr;
     //fct can't be null.
     if(fct == nullptr) return -1;
 
@@ -45,6 +50,8 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
     if(load_config()){
         return -1;
     }
+
+    ML(this, info, "RdmaConnection Versoin: {}", config->rdma_conn_version);
 
 #ifdef HAVE_SPDK
     if(config->msg_worker_type == msg_worker_type_t::SPDK){
@@ -55,7 +62,8 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
 #else //NO SPDK
     if(config->msg_worker_type == msg_worker_type_t::SPDK){
         ML(this, error, "Don't support msg worker type: SPDK.");
-        return -1;
+        ret = -1;
+        goto err_config;
     }
 #endif //HAVE_SPDK
 
@@ -82,14 +90,12 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
     ML(this, trace, "#####  init all stack begin #####");
     if(Stack::init_all_stack(this)){
         ML(this, error, "init msg all stack failed!");
-        return 1;
+        ret = -1;
+        goto err_manager;
     }
     ML(this, trace, "##### init all stack end #####");
 
-    std::string transport;
-    std::string address;
-    int min_port, max_port, i;
-    NodeAddr *addr = nullptr;
+    
     for(const auto &listen_port : config->node_listen_ports){
         std::tie(transport, address, min_port, max_port) = listen_port;
         if(!addr){
@@ -113,6 +119,11 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
         if(i > max_port){
             ML(this, warn, "add listen port failed : {}@{}/{}-{}", 
                                 transport, address, min_port, max_port);
+            if(addr){
+                addr->put();
+            }
+            ret = -1;
+            goto err_manager;
         }
     }
     if(addr){
@@ -126,6 +137,24 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
     this->state = msg_module_state_t::RUNNING;
     
     return 0;
+
+err_manager:
+    if(manager){
+        delete manager;
+        manager = nullptr;
+    }
+err_dispatcher:
+    if(dispatcher){
+        delete dispatcher;
+        dispatcher = nullptr;
+    }
+err_config:
+    if(config){
+        delete config;
+        config = nullptr;
+    }
+
+    return ret;
 }
 
 static void fin_fn(void *arg1, void *arg2){
@@ -149,6 +178,10 @@ int MsgContext::fin(){
         }
     }
 #endif //HAVE_SPDK
+
+    if(this->state == msg_module_state_t::INIT){
+        return 0;
+    }
 
     bool next_ready;
     auto msg_manager = manager;

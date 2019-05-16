@@ -28,7 +28,7 @@ extern "C" {
  * Command Number
  * @length: 16 bit (2 Bytes)
  */
-union cmd_num_t {
+struct cmd_num_t {
     uint8_t cls;    // command class
     uint8_t seq;    // command sequence
 } __attribute__((packed));
@@ -37,6 +37,7 @@ union cmd_num_t {
 #define CMD_CLS_MGR 0x00U   // 0x00 ~ 0x0F for MGR
 #define CMD_CLS_CSD 0x10U   // 0x10 ~ 0x1F for CSD
 #define CMD_CLS_TGT 0x20U   // 0x20 ~ 0x2F for TGT / GW
+#define CMD_CLS_MSG 0x30U   // 0x30 ~ 0x3F for Msg module
 
 // 数据平面
 #define CMD_CLS_IO_CHK 0xF0U    // Chunk
