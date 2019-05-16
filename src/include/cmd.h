@@ -32,7 +32,7 @@ extern "C" {
  * Command Number
  * @length: 16 bit (2 Bytes)
  */
-struct cmd_num_t {
+union cmd_num_t {
     uint8_t cls;    // command class
     uint8_t seq;    // command sequence
 } __attribute__((packed));
@@ -460,8 +460,6 @@ protected:
 }; // class CommandStub 
 
 
-class CmdServerStub;
-
 class CmdService {
 public:
     virtual int call(msg::Connection* connection, cmd_t& cmd) = 0;
@@ -501,7 +499,7 @@ public:
 protected:
     CmdServerStub() {}
     virtual ~CmdServerStub() {}
-}; // class CmdServerStub
+}; // class CommandServer
 
 } // namespace flame
 
