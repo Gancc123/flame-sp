@@ -28,7 +28,7 @@ extern "C" {
  * Command Number
  * @length: 16 bit (2 Bytes)
  */
-union cmd_num_t {
+struct cmd_num_t {
     uint8_t cls;    // command class
     uint8_t seq;    // command sequence
 } __attribute__((packed));
