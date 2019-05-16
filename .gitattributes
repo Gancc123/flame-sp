@@ -1,8 +1,10 @@
 * text=auto
 
 *.sh text eol=lf
+*.py text eol=lf
 
 *.c text
+*.cc text
 *.cpp text
 *.h text
 

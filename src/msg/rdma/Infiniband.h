@@ -272,6 +272,8 @@ public:
     int to_dead();
     bool is_dead() const { return dead_; }
 
+    void * user_ctx = nullptr;
+
 private:
     MsgContext  *mct;
     Infiniband&  infiniband;     // Infiniband to which this QP belongs

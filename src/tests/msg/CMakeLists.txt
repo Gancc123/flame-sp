@@ -8,6 +8,7 @@ if(HAVE_SPDK)
 endif(HAVE_SPDK)
 #add_subdirectory(test_mem_cpy)
 #add_subdirectory(rdma_iops)
+add_subdirectory(rdma_conn_v2)
 
 package_add_test(buddy_allocator_ut buddy_allocator_ut.cc)
 
