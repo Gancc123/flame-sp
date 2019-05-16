@@ -293,6 +293,10 @@ public:
 struct chunk_blob_entry_descriptor {
     uint64_t entry_nums_total;
     uint64_t rest;
+public:
+    chunk_blob_entry_descriptor(): entry_nums_total(0), rest(0) {
+        
+    }
 };
 
 }
