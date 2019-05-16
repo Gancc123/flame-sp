@@ -87,7 +87,7 @@ int MsgConfig::load(){
     
     if (rdma_enable) {
 
-        res = set_rdma_conn_version(cfg->get("rdma_device_name", 
+        res = set_rdma_conn_version(cfg->get("rdma_conn_version", 
                                                 FLAME_RDMA_CONN_VERSION_D));
         if (res) {
             perr_arg("rdma_conn_version");
@@ -366,6 +366,7 @@ int MsgConfig::set_rdma_conn_version(const std::string &v){
     }
     int ver_num = std::stoi(v);
     if(ver_num == 1 || ver_num == 2){
+        rdma_conn_version = ver_num;
         return 0;
     }
     return 1;
@@ -431,6 +432,9 @@ int MsgConfig::set_rdma_max_inline_data(const std::string &v){
     }
     uint64_t result = size_str_to_uint64(v);
     if(result < (1ULL << 32)){
+        if(result < 64){
+            return 1;
+        }
         rdma_max_inline_data = result;
         return 0;
     }

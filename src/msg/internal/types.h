@@ -76,6 +76,31 @@ struct msger_id_t {
     uint16_t port   {0};  // port
 } __attribute__((packed));
 
+struct msg_hdr_t {
+    uint16_t len; //以64为单位
+    uint8_t  cls; //0x30~0x3F
+    uint8_t  opcode;
+} __attribute__((packed));
+
+#define FLAME_MSG_CMD_CLS_MSG 0x30U
+
+#define FLAME_MSG_HDR_OPCODE_DECLARE_ID 0x1
+
+#define FLAME_MSG_CMD_RESERVED_LEN (64 - sizeof(struct msg_hdr_t))
+
+struct msg_cmd_t {
+    struct msg_hdr_t mh;
+    char content[FLAME_MSG_CMD_RESERVED_LEN];
+} __attribute__((packed));
+
+struct msg_cmd_delcared_id_t{
+    struct msger_id_t msger_id;
+    //flags = (has_tcp_lp | has_rdma_lp) : has_tcp_lp => 1, has_rdma_lp => 2
+    char flags; 
+    msg_node_addr_t addr1;
+    msg_node_addr_t addr2;
+} __attribute__((packed));
+
 
 } //namespace msg
 } //namespace flame

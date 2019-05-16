@@ -129,7 +129,7 @@ public:
     virtual void write_cb() override {};
     virtual void error_cb() override {};
 
-    std::string to_string() const{
+    virtual std::string to_string() const{
         auto s = fmt::format("[Conn {}]", this->conn_id.to_string());
         return s;
     }

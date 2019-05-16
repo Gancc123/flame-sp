@@ -171,6 +171,7 @@ public:
     /**
      * RDMA max inline data
      * @cfg: rdma_max_inline_data
+     * @value: >= 64
      */
     uint32_t rdma_max_inline_data;
     int set_rdma_max_inline_data(const std::string &v);
