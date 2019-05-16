@@ -16,14 +16,7 @@
 
 #include "csd/log_csd.h"
 
-#include "spdk/bdev.h"
-#include "spdk/event.h"
-#include "spdk/env.h"
-#include "spdk/blob_bdev.h"
-#include "spdk/blob.h"
-#include "spdk/log.h"
-#include "spdk/version.h"
-#include "spdk/string.h"
+#include "include/spdk_common.h"
 
 #include <memory>
 #include <string>
@@ -603,7 +596,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    signal(SIGNT, pre_exit_csd);
+    signal(SIGINT, pre_exit_csd);
 
     //获取全局上下文
     FlameContext *fct = FlameContext::get_context();
