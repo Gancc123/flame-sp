@@ -42,6 +42,7 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
     std::string address;
     int min_port, max_port, i;
     NodeAddr *addr = nullptr;
+    MsgManager *msg_manager = nullptr;
     //fct can't be null.
     if(fct == nullptr) return -1;
 
@@ -82,7 +83,7 @@ int MsgContext::init(MsgerCallback *msger_cb, CsdAddrResolver *r){
         ML(this, warn, "CsdAddrResolver is null, can't resolve csd addrs!");
     }
 
-    MsgManager *msg_manager = new MsgManager(this, config->msg_worker_num);
+    msg_manager = new MsgManager(this, config->msg_worker_num);
     msg_manager->set_msger_cb(msger_cb);
 
     this->manager = msg_manager;

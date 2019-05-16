@@ -58,7 +58,9 @@ int main(){
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    assert(!mct->load_config());
+    if(!mct->load_config()){
+        assert(false);
+    }
 
     mct->config->set_rdma_conn_version("2");
 
