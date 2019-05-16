@@ -80,7 +80,7 @@ namespace flame {
 class ChunkReadCmd : public Command {
 public:
     ChunkReadCmd(cmd_t* cmdp) 
-    : Command(&rd_cmd), rd_cmd(*cmdp), rd_((cmd_chk_io_rd_t*)get_content()) {}
+    : Command(&rd_cmd_), rd_cmd_(*cmdp), rd_((cmd_chk_io_rd_t*)get_content()) {}
 
     ChunkReadCmd(uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea& ma)
     : Command(&rd_cmd_), rd_((cmd_chk_io_rd_t*)get_content()) {
@@ -110,7 +110,7 @@ public:
     inline uint32_t get_ma_key() const { return rd_->ma.key; }
 
 private:
-    cmd_t rd_cmd;
+    cmd_t rd_cmd_;
     cmd_chk_io_rd_t* rd_;
 }; // class ChunkReadCmd
 
