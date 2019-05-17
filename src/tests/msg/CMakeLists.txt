@@ -6,7 +6,7 @@ add_subdirectory(rdma_perf)
 if(HAVE_SPDK)
     add_subdirectory(test_spdk)
 endif(HAVE_SPDK)
-#add_subdirectory(test_mem_cpy)
+add_subdirectory(test_mem_cpy)
 #add_subdirectory(rdma_iops)
 
 package_add_test(buddy_allocator_ut buddy_allocator_ut.cc)

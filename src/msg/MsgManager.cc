@@ -241,13 +241,16 @@ Connection* MsgManager::add_connection(NodeAddr *addr, msg_ttype_t ttype){
 int MsgManager::del_connection(Connection *conn){
     if(!conn) return -1;
     ML(mct, trace, "{}", conn->to_string());
-    MutexLocker l(m_mutex);
-    if(session_unknown_conns.erase(conn) > 0){
-        conn->put();
-    }else if(conn->get_session()){
+    {
+        MutexLocker l(m_mutex);
+        if(session_unknown_conns.erase(conn) > 0){
+            conn->put();
+        }
+        this->del_conn(conn);
+    }
+    if(conn->get_session()){
         conn->get_session()->del_conn(conn);
     }
-    this->del_conn(conn);
     return 0;
 }
 
