@@ -400,6 +400,7 @@ inline int RdmaWorker::handle_rx_msg(ibv_wc *cqe, RdmaConnection *conn){
     if(conn == nullptr
         || conn->get_listener() == nullptr
         || cqe->opcode != IBV_WC_RECV
+        || cqe->status != IBV_WC_SUCCESS
         || cqe->byte_len < sizeof(msg_cmd_t)){
         return 0;
     }
