@@ -79,17 +79,17 @@ namespace flame {
 
 class ChunkReadCmd : public Command {
 public:
-    ChunkReadCmd(cmd_t* cmdp) 
-    : Command(&rd_cmd_), rd_cmd_(*cmdp), rd_((cmd_chk_io_rd_t*)get_content()) {}
+    ChunkReadCmd(cmd_t* rd_cmd) 
+    : Command(rd_cmd), rd_cmd_(rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {}
 
-    ChunkReadCmd(uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea& ma)
-    : Command(&rd_cmd_), rd_((cmd_chk_io_rd_t*)get_content()) {
+    ChunkReadCmd(cmd_t* rd_cmd, uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea& ma)
+    : Command(rd_cmd),rd_cmd_(rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_READ, 0, sizeof(cmd_t));
         
         rd_->chk_id = chk_id;
         rd_->off = off;
         rd_->ma.addr = ma.get_addr_uint64();
-        rd_->ma.len = len;
+        rd_->ma.len = ma.get_len();
         rd_->ma.key = ma.get_key();
     }
 
@@ -110,7 +110,7 @@ public:
     inline uint32_t get_ma_key() const { return rd_->ma.key; }
 
 private:
-    cmd_t rd_cmd_;
+    cmd_t* rd_cmd_;
     cmd_chk_io_rd_t* rd_;
 }; // class ChunkReadCmd
 
@@ -183,9 +183,9 @@ public:
 
     ~ChunkSetCmd() {}
 
-    void copy(void* buff) {
-        memcpy(buff, (void*)&set_cmd_, sizeof(cmd_t));
-    }
+    // void copy(void* buff) {
+    //     memcpy(buff, (void*)&set_cmd_, sizeof(cmd_t));
+    // }
 
     inline uint64_t get_chk_id() const { return set_->chk_id; }
 
@@ -214,9 +214,9 @@ public:
 
     ~ChunkResetCmd() {}
 
-    inline void copy(void* buff) {
-        memcpy(buff, (void*)&set_cmd_, sizeof(cmd_t));
-    }
+    // inline void copy(void* buff) {
+    //     memcpy(buff, (void*)&set_cmd_, sizeof(cmd_t));
+    // }
 
     inline uint64_t get_chk_id() const { return set_->chk_id; }
 
@@ -240,9 +240,9 @@ public:
 
     ~CommonRes() {}
 
-    inline void copy(void* buff) {
-        memcpy(buff, &com_res_, sizeof(cmd_res_t));
-    }
+    // inline void copy(void* buff) {
+    //     memcpy(buff, &com_res_, sizeof(cmd_res_t));
+    // }
 
 private:
     cmd_res_t com_res_;
@@ -268,12 +268,12 @@ public:
 
     ~ChunkReadRes() {}
 
-    inline void copy(void* buff) {
-        memcpy(buff, &rd_res_, sizeof(cmd_res_t));
-        if (imm_data_) {
-            memcpy(buff + sizeof(cmd_res_t), imm_data_, rd_->imm_data_len);
-        }
-    }
+    // inline void copy(void* buff) {
+    //     memcpy(buff, &rd_res_, sizeof(cmd_res_t));
+    //     if (imm_data_) {
+    //         memcpy(buff + sizeof(cmd_res_t), imm_data_, rd_->imm_data_len);
+    //     }
+    // }
 
 private:
     cmd_res_t rd_res_;

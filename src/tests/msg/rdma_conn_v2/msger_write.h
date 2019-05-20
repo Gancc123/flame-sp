@@ -10,15 +10,15 @@
 namespace flame {
 namespace msg{
 
-class RequestPool;
-class Msger;
+class RwRequestPool;
+class RwMsger;
 
-struct test_data_t{
-    uint32_t ignore; // ignore a hdr cmd
-    uint32_t count;
+struct memory_info{
+    uint32_t rkey; 
+    uint64_t addr;
 } __attribute__((packed));
 
-class Request : public RdmaRecvWr, public RdmaSendWr{
+class RwRequest : public RdmaRecvWr, public RdmaSendWr{
 public:
     enum Status{
         FREE = 0,
@@ -31,21 +31,21 @@ public:
 private:
     using RdmaBuffer = ib::RdmaBuffer;
     MsgContext *mct;
-    Msger *msger;
+    RwMsger *msger;
     ibv_sge sge;
     ibv_send_wr send_wr;
     ibv_recv_wr recv_wr;
     RdmaBuffer *buf;
-    Request(MsgContext *c, Msger *m)
+    RwRequest(MsgContext *c, RwMsger *m)
     : mct(c), msger(m), status(FREE), conn(nullptr) {}
 public:
     Status status;
     RdmaConnection *conn;
-    test_data_t *data;
+    memory_info *data;
 
-    static Request* create(MsgContext *c, Msger *m);
+    static RwRequest* create(MsgContext *c, RwMsger *m);
 
-    ~Request();
+    ~RwRequest();
 
     virtual ibv_send_wr *get_ibv_send_wr() override{
         return &send_wr;
@@ -65,42 +65,42 @@ public:
 
     void run();
 
-};//class Request
+};//class RwRequest
 
-class RequestPool{
+class RwRequestPool{
     MsgContext *mct;
-    Msger *msger;
-    std::deque<Request *> reqs_free;
+    RwMsger *msger;
+    std::deque<RwRequest *> reqs_free;
     Mutex mutex_;
     int expand_lockfree(int n);
     int purge_lockfree(int n);
 public:
-    explicit RequestPool(MsgContext *c, Msger *m);
-    ~RequestPool();
+    explicit RwRequestPool(MsgContext *c, RwMsger *m);
+    ~RwRequestPool();
 
-    int alloc_reqs(int n, std::vector<Request *> &reqs);
-    Request *alloc_req();
-    void free_req(Request *req);
+    int alloc_reqs(int n, std::vector<RwRequest *> &reqs);
+    RwRequest *alloc_req();
+    void free_req(RwRequest *req);
 
     int expand(int n);
     int purge(int n);
-};//class RequestPool
+};//class RwRequestPool
 
 
-class Msger : public MsgerCallback{
+class RwMsger : public MsgerCallback{
     MsgContext *mct;
-    RequestPool pool;
+    RwRequestPool pool;
     bool is_server_;
 public:
-    explicit Msger(MsgContext *c, bool s) 
+    explicit RwMsger(MsgContext *c, bool s) 
     : mct(c), pool(c, this), is_server_(s) {};
     virtual void on_conn_declared(Connection *conn, Session *s) override;
     virtual void on_conn_recv(Connection *conn, Msg *msg) override {};
     virtual int get_recv_wrs(int n, std::vector<RdmaRecvWr *> &wrs) override;
 
-    RequestPool &get_req_pool() { return pool; }
+    RwRequestPool &get_req_pool() { return pool; }
     bool is_server() { return is_server_; }
-};//class Msger
+};//class RwMsger
 
 } //namespace msg
 } //namespace flame

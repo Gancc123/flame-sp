@@ -19,7 +19,7 @@ if(SW_64)
     set(ON_SW_64 ${SW_64})
 endif(SW_64)
 
-option(WITH_SPDK "Build with SPDK" OFF)
+option(WITH_SPDK "Build with SPDK" ON)
 if(WITH_SPDK)
     set(SPDK_DIR "$ENV{SPDK_ROOT}")
     if(NOT SPDK_DIR)

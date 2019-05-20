@@ -187,6 +187,7 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
                     manager->get_ib().wc_status_to_string(response->status));
 
             RdmaSendWr *wr = reinterpret_cast<RdmaSendWr *>(response->wr_id);
+            wr->get_ibv_send_wr()->next = nullptr;
             wr->on_send_done(cqe[i]);
 
             if (response->status != IBV_WC_SUCCESS) {
@@ -397,7 +398,8 @@ inline int RdmaWorker::handle_rx_msg(ibv_wc *cqe, RdmaConnection *conn){
 
     if(conn == nullptr
         || conn->get_listener() == nullptr
-        || cqe->status != IBV_WC_SUCCESS 
+        || cqe->status != IBV_WC_RECV
+        || cqe->status != IBV_WC_SUCCESS
         || cqe->byte_len < sizeof(msg_cmd_t)){
         return 0;
     }

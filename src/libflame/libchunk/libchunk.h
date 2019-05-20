@@ -4,7 +4,7 @@
 #include "include/cmd.h"
 
 #include "msg/msg_core.h"
-#include "libflame/libchunk/msg_recv.h"
+#include "libflame/libchunk/msg_handle.h"
 
 
 namespace flame {
@@ -37,9 +37,11 @@ struct MsgCallBack{
 
 class CmdClientStubImpl : public CmdClientStub{
 public:
-    static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port);
+    static std::shared_ptr<CmdClientStubImpl> create_stub(std::string ip_addr, int port);
     
-    virtual int submit(Command& cmd, cmd_cb_fn_t cb_fn, void* cb_arg) override;
+    RdmaWorkRequest* get_request();
+
+    virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) override;
 
     CmdClientStubImpl(FlameContext* flame_context);
 
@@ -53,7 +55,7 @@ private:
     int _set_session(std::string ip_addr, int port);
 
     msg::MsgContext* msg_context_;
-    MsgerClientCallback* msger_client_cb_;
+    Msger* client_msger_;
     msg::Session* session_;
     std::queue<MsgCallBack> msg_cb_q_;
 
@@ -65,14 +67,14 @@ public:
 
     CmdServerStubImpl(FlameContext* flame_context);
     virtual ~CmdServerStubImpl() {
-        msg_context_->fin();
-        delete msger_server_cb_;
+    FLAME_MSG_INTERNAL_BITMAP_H
+        delete server_msger_;
         delete msg_context_;
     }
 
 private:
     msg::MsgContext* msg_context_;
-    MsgerServerCallback* msger_server_cb_;
+    Msger* server_msger_;
     // msg::Session* session_; //on_listen_accept()中会有但是如何传出来？
 
 }; // class CmdServerStubImpl

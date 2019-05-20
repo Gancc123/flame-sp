@@ -1,7 +1,8 @@
 #include "libflame/libchunk/libchunk.h"
 
 #include "msg/msg_core.h"
-#include "libflame/libchunk/msg_recv.h"
+#include "libflame/libchunk/msg_handle.h"
+#include "log_libchunk.h"
 
 
 namespace flame {
@@ -45,8 +46,12 @@ cmd_ma_t MemoryAreaImpl::get() const {
 CmdClientStubImpl::CmdClientStubImpl(FlameContext *flame_context)
     :  CmdClientStub(){
     msg_context_ = new msg::MsgContext(flame_context); //* set msg_context_
-    msger_client_cb_ = new MsgerClientCallback(msg_context_);
-    msg_context_->init(msger_client_cb_, nullptr);//* set msg_client_recv_func
+    client_msger_ = new Msger(msg_context_, false);
+    if(msg_context_->load_config()){
+        assert(false);
+    }
+    msg_context_->config->set_rdma_conn_version("2");
+    msg_context_->init(client_msger_, nullptr);//* set msg_client_recv_func
 }
 
 /**
@@ -81,14 +86,26 @@ int CmdClientStubImpl::_set_session(std::string ip_addr, int port){
  *          int             port        端口号
  * @return: std::shared_ptr<CmdClientStubImpl>
  */
-std::shared_ptr<CmdClientStub> CmdClientStubImpl::create_stub(std::string ip_addr, int port){
+std::shared_ptr<CmdClientStubImpl> CmdClientStubImpl::create_stub(std::string ip_addr, int port){
     FlameContext* flame_context = FlameContext::get_context();
     CmdClientStubImpl* cmd_client_stub = new CmdClientStubImpl(flame_context);
     int rc;
     rc = cmd_client_stub->_set_session(ip_addr, port);
     if(rc) return nullptr;
-    return std::shared_ptr<CmdClientStub>(cmd_client_stub);
+    return std::shared_ptr<CmdClientStubImpl>(cmd_client_stub);
 } 
+
+/**
+ * @name: get_request
+ * @describtions: 从client_msger_的pool中获得request给用户进行操作，返回的RdmaWorkRequest->command在RDMA内存上，可以直接操作
+ * @param 
+ * @return: RdmaWorkRequest*
+ */
+RdmaWorkRequest* CmdClientStubImpl::get_request(){
+    RdmaWorkRequest* req = client_msger_->get_req_pool().alloc_req();
+    return req;
+}
+
 
 /**
  * @name: submit 
@@ -98,14 +115,13 @@ std::shared_ptr<CmdClientStub> CmdClientStubImpl::create_stub(std::string ip_add
  *          void*               cb_arg      回调函数的参数
  * @return: 
  */
-int CmdClientStubImpl::submit(Command& cmd, cmd_cb_fn_t cb_fn, void* cb_arg){
-    MsgCmd msg_request_cmd;
-    cmd.copy(&msg_request_cmd.cmd);
+int CmdClientStubImpl::submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg){
     msg::Connection* conn = session_->get_conn(msg::msg_ttype_t::RDMA);
-    auto req_msg = msg::Msg::alloc_msg(msg_context_);
-    req_msg->append_data(msg_request_cmd);
-    conn->send_msg(req_msg);
-    req_msg->put();
+    msg::RdmaConnection* rdma_conn = msg::RdmaStack::rdma_conn_cast(conn);
+    FlameContext* flame_context = FlameContext::get_context();
+    flame_context->log()->ltrace("prepare to call post_send");
+    rdma_conn->post_send(&req);
+    flame_context->log()->ltrace("after call post_send");
     struct MsgCallBack msg_cb;
     msg_cb.cb_fn = cb_fn;
     msg_cb.cb_arg = cb_arg;
@@ -118,8 +134,10 @@ int CmdClientStubImpl::submit(Command& cmd, cmd_cb_fn_t cb_fn, void* cb_arg){
 //-------------------------------------CmdServerStubImpl->CmdServerStub-------------------------------------------------//
 CmdServerStubImpl::CmdServerStubImpl(FlameContext* flame_context){
     msg_context_ = new msg::MsgContext(flame_context); //* set msg_context_
-    msger_server_cb_ = new MsgerServerCallback(msg_context_);
-    msg_context_->init(msger_server_cb_, nullptr);//* set msg_server_recv_func
+    server_msger_ = new Msger(msg_context_, true);
+    assert(!msg_context_->load_config());
+    msg_context_->config->set_rdma_conn_version("2");
+    msg_context_->init(server_msger_, nullptr);//* set msg_server_recv_func
 }
 
 } // namespace flame

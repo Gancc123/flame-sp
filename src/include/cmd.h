@@ -19,6 +19,7 @@
 #include <map>
 
 #include "msg/msg_core.h"
+#include "libflame/libchunk/msg_handle.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -150,6 +151,20 @@ public:
     inline uint16_t get_num() const { return *(uint16_t*)&cmd_->hdr.cn; }
 
     /**
+     * @brief Get Command Class
+     * 
+     * @return uint16_t 
+     */
+    inline uint8_t get_cls() const { return *(uint16_t*)&cmd_->hdr.cn.cls; }
+
+    /**
+     * @brief Get Command Sequence
+     * 
+     * @return uint16_t 
+     */
+    inline uint8_t get_seq() const { return *(uint16_t*)&cmd_->hdr.cn.seq; }
+
+    /**
      * @brief Get Command Queue Group
      * 
      * @return uint8_t 
@@ -266,7 +281,7 @@ public:
      * 
      * @param buff 
      */
-    virtual void copy(void* buff) = 0;
+    // virtual void copy(void* buff) = 0;
 
     /**
      * @brief Get Command Number
@@ -343,7 +358,8 @@ public:
     inline void* get_content() const { return res_->cont; }
 
     inline void cpy_hdr(const Command& command) {
-        res_->hdr.cn  = command.get_num();
+        uint16_t t = command.get_num();
+        res_->hdr.cn  = *(cmd_num_t *)&t;
         res_->hdr.cqg = command.get_cqg();
         res_->hdr.cqn = command.get_cqn();
         // res_->hdr.flg = command.get
@@ -455,12 +471,13 @@ protected:
 };
 
 typedef void(*cmd_cb_fn_t)(const Response& res, void* arg);
+class RdmaWorkRequest;
 
 class CmdClientStub {
 public:
     // static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port) = 0;
     
-    virtual int submit(Command& cmd, cmd_cb_fn_t cb_fn, void* cb_arg) = 0;
+    virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) = 0;
 protected:
     CmdClientStub() {}
     ~CmdClientStub() {}
@@ -470,7 +487,7 @@ protected:
 
 class CmdService {
 public:
-    virtual int call(msg::Connection* connection, const Command& cmd) = 0;
+    virtual int call(RdmaWorkRequest *req) = 0;
 
 protected:
     CmdService() {}

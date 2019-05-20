@@ -6,7 +6,7 @@ set(OUTPUT_DIR "${LIBCHUNK_DIR}")
 add_library(libchunk-objs OBJECT
     libchunk.cc
     cmd_service_mapper.cc
-    msg_recv.cc
+    msg_handle.cc
     )
 list(APPEND obj_modules libchunk)
 
@@ -26,6 +26,13 @@ add_executable(server_test
 
 # add_library(libchunk STATIC ${libchunk_objs})
 target_link_libraries(server_test common)
+
+add_custom_command(
+    TARGET server_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_mgr.cfg
+            ${OUTPUT_DIR})
+
 set_target_properties(server_test
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
@@ -36,6 +43,13 @@ add_executable(client_test
     client_test.cc
     )
 target_link_libraries(client_test common)
+
+add_custom_command(
+    TARGET client_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/flame_client.cfg
+            ${OUTPUT_DIR})
+
 set_target_properties(client_test
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
