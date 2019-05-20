@@ -89,7 +89,6 @@ RdmaPrepConn *RdmaPrepConn::create(MsgContext *mct, NodeAddr *addr, uint8_t sl){
             return nullptr;
         }  
         conn->real_conn = real_conn;
-        real_conn->get();
 
         ib::Infiniband &ib = Stack::get_rdma_stack()->get_manager()->get_ib();
         auto &my_msg = real_conn->get_my_msg();
@@ -365,6 +364,7 @@ void RdmaPrepConn::error_cb(){
 
 void RdmaPrepConn::close(){
     int tmp_fd = fd;
+    Stack::get_rdma_stack()->on_rdma_prep_conn_close(this);
     status = PrepStatus::CLOSED;
     close_rdma_conn_if_need();
     get_owner()->del_event(this->fd);

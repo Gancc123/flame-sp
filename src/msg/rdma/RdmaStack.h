@@ -14,6 +14,7 @@
 #include <map>
 #include <vector>
 #include <deque>
+#include <set>
 #include <functional>
 
 namespace flame{
@@ -60,6 +61,7 @@ public:
 
 class RdmaWorker;
 class RdmaManager;
+class RdmaPrepConn;
 
 struct RdmaRwWork;
 typedef std::function<void(RdmaRwWork *, RdmaConnection*)> rdma_rw_work_func_t;
@@ -202,6 +204,8 @@ public:
 class RdmaStack : public Stack{
     MsgContext *mct;
     RdmaManager *manager;
+    Mutex rdma_prep_conns_mutex;
+    std::set<RdmaPrepConn *> alive_rdma_prep_conns;
     uint64_t max_msg_size_;
 public:
     explicit RdmaStack(MsgContext *c);
@@ -223,6 +227,7 @@ public:
     uint64_t max_msg_size(){
         return max_msg_size_;
     }
+    void on_rdma_prep_conn_close(RdmaPrepConn *prep_conn);
 };
 
 

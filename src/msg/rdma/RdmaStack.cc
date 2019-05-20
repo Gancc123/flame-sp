@@ -187,7 +187,9 @@ void RdmaWorker::handle_tx_cqe(ibv_wc *cqe, int n){
                     manager->get_ib().wc_status_to_string(response->status));
 
             RdmaSendWr *wr = reinterpret_cast<RdmaSendWr *>(response->wr_id);
+            wr->get_ibv_send_wr()->next = nullptr;
             wr->on_send_done(cqe[i]);
+            
 
             if (response->status != IBV_WC_SUCCESS) {
                 if (response->status == IBV_WC_RETRY_EXC_ERR) {
@@ -397,7 +399,8 @@ inline int RdmaWorker::handle_rx_msg(ibv_wc *cqe, RdmaConnection *conn){
 
     if(conn == nullptr
         || conn->get_listener() == nullptr
-        || cqe->status != IBV_WC_SUCCESS 
+        || cqe->opcode != IBV_WC_RECV
+        || cqe->status != IBV_WC_SUCCESS
         || cqe->byte_len < sizeof(msg_cmd_t)){
         return 0;
     }
@@ -441,6 +444,7 @@ void RdmaWorker::handle_rx_cqe(ibv_wc *cqe, int n){
             }
 
             RdmaRecvWr *wr = reinterpret_cast<RdmaRecvWr *>(response->wr_id);
+            wr->get_ibv_recv_wr()->next = nullptr;
             //Got 0 byte msg, means close the conn.
             if(response->status == IBV_WC_SUCCESS
                 && response->opcode == IBV_WC_RECV
@@ -868,7 +872,12 @@ int RdmaManager::init(){
     for(int i = 0;i < cqp_num; ++i){
         auto worker = new RdmaWorker(mct, this);
         worker->init();
-        int msg_worker_index = (arm_step * i) % (msg_worker_num - 1) + 1;
+        int msg_worker_index;
+        if(msg_worker_num <= 1){
+            msg_worker_index = 0;
+        }else{
+            msg_worker_index = (arm_step * i) % (msg_worker_num - 1) + 1;
+        }
         MsgWorker *msg_worker = mct->manager->get_worker(msg_worker_index);
         ML(mct, info, "RdmaWorker{} bind to {}", i, msg_worker->get_name());
         if(mct->config->rdma_poll_event){
@@ -947,7 +956,7 @@ int RdmaManager::arm_async_event_handler(MsgWorker *worker){
 }
 
 RdmaStack::RdmaStack(MsgContext *c)
-:mct(c), manager(nullptr) {
+:mct(c), manager(nullptr), rdma_prep_conns_mutex(MUTEX_TYPE_ADAPTIVE_NP) {
     auto cfg = mct->config;
     assert(cfg != nullptr);
     max_msg_size_ = ((uint64_t)cfg->rdma_buffer_size) 
@@ -962,6 +971,15 @@ int RdmaStack::init(){
 
 int RdmaStack::clear_before_stop(){
     if(!manager) return 0;
+    std::set<RdmaPrepConn *> tmp_set;
+    {
+        MutexLocker l(rdma_prep_conns_mutex);
+        tmp_set.swap(alive_rdma_prep_conns);
+    }
+    for(auto prep_conn : tmp_set){
+        prep_conn->put();
+        prep_conn->close();
+    }
     return manager->clear_before_stop();
 }
 
@@ -988,12 +1006,23 @@ Connection* RdmaStack::connect(NodeAddr *addr){
     prep_conn->set_owner(worker);
 
     Connection *conn = prep_conn->get_rdma_conn();
-    prep_conn->put();
+    //conn not only owned by prep_conn.
+    conn->get();
+
+    MutexLocker l(rdma_prep_conns_mutex);
+    alive_rdma_prep_conns.insert(prep_conn);
     return conn;
 }
 
 ib::RdmaBufferAllocator *RdmaStack::get_rdma_allocator() {
     return manager->get_ib().get_memory_manager()->get_rdma_allocator();
+}
+
+void RdmaStack::on_rdma_prep_conn_close(RdmaPrepConn *conn){
+    MutexLocker l(rdma_prep_conns_mutex);
+    if(alive_rdma_prep_conns.erase(conn)){
+        conn->put();
+    }
 }
 
 } //namespace msg

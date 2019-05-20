@@ -10,15 +10,27 @@ Request* Request::create(MsgContext *c, Msger *m){
     if(!req){
         return nullptr;
     }
-    auto buffer = Stack::get_rdma_stack()->get_rdma_allocator()->alloc(4096);
+    auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
+    auto buffer = allocator->alloc(4096);
     if(!buffer){
         delete req;
         return nullptr;
     }
+    auto data_buffer = allocator->alloc(4096);
+    if(!data_buffer){
+        delete req;
+        allocator->free(buffer);
+        return nullptr;
+    }
     req->buf = buffer;
+    req->data_buffer = data_buffer;
     req->sge.addr = buffer->addr();
-    req->sge.length = 64;
+    req->sge.length = sizeof(test_data_t) > 64 ? sizeof(test_data_t) : 64;
     req->sge.lkey = buffer->lkey();
+
+    req->data_sge.addr = data_buffer->addr();
+    req->data_sge.length = data_buffer->size();
+    req->data_sge.lkey = data_buffer->lkey();
 
     ibv_send_wr &swr = req->send_wr;
     memset(&swr, 0, sizeof(swr));
@@ -38,6 +50,10 @@ Request* Request::create(MsgContext *c, Msger *m){
 
     req->data = (test_data_t *)req->buf->buffer();
     req->data->ignore = 0;
+    req->data->raddr = data_buffer->addr();
+    req->data->rkey = data_buffer->rkey();
+    req->data->length = data_buffer->size();
+    req->data->is_read = 0;
 
     return req;
 }
@@ -62,7 +78,20 @@ void Request::on_recv_cancelled(bool err, int eno){
 void Request::on_send_done(ibv_wc &cqe){
     ML(mct, debug, "");
     if(cqe.status == IBV_WC_SUCCESS){
-        status = SEND_DONE;
+        switch(cqe.opcode){
+        case IBV_WC_SEND:
+            status = SEND_DONE;
+            break;
+        case IBV_WC_RDMA_WRITE:
+            status = WRITE_DONE;
+            break;
+        case IBV_WC_RDMA_READ:
+            status = READ_DONE;
+            break;
+        default:
+            status = ERROR;
+            break;
+        }
     }else{
         status = ERROR;
     }
@@ -88,12 +117,27 @@ void Request::run(){
             switch(status){
             case RECV_DONE:
                 ML(mct, info, "Recv from client: {}", data->count);
+
+                send_wr.sg_list = &data_sge;
+                send_wr.opcode = data->is_read ? 
+                                    IBV_WR_RDMA_READ :
+                                    IBV_WR_RDMA_WRITE;
+                send_wr.wr.rdma.remote_addr = data->raddr;
+                send_wr.wr.rdma.rkey = data->rkey;
+
+                conn->post_send(this);
+                break;
+            case WRITE_DONE:
+            case READ_DONE:
+                ML(mct, info, "{} done.", data->is_read?"read":"write");
                 ++data->count;
                 status = EXEC_DONE;
                 next_ready = true;
                 break;
             case EXEC_DONE:
                 assert(conn);
+                send_wr.sg_list = &sge;
+                send_wr.opcode = IBV_WR_SEND;
                 conn->post_send(this);
                 break;
             case SEND_DONE:
