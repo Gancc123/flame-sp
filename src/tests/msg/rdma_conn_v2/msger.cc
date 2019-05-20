@@ -59,9 +59,15 @@ Request* Request::create(MsgContext *c, Msger *m){
 }
 
 Request::~Request(){
+    auto allocator = Stack::get_rdma_stack()->get_rdma_allocator();
+    assert(allocator);
     if(buf){
-        Stack::get_rdma_stack()->get_rdma_allocator()->free(buf);
+        allocator->free(buf);
         buf = nullptr;
+    }
+    if(data_buffer){
+        allocator->free(data_buffer);
+        data_buffer = nullptr;
     }
 }
 
