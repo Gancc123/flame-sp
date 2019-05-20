@@ -15,20 +15,20 @@ RwRequest* RwRequest::create(MsgContext *c, RwMsger *m){
         delete req;
         return nullptr;
     }
-    auto data_buffer = Stack::get_rdma_stack()->get_rdma_allocator()->alloc(4096);
-    if(!data_buffer){
-        delete req;
-        return nullptr;
-    }
+    // auto data_buffer = Stack::get_rdma_stack()->get_rdma_allocator()->alloc(4096);
+    // if(!data_buffer){
+    //     delete req;
+    //     return nullptr;
+    // }
     req->buf = buffer;
     req->sge.addr = buffer->addr();
     req->sge.length = 64;
     req->sge.lkey = buffer->lkey();
 
-    req->data_buffer = data_buffer;
-    req->data_sge.addr = data_buffer->addr();
-    req->data_sge.length = data_buffer->size();
-    req->data_sge.lkey = data_buffer->lkey();
+    // req->data_buffer = data_buffer;
+    // req->data_sge.addr = data_buffer->addr();
+    // req->data_sge.length = data_buffer->size();
+    // req->data_sge.lkey = data_buffer->lkey();
 
     ibv_send_wr &swr = req->send_wr;
     memset(&swr, 0, sizeof(swr));
@@ -95,10 +95,17 @@ void RwRequest::run(){
         do{
             next_ready = false;
             switch(status){
-            case RECV_DONE:
+            case RECV_DONE:{
                 ML(mct, info, "Recv from client data->addr: {:x}", data->addr);
-                
-                send_wr.sg_list = &data_sge;
+                ib::RdmaBufferAllocator* allocator = Stack::get_rdma_stack()->get_rdma_allocator();
+                ib::RdmaBuffer* lbuf = allocator->alloc(4096); //获取一片本地的内存
+
+                buf = lbuf;
+                sge.addr = lbuf->addr();
+                sge.length = 4096;
+                sge.lkey = lbuf->lkey();
+
+                send_wr.sg_list = &sge;
                 send_wr.wr.rdma.remote_addr = data->addr;
                 send_wr.wr.rdma.rkey = data->rkey;
 
@@ -107,6 +114,7 @@ void RwRequest::run(){
                 status = EXEC_DONE;
                 next_ready = true;
                 break;
+            }
             case EXEC_DONE:
                 assert(conn);
                 conn->post_send(this);
