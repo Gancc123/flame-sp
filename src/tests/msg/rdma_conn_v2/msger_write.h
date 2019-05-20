@@ -33,9 +33,11 @@ private:
     MsgContext *mct;
     RwMsger *msger;
     ibv_sge sge;
+    ibv_sge data_sge;
     ibv_send_wr send_wr;
     ibv_recv_wr recv_wr;
     RdmaBuffer *buf;
+    RdmaBuffer *data_buffer;
     RwRequest(MsgContext *c, RwMsger *m)
     : mct(c), msger(m), status(FREE), conn(nullptr) {}
 public:

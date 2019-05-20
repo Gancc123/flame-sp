@@ -13,13 +13,13 @@ using namespace flame::msg;
 void send_first_incre_msg(MsgContext *mct, Msger *msger){
     NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
-    addr->set_port(6666);
+    addr->set_port(7778);
     msger_id_t msger_id = msger_id_from_msg_node_addr(addr);
     auto session = mct->manager->get_session(msger_id);
     NodeAddr *rdma_addr = new NodeAddr(mct);
     rdma_addr->set_ttype(NODE_ADDR_TTYPE_RDMA);
     rdma_addr->ip_from_string("127.0.0.1");
-    rdma_addr->set_port(7777);
+    rdma_addr->set_port(7778);
     session->set_listen_addr(addr);
     session->set_listen_addr(rdma_addr, msg_ttype_t::RDMA);
     auto conn = session->get_conn(msg_ttype_t::RDMA);
@@ -39,7 +39,7 @@ void send_first_incre_msg(MsgContext *mct, Msger *msger){
 static void msg_clear_done_cb(void *arg1, void *arg2){
     //free RdmaBuffers before RdmaStack detroyed.
     Msger *msger = (Msger *)arg1;
-     msger->get_req_pool().purge(-1);
+    msger->get_req_pool().purge(-1);
 }
 
 int main(){
@@ -58,7 +58,9 @@ int main(){
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    assert(!mct->load_config());
+    if(mct->load_config()){
+        assert(false);
+    }
 
     mct->config->set_rdma_conn_version("2");
 

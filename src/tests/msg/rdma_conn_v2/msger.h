@@ -16,6 +16,10 @@ class Msger;
 struct test_data_t{
     uint32_t ignore; // ignore a hdr cmd
     uint32_t count;
+    uint64_t raddr;
+    uint32_t rkey;
+    uint32_t length;
+    uint8_t  is_read;
 } __attribute__((packed));
 
 class Request : public RdmaRecvWr, public RdmaSendWr{
@@ -23,6 +27,8 @@ public:
     enum Status{
         FREE = 0,
         RECV_DONE,
+        READ_DONE,
+        WRITE_DONE,
         EXEC_DONE,
         SEND_DONE,
         DESTROY,
@@ -33,9 +39,11 @@ private:
     MsgContext *mct;
     Msger *msger;
     ibv_sge sge;
+    ibv_sge data_sge;
     ibv_send_wr send_wr;
     ibv_recv_wr recv_wr;
     RdmaBuffer *buf;
+    RdmaBuffer *data_buffer;
     Request(MsgContext *c, Msger *m)
     : mct(c), msger(m), status(FREE), conn(nullptr) {}
 public:

@@ -15,10 +15,20 @@ RwRequest* RwRequest::create(MsgContext *c, RwMsger *m){
         delete req;
         return nullptr;
     }
+    auto data_buffer = Stack::get_rdma_stack()->get_rdma_allocator()->alloc(4096);
+    if(!data_buffer){
+        delete req;
+        return nullptr;
+    }
     req->buf = buffer;
     req->sge.addr = buffer->addr();
     req->sge.length = 64;
     req->sge.lkey = buffer->lkey();
+
+    req->data_buffer = data_buffer;
+    req->data_sge.addr = data_buffer->addr();
+    req->data_sge.length = data_buffer->size();
+    req->data_sge.lkey = data_buffer->lkey();
 
     ibv_send_wr &swr = req->send_wr;
     memset(&swr, 0, sizeof(swr));
@@ -85,31 +95,18 @@ void RwRequest::run(){
         do{
             next_ready = false;
             switch(status){
-            case RECV_DONE:{
-                ML(mct, info, "Recv from client data->addr: {}", data->addr);
-                ib::RdmaBufferAllocator* allocator = Stack::get_rdma_stack()->get_rdma_allocator();
-                RdmaBuffer* lbuf = allocator->alloc(4096); //获取一片本地的内存
-                lbuf->data_len = 4096;
-                buf = lbuf;
-
-                sge.addr = buf->addr();
-                sge.length = 4096;
-                sge.lkey = buf->lkey();
+            case RECV_DONE:
+                ML(mct, info, "Recv from client data->addr: {:x}", data->addr);
                 
+                send_wr.sg_list = &data_sge;
                 send_wr.wr.rdma.remote_addr = data->addr;
                 send_wr.wr.rdma.rkey = data->rkey;
 
-                memset(&send_wr, 0, sizeof(send_wr));
-                send_wr.wr_id = reinterpret_cast<uint64_t>((RdmaSendWr *)this);
-                send_wr.num_sge = 1;
-                send_wr.sg_list = &sge;
-                send_wr.send_flags |= IBV_SEND_SIGNALED;
                 send_wr.opcode = IBV_WR_RDMA_WRITE;
-                send_wr.next = nullptr;
 
                 status = EXEC_DONE;
                 next_ready = true;
-                break;}
+                break;
             case EXEC_DONE:
                 assert(conn);
                 conn->post_send(this);

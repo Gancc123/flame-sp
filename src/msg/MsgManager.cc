@@ -242,7 +242,6 @@ int MsgManager::del_connection(Connection *conn){
     if(!conn) return -1;
     ML(mct, trace, "{}", conn->to_string());
     {
-    
         MutexLocker l(m_mutex);
         if(session_unknown_conns.erase(conn) > 0){
             conn->put();
@@ -252,7 +251,6 @@ int MsgManager::del_connection(Connection *conn){
     if(conn->get_session()){
         conn->get_session()->del_conn(conn);
     }
- 
     return 0;
 }
 
