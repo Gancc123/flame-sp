@@ -39,7 +39,7 @@ void send_first_incre_msg(MsgContext *mct, Msger *msger){
 static void msg_clear_done_cb(void *arg1, void *arg2){
     //free RdmaBuffers before RdmaStack detroyed.
     Msger *msger = (Msger *)arg1;
-     msger->get_req_pool().purge(-1);
+    msger->get_req_pool().purge(-1);
 }
 
 int main(){
@@ -58,7 +58,9 @@ int main(){
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    assert(!mct->load_config());
+    if(mct->load_config()){
+        assert(false);
+    }
 
     mct->config->set_rdma_conn_version("2");
 

@@ -1088,6 +1088,7 @@ void RdmaConnection::post_send(RdmaSendWr *wr, bool more){
             it = it->next;
         }
     }
+    ML(mct, debug, "pending_send_wrs: {}", pending_send_wrs.size());
 
     if(pending_send_wrs.size() == 0 || more){
         return;
