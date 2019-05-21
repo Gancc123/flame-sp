@@ -9,6 +9,8 @@
 using namespace flame;
 
 void cb_func(const Response& res, void* arg){
+    char* mm = (char*)arg;
+    std::cout << mm[0] << mm[1] << mm[2] << std::endl; 
     std::cout << "111" << std::endl;
     return ;
 }
@@ -34,7 +36,7 @@ int main(){
     cmd_t* cmd = (cmd_t *)rdma_work_request->command;
     ChunkReadCmd* read_cmd = new ChunkReadCmd(cmd, 0, 0, 10, *memory); 
 
-    cmd_client_stub->submit(*rdma_work_request, &cb_func, (void *)buf);
+    cmd_client_stub->submit(*rdma_work_request, &cb_func, (void *)buf->buffer());
     
     std::getchar();
     // char* mm = (char*)buf->buffer();

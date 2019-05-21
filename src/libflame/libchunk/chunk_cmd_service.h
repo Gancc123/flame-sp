@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-13 15:07:59
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-21 15:27:07
+ * @LastEditTime: 2019-05-21 16:52:26
  */
 #ifndef FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
 #define FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
@@ -36,7 +36,7 @@ inline int chunk_io_rw_mem(chk_id_t chunk_id, chk_off_t offset, uint32_t len, ui
     }
     else{   //**?
         char *disk = new char[len];
-        strcpy(disk,"aaaaaaa");
+        strcpy(disk,"abcdefghijklmnopq");
         memcpy((void *)laddr, disk, len);
     }
     return RC_SUCCESS;
