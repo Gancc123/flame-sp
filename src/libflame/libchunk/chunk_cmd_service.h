@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-13 15:07:59
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-21 15:22:08
+ * @LastEditTime: 2019-05-21 15:27:07
  */
 #ifndef FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
 #define FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
@@ -20,6 +20,16 @@
 
 namespace flame {
     
+/**
+ * @name: chunk_io_rw_mem
+ * @describtions:  模拟io从硬盘到RDMA内存的过程
+ * @param   chk_id_t    chunk_id            chunk的id
+ *          chk_off_t   offset              访问chunk的偏移
+ *          uint32_t    len                 读/写长度
+ *          uint64_t    laddr               本地的RDMA内存
+ *          bool        rw                  判断 读/写 标志
+ * @return: 
+ */
 inline int chunk_io_rw_mem(chk_id_t chunk_id, chk_off_t offset, uint32_t len, uint64_t laddr, bool rw){
     if(rw){ //**?
         ;

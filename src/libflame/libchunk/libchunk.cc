@@ -41,10 +41,12 @@ cmd_ma_t MemoryAreaImpl::get() const {
  * @param   FlameContext*       flame_context 
  * @return: \
  */
+
+int CmdClientStubImpl::ring = 0;
 CmdClientStubImpl::CmdClientStubImpl(FlameContext *flame_context)
     :  CmdClientStub(){
     msg_context_ = new msg::MsgContext(flame_context); //* set msg_context_
-    client_msger_ = new Msger(msg_context_, false);
+    client_msger_ = new Msger(msg_context_, this, false);
     if(msg_context_->load_config()){
         assert(false);
     }
@@ -114,6 +116,7 @@ RdmaWorkRequest* CmdClientStubImpl::get_request(){
  * @return: 
  */
 int CmdClientStubImpl::submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg){
+    ((cmd_t *)req.command)->hdr.cqg = ((ring+1)%256);
     msg::Connection* conn = session_->get_conn(msg::msg_ttype_t::RDMA);
     msg::RdmaConnection* rdma_conn = msg::RdmaStack::rdma_conn_cast(conn);
     FlameContext* flame_context = FlameContext::get_context();
@@ -132,7 +135,7 @@ int CmdClientStubImpl::submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_
 //-------------------------------------CmdServerStubImpl->CmdServerStub-------------------------------------------------//
 CmdServerStubImpl::CmdServerStubImpl(FlameContext* flame_context){
     msg_context_ = new msg::MsgContext(flame_context); //* set msg_context_
-    server_msger_ = new Msger(msg_context_, true);
+    server_msger_ = new Msger(msg_context_, nullptr, true);
     assert(!msg_context_->load_config());
     msg_context_->config->set_rdma_conn_version("2");
     msg_context_->init(server_msger_, nullptr);//* set msg_server_recv_func

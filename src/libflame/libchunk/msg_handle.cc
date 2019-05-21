@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-16 14:56:17
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-21 14:33:12
+ * @LastEditTime: 2019-05-21 16:39:21
  */
 #include "libflame/libchunk/msg_handle.h"
 
@@ -20,9 +20,9 @@ namespace flame {
 //--------------------------RdmaWorkRequest------------------------------------------------------
 /**
  * @name: create_request
- * @describtions: 创建44种不同的request
+ * @describtions: 创建send/recv融为一体的RDMA work request
  * @param   msg::MsgContext*        msg_context         Msg上下文
- *          Msger*                  msger               先基本功能只是用来recv_request和区分服务器/客户端
+ *          Msger*                  msger               现在基本功能只是用来post recv_request以及区分服务器/客户端
  * @return: RdmaWorkRequest*
  */
 RdmaWorkRequest* RdmaWorkRequest::create_request(msg::MsgContext* msg_context, Msger* msger){
@@ -57,60 +57,6 @@ RdmaWorkRequest* RdmaWorkRequest::create_request(msg::MsgContext* msg_context, M
     req->command = req->buf_->buffer();
     return req;
 }
-
-// /**
-//  * @name: transform_rw_request
-//  * @describtions: 根据用户已经填充好的Command进行Work Request类型转换，主要是为server端提供服务，因为client端不会outbound read/write
-//  * @param  
-//  * @return: 
-//  */
-// void RdmaWorkRequest::transform_rw_request(){
-//     /*这里缺少正确性检查，不知道是否设置了Command**/
-//     uint16_t cn = command->get_num();   
-//     cmd_ma_t* ma = ((cmd_chk_io_rd_t*)command->get_content())->ma;
-
-//     RdmaBuffer* buffer = msg::Stack::get_rdma_stack()->get_rdma_mallocator()->alloc(4096);//4KB这里的buffer会自己释放吗？
-//     if(!buffer){
-//         return nullptr;
-//     }
-//     buf_ = buffer;
-//     sge_.addr = buffer->addr();
-//     sge_.length = ma->len;
-//     sge_.lkey = buffer->lkey();
-
-//     send_wr_.rdma.remote_addr = ma->addr;
-//     send_wr_.rdma.rkey = ma->key;
-
-//     memset(&send_wr_, 0, sizeof(send_wr_));
-//     send_wr_.wr_id = reinterpret_cast<uint64_t>((RdmaSendWr *)this);
-//     send_wr_.num_sge = 1;
-//     send_wr_.sg_list = &sge_;
-    
-//     /*这里不太确定低8位还是高8位是seq，这里先假设是低8位*/
-//     if((cn & 0xff) == CMD_CHK_IO_READ){
-//         ChunkReadCmd* cmd_chunk_read = (ChunkReadCmd *)command;
-//         chunk_io_rw_mem(cmd_chunk_read->get_chk_id(),cmd_chunk_read->get_off(), cmd_chunk_read->get_ma_len(), sge_.addr, 0); //read，将数据读到lbuf，然后RDMA_write到rbuf 这里好像阻塞了？？？先这样吧
-//         send_wr_.opcode = IBV_WR_RDMA_WRITE;
-//     }else{
-//         send_wr_.opcode = IBV_WR_RDMA_READ;
-//     } 
-    
-//     return ;
-// }
-
-// /**
-//  * @name: transform_res
-//  * @describtions: 填充response然后发送给客户端
-//  * @param  
-//  * @return: 
-//  */
-// void RdmaWorkRequest::transform_res(){
-//     swr.opcode = IBV_WR_SEND;
-//     swr.send_flags |= IBV_SEND_SIGNALED;
-//     cmd_rc_t rc = 0;
-//     command = new (command) ChunkReadRes(*command, rc);
-//     return ;
-// }
 
 
 RdmaWorkRequest::~RdmaWorkRequest(){
@@ -210,31 +156,28 @@ void RdmaWorkRequest::run(){
             };
         }while(next_ready);
     }else{
-        // do{
-        //     next_ready = false;
-        //     switch(status){
-        //     case RECV_DONE:
-        //         ML(mct, info, "Recv from server: {}", data->count);
-        //         if(data->count >= 200){
-        //             clog("client iter done.");
-        //             status = DESTROY;
-        //             next_ready = true;
-        //             break;
-        //         }
-        //         assert(conn);
-        //         conn->post_send(this);
-        //         break;
-        //     case SEND_DONE:
-        //         status = DESTROY;
-        //         next_ready = true;
-        //         break;
-        //     case DESTROY:
-        //     case ERROR:
-        //         msger->get_req_pool().free_req(this);
-        //         status = FREE;
-        //         break;
-        //     };
-        // }while(next_ready);
+        do{
+            next_ready = false;
+            switch(status){
+            case RECV_DONE:{
+                MsgCallBack cb = msger_->get_client_stub()->get_cb_queue().front();
+                cb.cb_fn(*(Response *)this->command, cb.cb_arg);
+                msger_->get_client_stub()->get_cb_queue().pop();
+                status = DESTROY;
+                next_ready = true;
+                break;
+            }
+            case SEND_DONE:
+                status = DESTROY;
+                next_ready = true;
+                break;
+            case DESTROY:
+            case ERROR:
+                msger_->get_req_pool().free_req(this);
+                status = FREE;
+                break;
+            };
+        }while(next_ready);
     }
 }
 

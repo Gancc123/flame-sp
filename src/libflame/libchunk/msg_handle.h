@@ -97,9 +97,16 @@ class Msger : public msg::MsgerCallback{
     msg::MsgContext *msg_context_;
     RdmaWorkRequestPool pool_;
     bool is_server_;
+    CmdClientStub* client_stub_;
 public:
-    explicit Msger(msg::MsgContext *c, bool s) 
-    : msg_context_(c), pool_(c, this), is_server_(s) {};
+    explicit Msger(msg::MsgContext *c, CmdClientStub* client_stub, bool s) 
+    : msg_context_(c), pool_(c, this), is_server_(s) {
+        if(!is_server_){ //客户端
+            client_stub_ = client_stub;
+        }
+    };
+
+    inline CmdClientStub* get_client_stub() const { return client_stub_; }
     virtual void on_conn_declared(msg::Connection *conn, msg::Session *s) override;
     virtual void on_conn_recv(msg::Connection *conn, msg::Msg *msg) override ;
     virtual int get_recv_wrs(int n, std::vector<msg::RdmaRecvWr *> &wrs) override;

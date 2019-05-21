@@ -30,16 +30,16 @@ private:
 
 
 //-------------------------------------CmdClientStubImpl->CmdClientStub-------------------------------------------------//
-struct MsgCallBack{
-    cmd_cb_fn_t cb_fn;
-    void* cb_arg;
-};
 
 class CmdClientStubImpl : public CmdClientStub{
 public:
     static std::shared_ptr<CmdClientStubImpl> create_stub(std::string ip_addr, int port);
     
     RdmaWorkRequest* get_request();
+
+    static int ring;     //用于填充cqn
+
+    inline virtual std::queue<MsgCallBack> get_cb_queue() override {return msg_cb_q_;}
 
     virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) override;
 
@@ -51,13 +51,11 @@ public:
     }
 
 private:
-
     int _set_session(std::string ip_addr, int port);
 
     msg::MsgContext* msg_context_;
     Msger* client_msger_;
     msg::Session* session_;
-    std::queue<MsgCallBack> msg_cb_q_;
 
 }; // class CmdClientStubImpl
 

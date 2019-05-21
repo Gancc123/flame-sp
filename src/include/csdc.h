@@ -85,7 +85,7 @@ public:
     ChunkReadCmd(cmd_t* rd_cmd, uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea& ma)
     : Command(rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_READ, 0, sizeof(cmd_t));
-        
+        cmd_->hdr.cqg = CMD_CLS_CSD;
         rd_->chk_id = chk_id;
         rd_->off = off;
         rd_->ma.addr = ma.get_addr_uint64();
@@ -121,12 +121,13 @@ public:
     ChunkWriteCmd(cmd_t* cmdp, uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea&  ma, bool force_inline)
     : Command(cmdp), wr_((cmd_chk_io_wr_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_WRITE, 0, sizeof(cmd_t));
-
+        cmd_->hdr.cqg = CMD_CLS_CSD;
         wr_->chk_id = chk_id;
         wr_->off = off;
         wr_->ma.addr = ma.get_addr_uint64();
         wr_->ma.len = len;
         wr_->ma.key = ma.get_key();
+        
 
         if (force_inline && ma.is_dma() && ma.get_len() <= 4096) { // 内联数据传递，跟随request一起传输
             wr_->inline_data_len = ma.get_len();
@@ -171,7 +172,7 @@ public:
     ChunkSetCmd(cmd_t* cmdp, uint64_t chk_id, uint64_t off, uint32_t len)
     : Command(cmdp), set_((cmd_chk_io_set_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_SET, 0, sizeof(cmd_t));
-        
+        cmd_->hdr.cqg = CMD_CLS_CSD;
         set_->chk_id = chk_id;
         set_->off = off;
         set_->len = len;
@@ -201,7 +202,7 @@ public:
     ChunkResetCmd(cmd_t* cmdp, uint64_t chk_id, uint64_t off, uint32_t len)
     : Command(cmdp), reset_((cmd_chk_io_set_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_RESET, 0, sizeof(cmd_t));
-        
+        cmd_->hdr.cqg = CMD_CLS_CSD;
         reset_->chk_id = chk_id;
         reset_->off = off;
         reset_->len = len;
@@ -228,6 +229,7 @@ public:
     CommonRes(cmd_res_t* res, const Command& command, cmd_rc_t rc)
     : Response(res) {
         cpy_hdr(command);
+        res_->hdr.cqg = CMD_CLS_CSD;
         set_len(sizeof(cmd_res_t));
         set_rc(rc);
     }
@@ -244,6 +246,7 @@ public:
     ChunkReadRes(cmd_res_t* res, const Command& command, cmd_rc_t rc)
     : Response(res), inline_data_(nullptr), rd_((res_chk_io_rd_t*)res_->cont) {
         cpy_hdr(command);
+        res_->hdr.cqg = CMD_CLS_CSD;
         set_len(sizeof(cmd_res_t));
         set_rc(rc);
         rd_->inline_data_len = 0;
@@ -252,6 +255,7 @@ public:
     ChunkReadRes(cmd_res_t* res, const Command& command, cmd_rc_t rc, void* inline_buff, uint32_t len)
     : Response(res), inline_data_(inline_buff), rd_((res_chk_io_rd_t*)res_->cont) {
         cpy_hdr(command);
+        res_->hdr.cqg = CMD_CLS_CSD;
         set_len(sizeof(cmd_res_t));
         set_rc(rc);
         rd_->inline_data_len = len;
