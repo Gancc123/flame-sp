@@ -4,7 +4,6 @@
 #include "msg/msg_core.h"
 #include "include/cmd.h"
 #include "common/thread/mutex.h"
-// #include "libflame/libchunk/chunk_cmd_service.h"
 
 #include <deque>
 #include <sys/queue.h>
@@ -29,11 +28,13 @@ public:
 private:
     using RdmaBuffer = msg::ib::RdmaBuffer;
     msg::MsgContext *msg_context_;
-    Msger *msger_;
+    Msger* msger_;
     ibv_sge sge_;
     ibv_send_wr send_wr_;
     ibv_recv_wr recv_wr_;
-    RdmaBuffer *buf_;
+    RdmaBuffer* buf_;
+    RdmaWorkRequest* pre_request;
+    CmdService* service_;
     RdmaWorkRequest(msg::MsgContext *c, Msger *m)
     : msg_context_(c), msger_(m), status(FREE), conn(nullptr), stage(0) {}
 public:

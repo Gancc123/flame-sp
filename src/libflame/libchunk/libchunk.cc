@@ -1,7 +1,5 @@
 #include "libflame/libchunk/libchunk.h"
 
-#include "msg/msg_core.h"
-#include "libflame/libchunk/msg_handle.h"
 #include "log_libchunk.h"
 
 

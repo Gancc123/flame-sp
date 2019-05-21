@@ -19,7 +19,7 @@
 #include <map>
 
 #include "msg/msg_core.h"
-#include "libflame/libchunk/msg_handle.h"
+#include "libflame/libchunk/log_libchunk.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -149,6 +149,13 @@ public:
      * @return uint16_t 
      */
     inline uint16_t get_num() const { return *(uint16_t*)&cmd_->hdr.cn; }
+
+    /**
+     * @brief Get Command Number
+     * 
+     * @return uint16_t 
+     */
+    inline cmd_num_t get_cn() const { return cmd_->hdr.cn; }
 
     /**
      * @brief Get Command Class
@@ -358,8 +365,8 @@ public:
     inline void* get_content() const { return res_->cont; }
 
     inline void cpy_hdr(const Command& command) {
-        uint16_t t = command.get_num();
-        res_->hdr.cn  = *(cmd_num_t *)&t;
+        res_->hdr.cn.cls = command.get_cls();
+        res_->hdr.cn.seq = command.get_seq(); 
         res_->hdr.cqg = command.get_cqg();
         res_->hdr.cqn = command.get_cqn();
         // res_->hdr.flg = command.get
@@ -468,7 +475,7 @@ public:
 protected:
     MemoryArea() {}
     virtual ~MemoryArea() {}
-};
+};//class MemoryArea
 
 typedef void(*cmd_cb_fn_t)(const Response& res, void* arg);
 class RdmaWorkRequest;
@@ -525,6 +532,7 @@ protected:
     CmdServerStub() {}
     virtual ~CmdServerStub() {}
 }; // class CmdServerStub
+
 
 } // namespace flame
 

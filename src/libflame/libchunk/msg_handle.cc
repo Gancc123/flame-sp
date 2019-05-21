@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-16 14:56:17
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-20 10:01:24
+ * @LastEditTime: 2019-05-21 14:33:12
  */
 #include "libflame/libchunk/msg_handle.h"
 
@@ -179,31 +179,26 @@ void RdmaWorkRequest::on_recv_done(msg::RdmaConnection *conn, ibv_wc &cqe){
 void RdmaWorkRequest::run(){
     bool next_ready;
     if(msger_->is_server()){
-    CmdServiceMapper* cmd_service_mapper = CmdServiceMapper::get_cmd_service_mapper();
-    ML(msg_context_, info, "I recv !!");
-    FlameContext* flame_context = FlameContext::get_context();
-    flame_context->log()->ldebug("aaaaa  %u", ((cmd_t *)command)->hdr.len);
-    flame_context->log()->ldebug("aaaaa  %u", ((cmd_t *)command)->hdr.cn.cls);
-    flame_context->log()->ldebug("aaaaa  %u", ((cmd_t *)command)->hdr.cn.seq);
-
-    CmdService* service = cmd_service_mapper->get_service(((cmd_t *)command)->hdr.cn.cls, ((cmd_t *)command)->hdr.cn.seq);
-    ML(msg_context_, info, "I recv !!");
         do{
             next_ready = false;
             switch(status){
-                case RECV_DONE:
-                    service->call(this);                    //*stage 0
+                case RECV_DONE:{
+                    CmdServiceMapper* cmd_service_mapper = CmdServiceMapper::get_cmd_service_mapper(); 
+                    CmdService* service = cmd_service_mapper->get_service(((cmd_t *)command)->hdr.cn.cls, ((cmd_t *)command)->hdr.cn.seq);
+                    this->service_ = service;
+                    service_->call(this);                    //*stage 0
                     status = EXEC_DONE;
                     next_ready = true;
                     break;
+                } 
                 case EXEC_DONE:
                     assert(conn);
-                    service->call(this);                    //*stage 1
-                    status = DESTROY;
-                    next_ready = true;
+                    service_->call(this);                    //*stage 1
+                    // status = DESTROY;
+                    next_ready = false;
                     break;
                 case SEND_DONE:         //**如果是read/write，SEND_DONE是否代表read/write已经成功????????????????????????? **//
-                    service->call(this);                    //**stage 2 注意stage 2是在令一个request中
+                    service_->call(this);                    //**stage 2 注意stage 2是在另一个request中
                     status = DESTROY;
                     next_ready = true;
                     break;
