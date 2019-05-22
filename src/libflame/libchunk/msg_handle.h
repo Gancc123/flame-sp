@@ -16,7 +16,6 @@ class Msger;
 //----------------RdmaWorkRequest----------------------------//
 class RdmaWorkRequest : public msg::RdmaRecvWr, public msg::RdmaSendWr{
 public:
-    friend class ReadCmdService;
     enum Status{
         FREE = 0,
         RECV_DONE,          //**接收到SEND消息
@@ -69,6 +68,9 @@ public:
     virtual void on_recv_cancelled(bool err, int eno=0) override;
 
     void run();
+
+    friend class ReadCmdService;
+    friend class WriteCmdService;
 
 };//class RdmaWorkRequest
 

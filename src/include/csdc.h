@@ -137,6 +137,7 @@ public:
 
     ~ChunkWriteCmd() {}
 
+    inline void copy(void* buff) {}
     virtual void copy(void* header, void* inline_data = nullptr) {
         memcpy(header, cmd_, sizeof(cmd_t));
         if (get_inline_data_len() != 0 && inline_data) {

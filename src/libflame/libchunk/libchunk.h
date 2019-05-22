@@ -39,7 +39,7 @@ public:
 
     static int ring;     //用于填充cqn
 
-    inline virtual std::queue<MsgCallBack> get_cb_queue() override {return msg_cb_q_;}
+    inline virtual std::queue<MsgCallBack>& get_cb_queue() override {return msg_cb_q_;}
 
     virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) override;
 

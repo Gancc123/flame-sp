@@ -488,7 +488,7 @@ struct MsgCallBack{
 class CmdClientStub {
 public:
     // static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port) = 0;
-    virtual std::queue<MsgCallBack> get_cb_queue() = 0;
+    virtual std::queue<MsgCallBack>& get_cb_queue() = 0;
 
     virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) = 0;
 protected:

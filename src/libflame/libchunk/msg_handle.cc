@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-16 14:56:17
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-22 20:02:27
+ * @LastEditTime: 2019-05-22 21:13:56
  */
 #include "libflame/libchunk/msg_handle.h"
 
@@ -169,9 +169,15 @@ void RdmaWorkRequest::run(){
             next_ready = false;
             switch(status){
             case RECV_DONE:{
-                MsgCallBack cb = msger_->get_client_stub()->get_cb_queue().front();
-                cb.cb_fn(*(Response *)this->command, cb.cb_arg);
-                msger_->get_client_stub()->get_cb_queue().pop();
+                std::queue<MsgCallBack>& queue = msger_->get_client_stub()->get_cb_queue();
+                MsgCallBack cb = queue.front();
+                if(cb.cb_fn != nullptr){
+                    FlameContext* fct = FlameContext::get_context();
+                    fct->log()->ltrace("size = %d", queue.size());
+                    cb.cb_fn(*(Response *)this->command, cb.cb_arg);
+                    queue.pop();
+                }
+                
                 status = DESTROY;
                 next_ready = true;
                 break;

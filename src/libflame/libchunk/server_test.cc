@@ -24,7 +24,7 @@ int main(){
     }
     CmdServiceMapper *cmd_service_mapper = CmdServiceMapper::get_cmd_service_mapper();
     cmd_service_mapper->register_service(CMD_CLS_IO_CHK, CMD_CHK_IO_READ, new ReadCmdService());
-    // cmd_service_mapper->register_service(CMD_CLS_IO_CHK, CMD_CHK_IO_WRITE, new WriteCmdService());
+    cmd_service_mapper->register_service(CMD_CLS_IO_CHK, CMD_CHK_IO_WRITE, new WriteCmdService());
 
     CmdServerStubImpl* cmd_sever_stub = new CmdServerStubImpl(flame_context);
 
