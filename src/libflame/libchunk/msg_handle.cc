@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-16 14:56:17
  * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-21 16:39:21
+ * @LastEditTime: 2019-05-22 20:02:27
  */
 #include "libflame/libchunk/msg_handle.h"
 
@@ -91,8 +91,21 @@ void RdmaWorkRequest::on_recv_cancelled(bool err, int eno){
  */
 void RdmaWorkRequest::on_send_done(ibv_wc &cqe){
     if(cqe.status == IBV_WC_SUCCESS){
-        status = SEND_DONE;
-    }else {
+        switch(cqe.opcode){
+        case IBV_WC_SEND:
+            status = SEND_DONE;
+            break;
+        case IBV_WC_RDMA_WRITE:
+            status = WRITE_DONE;
+            break;
+        case IBV_WC_RDMA_READ:
+            status = READ_DONE;
+            break;
+        default:
+            status = ERROR;
+            break;
+        }
+    }else{
         status = ERROR;
     }
     run();
@@ -132,21 +145,17 @@ void RdmaWorkRequest::run(){
                     CmdServiceMapper* cmd_service_mapper = CmdServiceMapper::get_cmd_service_mapper(); 
                     CmdService* service = cmd_service_mapper->get_service(((cmd_t *)command)->hdr.cn.cls, ((cmd_t *)command)->hdr.cn.seq);
                     this->service_ = service;
-                    service_->call(this);                    //*stage 0
-                    status = EXEC_DONE;
-                    next_ready = true;
+                    service_->call(this);                    
                     break;
                 } 
                 case EXEC_DONE:
-                    assert(conn);
-                    service_->call(this);                    //*stage 1
-                    // status = DESTROY;
-                    next_ready = false;
-                    break;
-                case SEND_DONE:         //**如果是read/write，SEND_DONE是否代表read/write已经成功????????????????????????? **//
-                    service_->call(this);                    //**stage 2 注意stage 2是在另一个request中
-                    status = DESTROY;
+                case READ_DONE:            //**如果是read/write，SEND_DONE是否代表read/write已经成功????????????????????????? **//
+                case WRITE_DONE:
+                    service_->call(this);
+                    break;   
+                case SEND_DONE:             //send response done                        
                     next_ready = true;
+                    status = DESTROY;
                     break;
                 case DESTROY:
                 case ERROR:

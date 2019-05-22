@@ -27,20 +27,17 @@ int main(){
     }
 
     std::shared_ptr<CmdClientStubImpl> cmd_client_stub = CmdClientStubImpl::create_stub("127.0.0.1", 7778);
+    /* 无inline的读取chunk的操作 */
     RdmaWorkRequest* rdma_work_request = cmd_client_stub->get_request();
     msg::ib::RdmaBufferAllocator* allocator = msg::Stack::get_rdma_stack()->get_rdma_allocator();
     msg::ib::RdmaBuffer* buf = allocator->alloc(1 << 22); //4MB
-
     MemoryArea* memory = new MemoryAreaImpl((uint64_t)buf->buffer(), (uint32_t)buf->size(), buf->rkey(), 1);
-    
     cmd_t* cmd = (cmd_t *)rdma_work_request->command;
     ChunkReadCmd* read_cmd = new ChunkReadCmd(cmd, 0, 0, 10, *memory); 
-
     cmd_client_stub->submit(*rdma_work_request, &cb_func, (void *)buf->buffer());
-    
+    /* 无inline的写入chunk的操作 */
+
     std::getchar();
-    // char* mm = (char*)buf->buffer();
-    // std::cout << mm[0] << mm[1] << mm[2] << mm[3] << std::endl;
     flame_context->log()->ltrace("Start to exit!");
 
     return 0;

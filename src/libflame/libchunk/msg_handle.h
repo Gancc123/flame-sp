@@ -19,11 +19,14 @@ public:
     friend class ReadCmdService;
     enum Status{
         FREE = 0,
-        RECV_DONE,
-        EXEC_DONE,
-        SEND_DONE,
-        DESTROY,
-        ERROR,
+        RECV_DONE,          //**接收到SEND消息
+        EXEC_DONE,          //**处理完成包括两种：1.数据从disk到lbuf；2.数据从lbuf到disk
+        SEND_DONE,          //**发送完SEND消息
+        READ_DONE,          //**READ完
+        WRITE_DONE,         //**WRITE完
+        DESTROY,            //**request被销毁
+        WAIT,               //**前后涉及两个req，有相互等待的问题，如第二个req进行RDMA write时，第一个req闲置
+        ERROR,              //**出错
     };
 private:
     using RdmaBuffer = msg::ib::RdmaBuffer;
@@ -33,15 +36,15 @@ private:
     ibv_send_wr send_wr_;
     ibv_recv_wr recv_wr_;
     RdmaBuffer* buf_;
+    RdmaBuffer* data_buf_;
     RdmaWorkRequest* pre_request;
     CmdService* service_;
     RdmaWorkRequest(msg::MsgContext *c, Msger *m)
-    : msg_context_(c), msger_(m), status(FREE), conn(nullptr), stage(0) {}
+    : msg_context_(c), msger_(m), status(FREE), conn(nullptr){}
 public:
     Status status;
     msg::RdmaConnection *conn;
     void *command;
-    int stage;
 
     static RdmaWorkRequest* create_request(msg::MsgContext *c, Msger *m);//创建默认的send/recv request，如果要write or read，则需要额外设置
 
