@@ -3,8 +3,8 @@
  * @version: 
  * @Author: liweiguang
  * @Date: 2019-05-13 15:07:59
- * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-22 20:59:45
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2019-05-24 19:04:54
  */
 #ifndef FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
 #define FLAME_LIBFLAME_LIBCHUNK_CHUNK_CMD_SERVICE_H
@@ -75,22 +75,54 @@ public:
         }else if(req->status == RdmaWorkRequest::Status::EXEC_DONE){           //** 进行RDMA WRITE(server write到client相当于读)**//
             ChunkReadCmd* cmd_chunk_read = new ChunkReadCmd((cmd_t *)req->command);
             cmd_ma_t& ma = ((cmd_chk_io_rd_t *)cmd_chunk_read->get_content())->ma; 
+            if(cmd_chunk_read->get_ma_len() > 4096){
+                req->sge_[0].addr = req->data_buf_->addr();
+                req->sge_[0].length = req->data_buf_->size();
+                req->sge_[0].lkey = req->data_buf_->lkey();
+                ibv_send_wr &swr = req->send_wr_;
+                memset(&swr, 0, sizeof(swr));
+                swr.wr.rdma.remote_addr = ma.addr;
+                swr.wr.rdma.rkey = ma.key;
+                swr.wr_id = reinterpret_cast<uint64_t>((msg::RdmaSendWr *)req);
+                swr.opcode = IBV_WR_RDMA_WRITE;
+                swr.send_flags |= IBV_SEND_SIGNALED;
+                swr.num_sge = 1;
+                swr.sg_list = req->sge_;
+                swr.next = nullptr;
 
-            req->sge_.addr = req->data_buf_->addr();
-            req->sge_.length = req->data_buf_->size();
-            req->sge_.lkey = req->data_buf_->lkey();
-            ibv_send_wr &swr = req->send_wr_;
-            memset(&swr, 0, sizeof(swr));
-            swr.wr.rdma.remote_addr = ma.addr;
-            swr.wr.rdma.rkey = ma.key;
-            swr.wr_id = reinterpret_cast<uint64_t>((msg::RdmaSendWr *)req);
-            swr.opcode = IBV_WR_RDMA_WRITE;
-            swr.send_flags |= IBV_SEND_SIGNALED;
-            swr.num_sge = 1;
-            swr.sg_list = &req->sge_;
-            swr.next = nullptr;
+                rdma_conn->post_send(req);
+            }else{
+                FlameContext* fct = FlameContext::get_context();
+                fct->log()->ltrace("11111 : %lu",cmd_chunk_read->get_ma_len());
+            
+                cmd_rc_t rc = 0;
+                cmd_t cmd = *(cmd_t *)req->command;
+                ChunkReadCmd* read_cmd = new ChunkReadCmd(&cmd); 
+                cmd_res_t* cmd_res = (cmd_res_t *)req->command;
+                CommonRes* res = new CommonRes(cmd_res, *read_cmd, rc); 
+                
+                req->sge_[0].addr = req->buf_->addr();
+                req->sge_[0].length = 64;
+                req->sge_[0].lkey = req->buf_->lkey();
 
-            rdma_conn->post_send(req);
+                req->sge_[1].addr = req->data_buf_->addr();
+                req->sge_[1].length = cmd_chunk_read->get_ma_len();
+                req->sge_[1].lkey = req->data_buf_->lkey();
+
+                fct->log()->ltrace("11111 : %lu",req->data_buf_->size());
+
+                ibv_send_wr &swr = req->send_wr_;
+                memset(&swr, 0, sizeof(swr));
+                swr.wr_id = reinterpret_cast<uint64_t>((msg::RdmaSendWr *)req);
+                swr.opcode = IBV_WR_SEND;
+                swr.send_flags |= IBV_SEND_SIGNALED;
+                swr.num_sge = 2;
+                swr.sg_list = req->sge_;
+                swr.next = nullptr;
+
+                rdma_conn->post_send(req);
+            }
+            
 
         }else if(req->status == RdmaWorkRequest::Status::WRITE_DONE){       
             cmd_rc_t rc = 0;
@@ -98,11 +130,12 @@ public:
             ChunkReadCmd* read_cmd = new ChunkReadCmd(&cmd); 
             cmd_res_t* cmd_res = (cmd_res_t *)req->command;
             CommonRes* res = new CommonRes(cmd_res, *read_cmd, rc); 
-            req->sge_.addr = req->buf_->addr();
-            req->sge_.length = 64;
-            req->sge_.lkey = req->buf_->lkey();
+            req->sge_[0].addr = req->buf_->addr();
+            req->sge_[0].length = 64;
+            req->sge_[0].lkey = req->buf_->lkey();
             req->send_wr_.opcode = IBV_WR_SEND;
-            req->send_wr_.sg_list = &req->sge_;
+            req->send_wr_.num_sge = 1;
+            req->send_wr_.sg_list = req->sge_;
             rdma_conn->post_send(req);
         }else{                              
             return 0;
@@ -131,9 +164,9 @@ public:
             lbuf->data_len = cmd_chunk_write->get_ma_len();
             req->data_buf_ = lbuf;
 
-            req->sge_.addr = req->data_buf_->addr();
-            req->sge_.length = req->data_buf_->size();
-            req->sge_.lkey = req->data_buf_->lkey();
+            req->sge_[0].addr = req->data_buf_->addr();
+            req->sge_[0].length = req->data_buf_->size();
+            req->sge_[0].lkey = req->data_buf_->lkey();
             ibv_send_wr &swr = req->send_wr_;
             memset(&swr, 0, sizeof(swr));
             swr.wr.rdma.remote_addr = ma.addr;
@@ -142,7 +175,7 @@ public:
             swr.opcode = IBV_WR_RDMA_READ;
             swr.send_flags |= IBV_SEND_SIGNALED;
             swr.num_sge = 1;
-            swr.sg_list = &req->sge_;
+            swr.sg_list = req->sge_;
             swr.next = nullptr;
 
             rdma_conn->post_send(req);
@@ -161,11 +194,12 @@ public:
             ChunkWriteCmd* write_cmd = new ChunkWriteCmd(&cmd); 
             cmd_res_t* cmd_res = (cmd_res_t *)req->command;
             CommonRes* res = new CommonRes(cmd_res, *write_cmd, rc); 
-            req->sge_.addr = req->buf_->addr();
-            req->sge_.length = 64;
-            req->sge_.lkey = req->buf_->lkey();
+            req->sge_[0].addr = req->buf_->addr();
+            req->sge_[0].length = 64;
+            req->sge_[0].lkey = req->buf_->lkey();
             req->send_wr_.opcode = IBV_WR_SEND;
-            req->send_wr_.sg_list = &req->sge_;
+            req->send_wr_.num_sge = 1;
+            req->send_wr_.sg_list = req->sge_;
             rdma_conn->post_send(req);
         }else{                              
             return 0;

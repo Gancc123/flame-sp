@@ -3,8 +3,8 @@
  * @version: 
  * @Author: liweiguang
  * @Date: 2019-05-16 14:56:17
- * @LastEditors: liweiguang
- * @LastEditTime: 2019-05-22 21:13:56
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2019-05-24 18:54:14
  */
 #include "libflame/libchunk/msg_handle.h"
 
@@ -35,10 +35,19 @@ RdmaWorkRequest* RdmaWorkRequest::create_request(msg::MsgContext* msg_context, M
         delete req;
         return nullptr;
     }
+    RdmaBuffer* data_buffer = msg::Stack::get_rdma_stack()->get_rdma_allocator()->alloc(4096);//4KB这里的buffer会自己释放吗？
+    if(!data_buffer){
+        delete req;
+        return nullptr;
+    }
     req->buf_ = buffer;
-    req->sge_.addr = buffer->addr();
-    req->sge_.length = 64;
-    req->sge_.lkey = buffer->lkey();
+    req->sge_[0].addr = buffer->addr();
+    req->sge_[0].length = 64;
+    req->sge_[0].lkey = buffer->lkey();
+    req->data_buf_ = data_buffer;
+    req->sge_[1].addr = data_buffer->addr();
+    req->sge_[1].length = 4096;
+    req->sge_[1].lkey = data_buffer->lkey();
 
     ibv_send_wr &swr = req->send_wr_;
     memset(&swr, 0, sizeof(swr));
@@ -46,13 +55,13 @@ RdmaWorkRequest* RdmaWorkRequest::create_request(msg::MsgContext* msg_context, M
     swr.opcode = IBV_WR_SEND;
     swr.send_flags |= IBV_SEND_SIGNALED;
     swr.num_sge = 1;
-    swr.sg_list = &req->sge_;
+    swr.sg_list = req->sge_;
 
     ibv_recv_wr &rwr = req->recv_wr_;
     memset(&rwr, 0, sizeof(rwr));
     rwr.wr_id = reinterpret_cast<uint64_t>((RdmaRecvWr *)req);
-    rwr.num_sge = 1;
-    rwr.sg_list = &req->sge_;
+    rwr.num_sge = 2;
+    rwr.sg_list = req->sge_;
 
     req->command = req->buf_->buffer();
     return req;
@@ -169,10 +178,11 @@ void RdmaWorkRequest::run(){
             next_ready = false;
             switch(status){
             case RECV_DONE:{
+                FlameContext* fct = FlameContext::get_context();
+                // fct->log()->ltrace("cls = %d", ((cmd_t *)command)->hdr.cn.cls);
                 std::queue<MsgCallBack>& queue = msger_->get_client_stub()->get_cb_queue();
                 MsgCallBack cb = queue.front();
                 if(cb.cb_fn != nullptr){
-                    FlameContext* fct = FlameContext::get_context();
                     fct->log()->ltrace("size = %d", queue.size());
                     cb.cb_fn(*(Response *)this->command, cb.cb_arg);
                     queue.pop();

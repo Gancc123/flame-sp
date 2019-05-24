@@ -35,13 +35,12 @@ int main(){
     /* 无inline的读取chunk的操作 */
     RdmaWorkRequest* rdma_work_request_read = cmd_client_stub->get_request();
     msg::ib::RdmaBufferAllocator* allocator = msg::Stack::get_rdma_stack()->get_rdma_allocator();
-    msg::ib::RdmaBuffer* buf_read = allocator->alloc(1 << 22); //4MB
+    msg::ib::RdmaBuffer* buf_read = allocator->alloc(1 << 22); //1KB
     MemoryArea* memory_read = new MemoryAreaImpl((uint64_t)buf_read->buffer(), (uint32_t)buf_read->size(), buf_read->rkey(), 1);
     cmd_t* cmd_read = (cmd_t *)rdma_work_request_read->command;
-    ChunkReadCmd* read_cmd = new ChunkReadCmd(cmd_read, 0, 0, 10, *memory_read); 
+    ChunkReadCmd* read_cmd = new ChunkReadCmd(cmd_read, 0, 0, 8192, *memory_read); 
     cmd_client_stub->submit(*rdma_work_request_read, &cb_func, (void *)buf_read->buffer());
 
-    getchar();
     /* 无inline的写入chunk的操作 */
     RdmaWorkRequest* rdma_work_request_write= cmd_client_stub->get_request();
     msg::ib::RdmaBuffer* buf_write = allocator->alloc(1 << 22); //4MB
@@ -51,6 +50,14 @@ int main(){
     cmd_t* cmd_write = (cmd_t *)rdma_work_request_write->command;
     ChunkWriteCmd* write_cmd = new ChunkWriteCmd(cmd_write, 0, 0, 10, *memory_write, 0); 
     cmd_client_stub->submit(*rdma_work_request_write, &cb_func2, nullptr);
+
+    /* 带inline的读取chunk的操作 */
+    RdmaWorkRequest* rdma_work_request_read_inline = cmd_client_stub->get_request();
+    msg::ib::RdmaBuffer* buf_read_inline = allocator->alloc(1 << 22); //4MB
+    MemoryArea* memory_read_inline = new MemoryAreaImpl((uint64_t)buf_read_inline->buffer(), (uint32_t)buf_read_inline->size(), buf_read_inline->rkey(), 1);
+    cmd_t* cmd_read_inline = (cmd_t *)rdma_work_request_read_inline->command;
+    ChunkReadCmd* read_cmd_inline = new ChunkReadCmd(cmd_read_inline, 0, 0, 10, *memory_read_inline); 
+    cmd_client_stub->submit(*rdma_work_request_read_inline, &cb_func, (void *)buf_read_inline->buffer());
 
     std::getchar();
     flame_context->log()->ltrace("Start to exit!");

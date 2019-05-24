@@ -31,7 +31,8 @@ private:
     using RdmaBuffer = msg::ib::RdmaBuffer;
     msg::MsgContext *msg_context_;
     Msger* msger_;
-    ibv_sge sge_;
+    ibv_sge sge_[2];
+    // ibv_sge sge_data_;
     ibv_send_wr send_wr_;
     ibv_recv_wr recv_wr_;
     RdmaBuffer* buf_;

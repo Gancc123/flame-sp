@@ -89,7 +89,7 @@ public:
         rd_->chk_id = chk_id;
         rd_->off = off;
         rd_->ma.addr = ma.get_addr_uint64();
-        rd_->ma.len = ma.get_len();
+        rd_->ma.len = len < ma.get_len() ? len : ma.get_len();
         rd_->ma.key = ma.get_key();
     }
 
