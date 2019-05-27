@@ -1,5 +1,6 @@
 #include "libflame/libchunk/libchunk.h"
 
+#include "include/csdc.h"
 #include "log_libchunk.h"
 
 
@@ -50,7 +51,7 @@ CmdClientStubImpl::CmdClientStubImpl(FlameContext *flame_context)
     if(msg_context_->load_config()){
         assert(false);
     }
-    msg_context_->config->set_rdma_conn_version("2");
+    msg_context_->config->set_rdma_conn_version("2"); //**这一步很重要，转换成msg_v2
     msg_context_->init(client_msger_, nullptr);//* set msg_client_recv_func
 }
 
@@ -116,17 +117,22 @@ RdmaWorkRequest* CmdClientStubImpl::get_request(){
  * @return: 
  */
 int CmdClientStubImpl::submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg){
-    ((cmd_t *)req.command)->hdr.cqg = ((ring+1)%256);
+    ((cmd_t *)req.command)->hdr.cqn = ((ring++)%256);
     msg::Connection* conn = session_->get_conn(msg::msg_ttype_t::RDMA);
     msg::RdmaConnection* rdma_conn = msg::RdmaStack::rdma_conn_cast(conn);
-    FlameContext* flame_context = FlameContext::get_context();
-    flame_context->log()->ltrace("prepare to call post_send");
+    if(((cmd_t *)req.command)->hdr.cn.seq == CMD_CHK_IO_WRITE){
+        ChunkWriteCmd* write_cmd = new ChunkWriteCmd((cmd_t *)req.command);
+        FlameContext* fct = FlameContext::get_context();
+        if(write_cmd->get_inline_data_len() > 0){
+            (req.get_ibv_send_wr())->num_sge = 2;
+        }
+    }
     rdma_conn->post_send(&req);
-    flame_context->log()->ltrace("after call post_send");
     struct MsgCallBack msg_cb;
     msg_cb.cb_fn = cb_fn;
     msg_cb.cb_arg = cb_arg;
-    msg_cb_q_.push(msg_cb);
+    uint32_t cq = ((cmd_t *)req.command)->hdr.cqg << 16 | ((cmd_t *)req.command)->hdr.cqn;
+    msg_cb_map_.insert(std::map<uint32_t, MsgCallBack>::value_type (cq, msg_cb));
     
     return 0;
 }
@@ -137,7 +143,7 @@ CmdServerStubImpl::CmdServerStubImpl(FlameContext* flame_context){
     msg_context_ = new msg::MsgContext(flame_context); //* set msg_context_
     server_msger_ = new Msger(msg_context_, nullptr, true);
     assert(!msg_context_->load_config());
-    msg_context_->config->set_rdma_conn_version("2");
+    msg_context_->config->set_rdma_conn_version("2"); //**这一步很重要，转换成msg_v2
     msg_context_->init(server_msger_, nullptr);//* set msg_server_recv_func
 }
 

@@ -4,7 +4,7 @@
  * @Author: liweiguang
  * @Date: 2019-05-16 14:56:17
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2019-05-24 18:54:14
+ * @LastEditTime: 2019-05-27 10:13:03
  */
 #include "libflame/libchunk/msg_handle.h"
 
@@ -178,16 +178,23 @@ void RdmaWorkRequest::run(){
             next_ready = false;
             switch(status){
             case RECV_DONE:{
-                FlameContext* fct = FlameContext::get_context();
-                // fct->log()->ltrace("cls = %d", ((cmd_t *)command)->hdr.cn.cls);
-                std::queue<MsgCallBack>& queue = msger_->get_client_stub()->get_cb_queue();
-                MsgCallBack cb = queue.front();
-                if(cb.cb_fn != nullptr){
-                    fct->log()->ltrace("size = %d", queue.size());
-                    cb.cb_fn(*(Response *)this->command, cb.cb_arg);
-                    queue.pop();
+                std::map<uint32_t, MsgCallBack>& cb_map = msger_->get_client_stub()->get_cb_map();
+                uint32_t key = ((cmd_res_t*)command)->hdr.cqg << 16 | ((cmd_res_t*)command)->hdr.cqn;
+                MsgCallBack cb = cb_map[key];
+                if(((cmd_res_t*)command)->hdr.cn.seq == CMD_CHK_IO_READ){  //读操作
+                    ChunkReadRes* res = new ChunkReadRes((cmd_res_t*)command);
+                    if(res->get_inline_len() > 0 && res->get_inline_len() <= 4096 && cb.cb_arg == nullptr){    //inline read
+                        cb.cb_fn(*(Response *)res, (void *)data_buf_->buffer());
+                    }
+                    else if(cb.cb_fn != nullptr){
+                        cb.cb_fn(*(Response *)res, cb.cb_arg);
+                    } 
                 }
-                
+                else if(cb.cb_fn != nullptr){           //写操作
+                    CommonRes* res = new CommonRes((cmd_res_t*)command);
+                    cb.cb_fn(*(Response *)command, cb.cb_arg);
+                }
+                cb_map.erase(key);
                 status = DESTROY;
                 next_ready = true;
                 break;

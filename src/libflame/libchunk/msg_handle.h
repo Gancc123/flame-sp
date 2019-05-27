@@ -37,7 +37,6 @@ private:
     ibv_recv_wr recv_wr_;
     RdmaBuffer* buf_;
     RdmaBuffer* data_buf_;
-    RdmaWorkRequest* pre_request;
     CmdService* service_;
     RdmaWorkRequest(msg::MsgContext *c, Msger *m)
     : msg_context_(c), msger_(m), status(FREE), conn(nullptr){}
@@ -58,6 +57,10 @@ public:
 
     inline virtual ibv_recv_wr *get_ibv_recv_wr() override{
         return &recv_wr_;
+    }
+
+    inline virtual RdmaBuffer *get_data_buf(){
+        return data_buf_;
     }
 
     virtual void on_send_done(ibv_wc &cqe) override;

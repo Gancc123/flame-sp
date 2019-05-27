@@ -298,6 +298,13 @@ public:
     inline uint16_t get_num() const { return *(uint16_t*)&res_->hdr.cn; }
 
     /**
+     * @brief Get Command Number type cmd_num_t
+     * 
+     * @return uint16_t 
+     */
+    inline cmd_num_t get_num_t() const { return res_->hdr.cn; }
+
+    /**
      * @brief Get Command Queue Group
      * 
      * @return uint8_t 
@@ -488,13 +495,14 @@ struct MsgCallBack{
 class CmdClientStub {
 public:
     // static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port) = 0;
-    virtual std::queue<MsgCallBack>& get_cb_queue() = 0;
+    virtual std::map<uint32_t, MsgCallBack>& get_cb_map() = 0;
 
     virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) = 0;
 protected:
     CmdClientStub() {}
     ~CmdClientStub() {}
-    std::queue<MsgCallBack> msg_cb_q_;
+    // std::queue<MsgCallBack> msg_cb_q_;
+    std::map<uint32_t, MsgCallBack> msg_cb_map_;
  
 }; // class CommandStub 
 

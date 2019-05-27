@@ -39,7 +39,7 @@ public:
 
     static int ring;     //用于填充cqn
 
-    inline virtual std::queue<MsgCallBack>& get_cb_queue() override {return msg_cb_q_;}
+    inline virtual std::map<uint32_t, MsgCallBack>& get_cb_map() override {return msg_cb_map_;}
 
     virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) override;
 
@@ -73,7 +73,6 @@ public:
 private:
     msg::MsgContext* msg_context_;
     Msger* server_msger_;
-    // msg::Session* session_; //on_listen_accept()中会有但是如何传出来？
 
 }; // class CmdServerStubImpl
 

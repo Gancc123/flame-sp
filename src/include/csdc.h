@@ -82,6 +82,15 @@ public:
     ChunkReadCmd(cmd_t* rd_cmd) 
     : Command(rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {}
 
+    ChunkReadCmd(cmd_t* rd_cmd, uint64_t chk_id, uint64_t off, uint32_t len)
+    : Command(rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {
+        set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_READ, 0, sizeof(cmd_t));
+        cmd_->hdr.cqg = CMD_CLS_CSD;
+        rd_->chk_id = chk_id;
+        rd_->off = off;
+        rd_->ma.len = len;
+    }
+
     ChunkReadCmd(cmd_t* rd_cmd, uint64_t chk_id, uint64_t off, uint32_t len, const MemoryArea& ma)
     : Command(rd_cmd), rd_((cmd_chk_io_rd_t*)get_content()) {
         set_hdr(CMD_CLS_IO_CHK, CMD_CHK_IO_READ, 0, sizeof(cmd_t));
@@ -125,13 +134,16 @@ public:
         wr_->chk_id = chk_id;
         wr_->off = off;
         wr_->ma.addr = ma.get_addr_uint64();
-        wr_->ma.len = len;
+        wr_->ma.len = len < ma.get_len() ? len : ma.get_len();
         wr_->ma.key = ma.get_key();
         
 
         if (force_inline && ma.is_dma() && ma.get_len() <= 4096) { // 内联数据传递，跟随request一起传输
-            wr_->inline_data_len = ma.get_len();
+            wr_->inline_data_len = len < ma.get_len() ? len : ma.get_len();
             inline_data = ma.get_addr();
+        }
+        else{
+            wr_->inline_data_len = 0;
         }
     }
 
@@ -227,6 +239,9 @@ private:
 
 class CommonRes : public Response {
 public:
+    CommonRes(cmd_res_t* res)
+    : Response(res){}
+
     CommonRes(cmd_res_t* res, const Command& command, cmd_rc_t rc)
     : Response(res) {
         cpy_hdr(command);
@@ -244,6 +259,9 @@ public:
 
 class ChunkReadRes : public Response {
 public:
+    ChunkReadRes(cmd_res_t* res)
+    : Response(res), rd_((res_chk_io_rd_t*)res->cont){}
+
     ChunkReadRes(cmd_res_t* res, const Command& command, cmd_rc_t rc)
     : Response(res), inline_data_(nullptr), rd_((res_chk_io_rd_t*)res_->cont) {
         cpy_hdr(command);
@@ -270,6 +288,8 @@ public:
             memcpy(inline_buf, inline_data_, rd_->inline_data_len);
         }
     }
+
+    inline uint32_t get_inline_len() const {return rd_->inline_data_len;}
 
 private:
     res_chk_io_rd_t* rd_;
