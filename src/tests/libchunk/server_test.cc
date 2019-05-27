@@ -4,10 +4,10 @@
 #include <cstdio>
 
 #include "libflame/libchunk/libchunk.h"
-#include "log_libchunk.h"
+#include "libflame/libchunk/log_libchunk.h"
 #include "include/cmd.h"
 #include "include/csdc.h"
-#include "chunk_cmd_service.h"
+#include "libflame/libchunk/chunk_cmd_service.h"
 
 #define CFG_PATH "flame_mgr.cfg"
 using namespace flame;

@@ -6,4 +6,5 @@ macro(package_add_test TESTNAME)
 endmacro()
 
 add_subdirectory(msg)
+add_subdirectory(libchunk)
 

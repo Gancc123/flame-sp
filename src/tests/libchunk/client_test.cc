@@ -3,7 +3,7 @@
 
 #include "libflame/libchunk/libchunk.h"
 #include "include/csdc.h"
-#include "log_libchunk.h"
+#include "libflame/libchunk/log_libchunk.h"
 
 #define CFG_PATH "flame_client.cfg"
 using namespace flame;
