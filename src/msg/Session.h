@@ -29,7 +29,6 @@ class Session : public RefCountedObject{
     Mutex conns_mutex;
     Mutex lp_mutex;
 
-    MsgContext *msg_context_;
 
 public:
     explicit Session(MsgContext *c, msger_id_t peer)
@@ -58,10 +57,6 @@ public:
             entry.conn->put();
         }
         conns.clear();
-    }
-
-    MsgContext* get_msg_context(){
-        return msg_context_;
     }
 
     bool ready() const {
