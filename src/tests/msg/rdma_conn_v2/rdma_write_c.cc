@@ -2,7 +2,7 @@
 #include "msg/msg_core.h"
 #include "util/clog.h"
 
-#include "msger.h"
+#include "msger_write.h"
 
 #include <unistd.h>
 #include <cstdio>
@@ -10,7 +10,7 @@
 using FlameContext = flame::FlameContext;
 using namespace flame::msg;
 
-void send_first_incre_msg(MsgContext *mct, Msger *msger){
+void send_first_incre_msg(MsgContext *mct, RwMsger *msger){
     NodeAddr *addr = new NodeAddr(mct);
     addr->ip_from_string("127.0.0.1");
     addr->set_port(7778);
@@ -27,19 +27,25 @@ void send_first_incre_msg(MsgContext *mct, Msger *msger){
 
     auto req = msger->get_req_pool().alloc_req();
     assert(req);
-    req->data->count = 0;
+    ib::RdmaBufferAllocator* allocator = Stack::get_rdma_stack()->get_rdma_allocator();
+    ib::RdmaBuffer* lbuf = allocator->alloc(4096); //获取一片本地的内存
+    req->data->addr = (uint64_t)lbuf->buffer();
+    req->data->rkey = lbuf->rkey();
+
     rdma_conn->post_send(req);
 
     rdma_addr->put();
     addr->put();
+
+    getchar();
 }
 
 #define CFG_PATH "flame_client.cfg"
 
 static void msg_clear_done_cb(void *arg1, void *arg2){
     //free RdmaBuffers before RdmaStack detroyed.
-    Msger *msger = (Msger *)arg1;
-    msger->get_req_pool().purge(-1);
+    RwMsger *msger = (RwMsger *)arg1;
+     msger->get_req_pool().purge(-1);
 }
 
 int main(){
@@ -58,13 +64,11 @@ int main(){
     ML(mct, info, "init complete.");
     ML(mct, info, "load cfg: " CFG_PATH);
 
-    if(mct->load_config()){
-        assert(false);
-    }
+    assert(!mct->load_config());
 
     mct->config->set_rdma_conn_version("2");
 
-    auto msger = new Msger(mct, false);
+    auto msger = new RwMsger(mct, false);
 
     mct->clear_done_cb = msg_clear_done_cb;
     mct->clear_done_arg1 = msger;

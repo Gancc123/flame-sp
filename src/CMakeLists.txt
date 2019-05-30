@@ -276,6 +276,14 @@ add_library(csd-objs OBJECT
     )
 list(APPEND obj_modules csd)
 
+#### libchunk 
+add_library(libchunk-objs OBJECT
+    libflame/libchunk/libchunk.cc
+    libflame/libchunk/cmd_service_mapper.cc
+    libflame/libchunk/msg_handle.cc
+    )
+list(APPEND obj_modules libchunk)
+
 
 #### gen xxx_objs
 foreach(module IN LISTS obj_modules)
@@ -291,6 +299,8 @@ set(flame_common_objs
     ${common_objs}
     ${msg_objs}
     )
+
+
 
 # foreach(o IN LISTS flame_common_objs)
 #     message(STATUS "${o}")
@@ -370,3 +380,5 @@ target_link_libraries(csm PRIVATE
 
 add_subdirectory(examples)
 add_subdirectory(tests)
+
+add_subdirectory(libflame)
