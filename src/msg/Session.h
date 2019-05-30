@@ -33,7 +33,7 @@ class Session : public RefCountedObject{
 
 public:
     explicit Session(MsgContext *c, msger_id_t peer)
-    : RefCountedObject(c), msg_context_(c), peer_msger_id(peer), 
+    : RefCountedObject(c), peer_msger_id(peer), 
      conns_mutex(MUTEX_TYPE_ADAPTIVE_NP),
      lp_mutex(MUTEX_TYPE_ADAPTIVE_NP){
         conns.reserve(4);

@@ -1057,7 +1057,6 @@ static void event_fn_post_send(void *arg1, void *arg2){
 }
 
 void RdmaConnection::post_send(RdmaSendWr *wr, bool more){
-    ML(mct, debug, " 0  Client Send Something");///////////////////??????????
     if(status != RdmaStatus::INIT
         && status != RdmaStatus::CAN_WRITE
         && wr){
@@ -1117,7 +1116,6 @@ void RdmaConnection::post_send(RdmaSendWr *wr, bool more){
     ibv_send_wr *bad_tx_wr = nullptr;
     uint32_t success_cnt = can_post_cnt;
     int eno = 0;
-    ML(mct, debug, " 2  Client Send Something");///////////////////??????????
     if (ibv_post_send(qp->get_qp(), tgt_wr, &bad_tx_wr)) {
         eno = errno;
         if(errno == ENOMEM){
