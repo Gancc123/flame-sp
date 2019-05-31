@@ -178,6 +178,15 @@ add_library(chunkstore-objs OBJECT
     )
 list(APPEND obj_modules chunkstore)
 
+### memory
+add_library(memory-objs OBJECT
+    memzone/BuddyAllocator.cc
+    memzone/memory_conf.cc
+    memzone/MemoryManager.cc
+    memzone/rdma_mz.cc
+    memzone/RdmaMem.cc
+    )
+list(APPEND obj_modules memory)
 
 #### msg
 set(msg_common_srcs
