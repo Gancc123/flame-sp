@@ -7,3 +7,5 @@ endmacro()
 
 add_subdirectory(msg)
 
+add_subdirectory(memzone)
+
