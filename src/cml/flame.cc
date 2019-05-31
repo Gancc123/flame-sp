@@ -35,7 +35,7 @@ static unique_ptr<FlameClientContext> make_flame_client_context() {
     FlameContext* fct = FlameContext::get_context();
 
     FlameClient* client = new FlameClientImpl(fct, grpc::CreateChannel(
-        "192.168.3.115:6666", grpc::InsecureChannelCredentials()
+        "192.168.3.112:6666", grpc::InsecureChannelCredentials()
     ));
     
     if (!client) {
