@@ -2,11 +2,11 @@
 #define FLAME_MEMZONE_RDMAMZ_H
 
 #include "include/buffer.h"
-#include "memzone/mz_types.h"
-#include "memzone/RdmaMem.h"
-#include "memzone/MemoryManager.h"
 #include "common/context.h"
 #include "msg/rdma/Infiniband.h"
+
+#include "memzone/mz_types.h"
+#include "memzone/rdma/RdmaMem.h"
 
 #include <cstdlib>
 
@@ -19,15 +19,16 @@ class RdmaAllocator;
 
 class RdmaAllocator : public BufferAllocator {
 private:
-    MemoryManager *mmgr;
+    RdmaBufferAllocator *allocator_ctx;
     void init(FlameContext *c, flame::msg::ib::ProtectionDomain *pd, MemoryConfig *_cfg);
 
 public:
     RdmaAllocator(FlameContext *c, flame::msg::ib::ProtectionDomain *pd, MemoryConfig *_cfg) {
         init(c, pd, _cfg);
     }
+    ~RdmaAllocator();
 
-    MemoryManager *get_mmgr() { return mmgr; }
+    RdmaBufferAllocator *get_allocator_ctx() const { return allocator_ctx; }
 
     virtual Buffer allocate(size_t sz) override;
     virtual int type() const override { return BufferTypes::BUFF_TYPE_RDMA; }
@@ -54,10 +55,10 @@ private:
 
 public:
     virtual ~RdmaBufferPtr() {
-        if(allocator) {
+        if(allocator && allocator->get_allocator_ctx()) {
             //allocator->mmgr->get_rdma_allocator()->free(rb);
             //std::cout << "free buffer" << std::endl;
-            allocator->get_mmgr()->get_rdma_allocator()->free(rb);
+            allocator->get_allocator_ctx()->free(rb);
         }
     }
 

@@ -1,5 +1,5 @@
-#ifndef FLAME_MSG_RDMA_LOCK_FREE_LIST_H
-#define FLAME_MSG_RDMA_LOCK_FREE_LIST_H
+#ifndef FLAME_MEMZONE_RDMA_LOCK_FREE_LIST_H
+#define FLAME_MEMZONE_RDMA_LOCK_FREE_LIST_H
 
 #include <atomic>
 #include <functional>
@@ -73,4 +73,4 @@ public:
 }// namespace memory
 }// namespace flame
 
-#endif //FLAME_MSG_RDMA_LOCK_FREE_LIST_H
+#endif //FLAME_MEMZONE_RDMA_LOCK_FREE_LIST_H
