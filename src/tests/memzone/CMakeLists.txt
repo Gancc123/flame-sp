@@ -1,4 +1,4 @@
-set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/bin/memzone")
+set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/bin/tests/memzone")
 
 add_executable(allocator_test
     allocator_test.cc

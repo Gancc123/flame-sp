@@ -3,6 +3,7 @@
 
 #include "acconfig.h"
 #include "util/clog.h"
+#include "util/fmt.h"
 #include "types.h"
 #include "msg/msg_def.h"
 
@@ -55,7 +56,7 @@ class MsgConfig{
     FlameContext *fct;
 
     void perr_arg(const std::string &v){
-        clog(v);
+        clog(fmt::format("load configure file error : {}", v));
     }
 
 public:

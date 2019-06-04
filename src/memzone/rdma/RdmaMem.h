@@ -1,20 +1,23 @@
-#ifndef FLAME_MEMORY_RDMA_RDMA_MEM_H
-#define FLAME_MEMORY_RDMA_RDMA_MEM_H
-
-#include "memzone/BuddyAllocator.h"
-#include "memzone/LockFreeList.h"
-#include "common/thread/mutex.h"
-#include "msg/msg_common.h"
+#ifndef FLAME_MEMZONE_RDMA_RDMA_MEM_H
+#define FLAME_MEMZONE_RDMA_RDMA_MEM_H
 
 #include <cassert>
 #include <map>
 #include <infiniband/verbs.h>
 
+#include "common/thread/mutex.h"
+#include "msg/msg_common.h"
+#include "msg/rdma/Infiniband.h"
+
+#include "memzone/rdma/BuddyAllocator.h"
+#include "memzone/rdma/LockFreeList.h"
+#include "memzone/rdma/memory_conf.h"
+
 namespace flame{
 namespace memory{
 namespace ib{
 
-class MemoryManager;
+class RdmaBufferAllocator;
 
 struct rdma_mem_header_t{
     uint32_t lkey;
@@ -46,10 +49,10 @@ public:
 };
 
 class RdmaMemSrc : public MemSrc{
-    MemoryManager *mmgr;
+    RdmaBufferAllocator *allocator_ctx;
     ibv_mr *mr;
 public:
-    explicit RdmaMemSrc(MemoryManager *m) : mmgr(m) { assert(mmgr); }
+    explicit RdmaMemSrc(RdmaBufferAllocator *c) : allocator_ctx(c) {}
     virtual void *alloc(size_t s) override;
     virtual void free(void *p) override;
     virtual void *prep_mem_before_return(void *p, void *base, size_t size) 
@@ -57,10 +60,13 @@ public:
 };
 
 class RdmaBufferAllocator{
-    MemoryManager *mmgr;
+    FlameContext *fct;
+    MemoryConfig *mem_cfg;
+    flame::msg::ib::ProtectionDomain *pd;
     LockFreeList lfl_allocators;
     uint8_t min_level;
     uint8_t max_level;
+
     static Mutex &mutex_of_allocator(BuddyAllocator *a){
         return *(reinterpret_cast<Mutex *>(a->extra_data));
     }
@@ -73,9 +79,10 @@ class RdmaBufferAllocator{
     int expand();
     // size_t shrink();
 public:
-    explicit RdmaBufferAllocator(MemoryManager *m) 
-    : mmgr(m), lfl_allocators(RdmaBufferAllocator::delete_cb) { 
-        assert(mmgr); 
+    explicit RdmaBufferAllocator(FlameContext *c, MemoryConfig *cfg, 
+                                    flame::msg::ib::ProtectionDomain *p) 
+    : fct(c), mem_cfg(cfg), pd(p),
+      lfl_allocators(RdmaBufferAllocator::delete_cb) { 
     }
 
     int init();
@@ -90,10 +97,14 @@ public:
     size_t get_mem_used() const;
     size_t get_mem_reged() const;
     int get_mr_num() const;
+
+    FlameContext *get_fct() const { return fct; }
+    MemoryConfig *get_mem_cfg() const { return mem_cfg; }
+    flame::msg::ib::ProtectionDomain *get_pd() const { return pd; }
 };
 
 } //namespace ib
 } //namespace memory
 } //namespace flame
 
-#endif //FLAME_MSG_RDMA_RDMA_MEM_H
+#endif //FLAME_MEMZONE_RDMA_RDMA_MEM_H

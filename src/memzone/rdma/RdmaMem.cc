@@ -1,15 +1,6 @@
-#include "memzone/RdmaMem.h"
-#include "memzone/MemoryManager.h"
-#include "memzone/log_memory.h"
-#include "acconfig.h"
-
-#include "msg/internal/errno.h"
-
-#ifdef ON_SW_64
-    #define RDMA_MEM_MAX_LEVEL_MIN 23
-#else
-    #define RDMA_MEM_MAX_LEVEL_MIN 21
-#endif
+#include "memzone/rdma/RdmaMem.h"
+#include "memzone/rdma/rdma_mz_log.h"
+#include "util/spdk_common.h"
 
 namespace flame{
 namespace memory{
@@ -25,32 +16,30 @@ RdmaBuffer::RdmaBuffer(void *ptr, BuddyAllocator *a)
 }
 
 void *RdmaMemSrc::alloc(size_t s) {
-    void *m = mmgr->malloc(s);
-    //FlameContext *fct = mmgr->fct;
+    auto fct = allocator_ctx->get_fct();
+    void *m = spdk_malloc(s, 4096, NULL,
+                            SPDK_ENV_SOCKET_ID_ANY,
+                            SPDK_MALLOC_DMA | SPDK_MALLOC_SHARE);
 
     if(!m){
-        mmgr->fct->log()->lerror("RdmaMemSrc failed to allocate {} B fo mem.", s);
-        //MLI(mmgr->mct, error, "RdmaMemSrc failed to allocate {} B of mem.", s);
+        FL(fct, error, "RdmaMemSrc failed to allocate {} B of mem.", s);
         return nullptr;
     }
     // When huge page memory's unit is 2MB(on intel),
     // even s < 2MB, m will be at least 2MB.
     // But when reg m(2MB) with s(s < 2MB), ibv_reg_mr give an error????
-    mr = ibv_reg_mr(mmgr->get_pd()->pd, m, s, 
+    mr = ibv_reg_mr(allocator_ctx->get_pd()->pd, m, s, 
                         IBV_ACCESS_LOCAL_WRITE
                         | IBV_ACCESS_REMOTE_WRITE
                         | IBV_ACCESS_REMOTE_READ);
 
     if(mr == nullptr){
-        //MLI(mmgr->mct, error, "RdmaMemSrc failed to register {} B of mem: {}",
-        //        s, cpp_strerror(errno));
-        mmgr->fct->log()->lerror("RdmaMemSrc failed to register {} B of mem: {}", 
+        FL(fct, error, "RdmaMemSrc failed to register {} B of mem: {}", 
                     s, strerror(errno));
-        mmgr->free(m);
+        spdk_free(m);
         return nullptr;
     }else{
-        mmgr->fct->log()->linfo("RdmaMemSrc register {} B of mem", s);
-        //MLI(mmgr->mct, info, "RdmaMemSrc register {} B of mem", s);
+        FL(fct, info, "RdmaMemSrc register {} B of mem", s);
     }
 
     return m;
@@ -58,7 +47,7 @@ void *RdmaMemSrc::alloc(size_t s) {
 
 void RdmaMemSrc::free(void *p) {
     ibv_dereg_mr(mr);
-    mmgr->free(p);
+    spdk_free(p);
 }
 
 void *RdmaMemSrc::prep_mem_before_return(void *p, void *base, size_t size) {
@@ -70,7 +59,7 @@ void *RdmaMemSrc::prep_mem_before_return(void *p, void *base, size_t size) {
 }
 
 int RdmaBufferAllocator::expand(){
-    auto mem_src = new RdmaMemSrc(mmgr);
+    auto mem_src = new RdmaMemSrc(this);
     if(!mem_src){
         return -1;
     }
@@ -79,8 +68,7 @@ int RdmaBufferAllocator::expand(){
         delete mem_src;
         return -1;
     }
-    auto allocator = BuddyAllocator::create(mmgr->fct, max_level, min_level,
-                                                                     mem_src);
+    auto allocator = BuddyAllocator::create(fct, max_level, min_level, mem_src);
     if(!allocator){
         delete mem_src;
         delete m;
@@ -95,22 +83,8 @@ int RdmaBufferAllocator::expand(){
 }
 
 int RdmaBufferAllocator::init(){
-    min_level = mmgr->mem_cfg->rdma_mem_min_level;
-    max_level = mmgr->mem_cfg->rdma_mem_max_level;
-    if(max_level < RDMA_MEM_MAX_LEVEL_MIN 
-        && mmgr->mem_cfg->rdma_enable_hugepage){
-        //ML(mmgr->mct, error, "When use hugepage, (1 << max_level) can't be less"
-        //    " than hugepage size. Or ibv_reg_mr() will fail, when reg a memory "
-        //    "(real size > huge_page_size) with s (reg size < huge_page_size). "
-        //    "Don't know the reason! rdma_mem_max_level: {} < {}, too small.", 
-        //    max_level, RDMA_MEM_MAX_LEVEL_MIN);
-        mmgr->fct->log()->lerror( "When use hugepage, (1 << max_level) can't be less"
-            " than hugepage size. Or ibv_reg_mr() will fail, when reg a memory "
-            "(real size > huge_page_size) with s (reg size < huge_page_size). "
-            "Don't know the reason! rdma_mem_max_level: {} < {}, too small.", 
-            max_level, RDMA_MEM_MAX_LEVEL_MIN);
-        return -1;
-    }
+    min_level = mem_cfg->rdma_mem_min_level;
+    max_level = mem_cfg->rdma_mem_max_level;
     return expand(); // first expand;
 }
 
@@ -267,5 +241,5 @@ int RdmaBufferAllocator::get_mr_num() const{
 
 
 } //namespace ib
-} //namespace msg
+} //namespace memory
 } //namespace flame

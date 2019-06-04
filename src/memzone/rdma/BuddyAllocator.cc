@@ -1,7 +1,7 @@
-#include "memzone/BuddyAllocator.h"
-#include "util/fmt.h"
+#include "memzone/rdma/BuddyAllocator.h"
+#include "memzone/rdma/rdma_mz_log.h"
 #include "common/context.h"
-#include "memzone/log_memory.h"
+#include "util/fmt.h"
 
 #define FLAME_BUDDY_ALLOCAOTR_MIN_LEVEL     (4)
 #define FLAME_BUDDY_ALLOCAOTR_MAX_LEVELS    (32)
@@ -19,15 +19,13 @@ BuddyAllocator *BuddyAllocator::create(FlameContext *c,
     if(max_level < min_level 
         || min_level < FLAME_BUDDY_ALLOCAOTR_MIN_LEVEL
         || levels > FLAME_BUDDY_ALLOCAOTR_MAX_LEVELS){
-        //ML(c, error, "min_level is too small or max_level is too large");
-        //c->log()->lerror("min_level is to small or max_level is to large");
+        FL(c, error, "min_level is too small or max_level is too large");
         return nullptr;
     }
 
     char *base = reinterpret_cast<char *>(src->alloc(1ULL << max_level));
     if(!base){
-        //c->log()->lerror("mem_src->alloc( {}B ) failed! ", 1ULL << max_level);
-        //ML(c, error, "mem_src->alloc( {}B ) failed! ", 1ULL << max_level);
+        FL(c, error, "mem_src->alloc( {}B ) failed! ", 1ULL << max_level);
         return nullptr;
     }
 
