@@ -53,6 +53,7 @@ static void msg_run(void *arg1, void *arg2){
                                          mct->config->msger_id.port);
 
     clog("app init done.");
+    clog("type CTRL+C to quit.");
 }
 
 int main(int argc, char *argv[]){

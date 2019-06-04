@@ -215,6 +215,7 @@ int MsgContext::fin(){
                 ML(this, trace, "##### msg manager stop end #####");
                 
                 if(this->clear_done_cb){
+                    ML(this, trace, "##### call clear_done_cb() #####");
                     this->clear_done_cb(this->clear_done_arg1,
                                         this->clear_done_arg2);
                 }else{
@@ -247,6 +248,7 @@ int MsgContext::fin(){
             next_ready = true;
         }else if(this->state == msg_module_state_t::FIN){
             if(this->fin_cb){
+                ML(this, trace, "##### call fin_cb() #####");
                 this->fin_cb(this->fin_arg1, this->fin_arg2);
             }
             break; //fin() is done.

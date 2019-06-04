@@ -1,20 +1,32 @@
 #include "memzone/rdma_mz.h"
-#include "memzone/MemoryManager.h"
+#include "memzone/rdma/RdmaMem.h"
 #include "msg/rdma/Infiniband.h"
-#include "memzone/RdmaMem.h"
 
 using namespace flame::memory;
 using namespace flame::memory::ib;
-using namespace flame::msg::ib;
 
 namespace flame {
 
-void RdmaAllocator::init(FlameContext *fct, ProtectionDomain *p, MemoryConfig *_cfg) {
-    mmgr = new flame::memory::ib::MemoryManager(fct, p, _cfg);
+void RdmaAllocator::init(FlameContext *fct, flame::msg::ib::ProtectionDomain *p, MemoryConfig *_cfg) {
+    allocator_ctx = new flame::memory::ib::RdmaBufferAllocator(fct, _cfg, p);
+    assert(allocator_ctx);
+    int r = allocator_ctx->init();
+    assert(r == 0);
+}
+
+RdmaAllocator::~RdmaAllocator(){
+    if(allocator_ctx){
+        allocator_ctx->fin();
+        delete allocator_ctx;
+        allocator_ctx = nullptr;
+    }
 }
 
 Buffer RdmaAllocator::allocate(size_t sz) {
-    RdmaBuffer *rb = mmgr->get_rdma_allocator()->alloc(sz);
+    RdmaBuffer *rb = nullptr;
+    if(allocator_ctx){
+        rb = allocator_ctx->alloc(sz);
+    }
     return rb == nullptr ? Buffer() : 
                         Buffer(std::shared_ptr<BufferPtr>(new RdmaBufferPtr(rb, this)));
 }
