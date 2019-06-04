@@ -26,7 +26,7 @@ enum class util_log_level_t : int8_t{
 #define FL(fct, level, fmt_, ...)\
     do{\
         if((fct) && \
-            (fct)->log()->get_level() <= (int)flame::util_log_level_t::level)\
+            (int)flame::util_log_level_t::level <= (fct)->log()->get_level())\
             (fct)->log()->UTIL_LOG_HELPER_LOG_COMMON(level, \
                                     fmt::format(fmt_, ## __VA_ARGS__).c_str());\
     }while(0)
