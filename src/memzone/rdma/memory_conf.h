@@ -13,10 +13,6 @@
 #define FLAME_MEMORY_RDMA_MEM_MIN_LEVEL_D    "12"
 #define FLAME_MEMORY_RDMA_MEM_MAX_LEVEL_D    "28"
 
-#ifdef ON_SW_64
-    #define FLAME_MEMORY_RDMA_HUGEPAGE_SIZE_D "8M"
-#endif 
-
 namespace flame {
 namespace memory {
 
