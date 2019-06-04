@@ -58,9 +58,8 @@ int PollLayout::get_next_csd(uint64_t& csd_id, const uint64_t& chk_sz) {
         }
         fct->log()->ltrace("layout","it_ != csd_info_.end()");
         fct->log()->ltrace("layout","it_->first=%llu,it_->second=%llu,chk_sz=%llu,csdm_->find(it_->first)->is_active()=%d",it_->first,it_->second,chk_sz,csdm_->find(it_->first)->is_active());
-		fct->log()->ltrace("layout","csd_info_[it_->first]=%d",csd_info_[it_->first]);
-		sleep(3);
-        if (csd_info_[it_->first] >= chk_sz && csdm_->find(it_->first)->is_active()) {//应该是csd_info_[it_->first]吧!!之前是csd_info_[it_->second]错
+		fct->log()->ltrace("layout","it_->second=%llu",it_->second);
+        if (it_->second >= chk_sz && csdm_->find(it_->first)->is_active()) {
             csd_id = it_->first;
             csd_info_[csd_id] -= chk_sz;
             ++it_;

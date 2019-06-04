@@ -15,6 +15,11 @@
 #define CACHE_LINE_SIZE     (1U << CACHE_LINE_SHIFT)
 
 #include <stdint.h>
+#include <queue>
+#include <map>
+
+#include "msg/msg_core.h"
+#include "libflame/libchunk/log_libchunk.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -132,11 +137,39 @@ public:
     virtual void copy(void* buff) = 0;
 
     /**
+     * @brief Get cmd_t
+     * 
+     * @return cmd_t 
+     */
+    inline cmd_t get_cmd() const { return *cmd_; }
+
+    /**
      * @brief Get Command Number
      * 
      * @return uint16_t 
      */
     inline uint16_t get_num() const { return *(uint16_t*)&cmd_->hdr.cn; }
+
+    /**
+     * @brief Get Command Number
+     * 
+     * @return uint16_t 
+     */
+    inline cmd_num_t get_cn() const { return cmd_->hdr.cn; }
+
+    /**
+     * @brief Get Command Class
+     * 
+     * @return uint16_t 
+     */
+    inline uint8_t get_cls() const { return *(uint16_t*)&cmd_->hdr.cn.cls; }
+
+    /**
+     * @brief Get Command Sequence
+     * 
+     * @return uint16_t 
+     */
+    inline uint8_t get_seq() const { return *(uint16_t*)&cmd_->hdr.cn.seq; }
 
     /**
      * @brief Get Command Queue Group
@@ -255,7 +288,7 @@ public:
      * 
      * @param buff 
      */
-    virtual void copy(void* buff) = 0;
+    // virtual void copy(void* buff) = 0;
 
     /**
      * @brief Get Command Number
@@ -263,6 +296,13 @@ public:
      * @return uint16_t 
      */
     inline uint16_t get_num() const { return *(uint16_t*)&res_->hdr.cn; }
+
+    /**
+     * @brief Get Command Number type cmd_num_t
+     * 
+     * @return uint16_t 
+     */
+    inline cmd_num_t get_num_t() const { return res_->hdr.cn; }
 
     /**
      * @brief Get Command Queue Group
@@ -331,11 +371,12 @@ public:
      */
     inline void* get_content() const { return res_->cont; }
 
-    inline void cpy_hdr(const Command& cmd) {
-        res_->hdr.cn = cmd.cmd_->hdr.cn;
-        res_->hdr.cqg = cmd.cmd_->hdr.cqg;
-        res_->hdr.cqn = cmd.cmd_->hdr.cqn;
-        res_->hdr.flg = cmd.cmd_->hdr.flg;
+    inline void cpy_hdr(const Command& command) {
+        res_->hdr.cn.cls = command.get_cls();
+        res_->hdr.cn.seq = command.get_seq(); 
+        res_->hdr.cqg = command.get_cqg();
+        res_->hdr.cqn = command.get_cqn();
+        // res_->hdr.flg = command.get
     }
 
 protected:
@@ -393,7 +434,7 @@ protected:
     cmd_res_t* res_;
 }; // class Response
 
-class MemroyArea {
+class MemoryArea {
 public:
     /**
      * @brief 是否可直接用于DMA/RDMA传输
@@ -439,52 +480,74 @@ public:
     virtual cmd_ma_t get() const = 0;
 
 protected:
-    MemroyArea() {}
-    virtual ~MemroyArea() {}
-};
+    MemoryArea() {}
+    virtual ~MemoryArea() {}
+};//class MemoryArea
 
-typedef void(cmd_cb_fn_t*)(const Response& res, void* arg);
+typedef void(*cmd_cb_fn_t)(const Response& res, void* arg);
+class RdmaWorkRequest;
+
+struct MsgCallBack{
+    cmd_cb_fn_t cb_fn;
+    void* cb_arg;
+};
 
 class CmdClientStub {
 public:
-    static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port);
+    // static std::shared_ptr<CmdClientStub> create_stub(std::string ip_addr, int port) = 0;
+    virtual std::map<uint32_t, MsgCallBack>& get_cb_map() = 0;
 
-    int submit(const Command& cmd, cmd_cb_fn_t* cb_fn, void* cb_arg);
-
+    virtual int submit(RdmaWorkRequest& req, cmd_cb_fn_t cb_fn, void* cb_arg) = 0;
 protected:
     CmdClientStub() {}
     ~CmdClientStub() {}
-}; // class CommandStub
+    // std::queue<MsgCallBack> msg_cb_q_;
+    std::map<uint32_t, MsgCallBack> msg_cb_map_;
+ 
+}; // class CommandStub 
 
-class CmdServerStub;
-
-typedef void (cmd_svi_fn_t*)(const CommandServer* srv, const Command& cmd);
 
 class CmdService {
 public:
-    virtual void call(const CmdServerStub& srv, const Command& cmd) = 0;
+    virtual int call(RdmaWorkRequest *req) = 0;
 
 protected:
     CmdService() {}
     virtual ~CmdService() {}
-}; // class CommandService
+}; // class CmdService
 
 class CmdServiceMapper {
 public:
-    void register_service(uint8_t cmd_cls, uint8_t cmd_num, CmdService* svi);
-private:
+    CmdServiceMapper(){}
 
+    ~CmdServiceMapper(){}
+
+    static CmdServiceMapper* g_cmd_service_mapper;
+
+    static CmdServiceMapper* get_cmd_service_mapper(){
+        if (g_cmd_service_mapper == nullptr) {
+            g_cmd_service_mapper = new CmdServiceMapper();
+        }
+        return CmdServiceMapper::g_cmd_service_mapper; 
+    }
+
+    void register_service(uint8_t cmd_cls, uint8_t cmd_num, CmdService* svi);
+
+    CmdService* get_service(uint8_t cmd_cls, uint8_t cmd_num);
+private:
+    std::map<uint16_t, CmdService*> service_mapper_;
 }; // class CmdServiceMapper
 
 class CmdServerStub {
 public:
     
-    int call_service()
+    int call_service();
 
 protected:
     CmdServerStub() {}
     virtual ~CmdServerStub() {}
-}; // class CommandServer
+}; // class CmdServerStub
+
 
 } // namespace flame
 
