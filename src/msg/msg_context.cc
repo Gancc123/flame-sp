@@ -5,7 +5,6 @@
 #include "Message.h"
 #include "Stack.h"
 #include "MsgManager.h"
-#include "msg/dispatcher/MsgDispatcher.h"
 
 #ifdef HAVE_RDMA
     #include "msg/rdma/RdmaStack.h"
