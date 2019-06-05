@@ -123,6 +123,13 @@ void Request::run(){
             switch(status){
             case RECV_DONE:
                 ML(mct, info, "Recv from client: {}", data->count);
+                ML(mct, info, "{} raddr: {:x}, rkey: {:x}, "
+                                "laddr: {:x}, lkey:{:x}, len:{}",
+                                data->is_read?"READ":"WRITE",
+                                data->raddr, data->rkey,
+                                data_sge.addr,
+                                data_sge.lkey,
+                                data_sge.length);
 
                 send_wr.sg_list = &data_sge;
                 send_wr.opcode = data->is_read ? 

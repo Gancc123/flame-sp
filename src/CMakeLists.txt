@@ -204,8 +204,7 @@ set(msg_common_srcs
     msg/MsgManager.cc
     msg/socket/TcpListenPort.cc
     msg/socket/TcpConnection.cc
-    msg/socket/TcpStack.cc
-    msg/dispatcher/MsgDispatcher.cc)
+    msg/socket/TcpStack.cc)
 
 set(msg_rdma_common_srcs)
 if(HAVE_RDMA)
@@ -241,7 +240,6 @@ add_library(msg-objs OBJECT
     msg/socket/TcpListenPort.cc
     msg/socket/TcpConnection.cc
     msg/socket/TcpStack.cc
-    msg/dispatcher/MsgDispatcher.cc
     ${msg_common_srcs}
     ${msg_rdma_common_srcs}
     ${msg_spdk_srcs}
@@ -389,7 +387,6 @@ target_link_libraries(csm PRIVATE
     ${flame_grpc_deps}
     )
 
-add_subdirectory(examples)
 add_subdirectory(tests)
 
 add_subdirectory(libflame)
