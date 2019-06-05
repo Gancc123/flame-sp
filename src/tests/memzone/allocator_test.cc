@@ -29,7 +29,7 @@ static void test_start(void *arg1, void *arg2) {
     FlameContext *fct = tctx->fct;
     MsgContext *mct = tctx->mct;
     
-    mct->init(tctx->rdma_msger, nullptr);
+    mct->init(tctx->rdma_msger);
 
     std::cout << "mct init success..." << std::endl;
 
